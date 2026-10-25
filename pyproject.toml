@@ -1,0 +1,15 @@
+# Configuración de herramientas Python (módulo analytics, CMP-ANA)
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = [".venv", "src", "database"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sitbio_analytics"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/analytics"]
+pythonpath = ["analytics"]

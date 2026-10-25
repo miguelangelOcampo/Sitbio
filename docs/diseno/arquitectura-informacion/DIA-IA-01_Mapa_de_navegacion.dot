@@ -1,0 +1,47 @@
+// DIA-IA-01 v1.1 (23/10/2026): navegación agrupada por función (DD-012) e identidad verde (DD-010); ajuste 24/10/2026: alcance del rol AC-01
+digraph SITBIO_IA {
+  graph [rankdir=LR, splines=ortho, nodesep=0.18, ranksep=0.55, fontname="Liberation Sans", bgcolor="white", pad=0.2];
+  node  [shape=box, style="rounded,filled", fontname="Liberation Sans", fontsize=11, color="#7F887F", fillcolor="#FFFFFF", fontcolor="#252B27", margin="0.12,0.06"];
+  edge  [color="#7F887F", arrowsize=0.6];
+
+  login [label="UI-001 Inicio de sesión\n(UI-002 Cambio de contraseña)", fillcolor="#E3EFD6", color="#245B3B"];
+  shell [label="Shell: menú lateral + barra superior\n(búsqueda global, tema, alertas UI-016, perfil)", fillcolor="#245B3B", fontcolor="#FFFFFF", color="#1C4A2F"];
+  login -> shell;
+
+  gen [label="General", fillcolor="#E3EFD6", color="#245B3B"];
+  gb  [label="Gestión biomédica", fillcolor="#E3EFD6", color="#245B3B"];
+  sol [label="Solicitudes", fillcolor="#E3EFD6", color="#245B3B"];
+  ana [label="Análisis", fillcolor="#E3EFD6", color="#245B3B"];
+  adm [label="Administración", fillcolor="#E3EFD6", color="#245B3B"];
+  shell -> {gen gb sol ana adm};
+
+  u3 [label="UI-003 Dashboard por rol\nTodos los roles"];
+  gen -> u3;
+
+  u5  [label="UI-005 Equipos biomédicos\nAC-01 a AC-05 · AC-07"];
+  u6  [label="UI-006 Detalle del equipo\n(resumen, técnica, mantenimientos, historial, documentos)"];
+  u7  [label="UI-007 Registro y edición de equipo\nAC-02"];
+  u8  [label="UI-008 Importación masiva\nAC-01"];
+  u12 [label="UI-012 Órdenes de trabajo\nAC-01 · AC-02 · AC-03 · AC-07"];
+  u13 [label="UI-013 Registro de intervención\nAC-03"];
+  u14 [label="UI-014 Aprobación y firma\nAC-02"];
+  man [label="Mantenimientos\nUI-015 Planes preventivos · UI-017 Calibraciones"];
+  his [label="Historial de intervenciones\n(línea de tiempo de UI-006)"];
+  gb -> {u5 u12 man his};
+  u5 -> u6; u5 -> u7; u5 -> u8; u12 -> u13; u12 -> u14;
+
+  u9  [label="UI-009 Reportar falla\nAC-02 · AC-04"];
+  u10 [label="UI-010 Seguimiento de tiquetes\nAC-01 a AC-04 · AC-07"];
+  u11 [label="UI-011 Bandeja y asignación\nAC-02"];
+  sol -> {u9 u10 u11};
+
+  u21 [label="UI-021 Reportes e indicadores\nAC-01 · AC-02 · AC-05 · AC-06 · AC-07"];
+  u22 [label="UI-022 Exportación\nAC-01 · AC-02 · AC-05 · AC-07"];
+  u23 [label="UI-023 Analítica y K-Means\nAC-02 · AC-05 · AC-06 · AC-07"];
+  ana -> {u21 u22 u23};
+
+  u4  [label="UI-004 Usuarios y roles\nAC-01"];
+  cfg [label="Configuración\nUI-019 Institución · UI-020 Catálogos · UI-018 Campos dinámicos\nAC-01 (AC-02 consulta)"];
+  u24 [label="UI-024 Auditoría\nAC-01 · AC-07"];
+  adm -> {u4 cfg u24};
+}

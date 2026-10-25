@@ -1,0 +1,41 @@
+<!-- Tema claro (DOC-05, sistema de diseño). Mismas claves en Light.xaml y Dark.xaml; se intercambian en tiempo de ejecución. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <SolidColorBrush x:Key="Brush.Background" Color="#F4F6F0" />
+  <SolidColorBrush x:Key="Brush.Nav" Color="#EDF1E8" />
+  <SolidColorBrush x:Key="Brush.Surface" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Surface2" Color="#EDF1E8" />
+  <SolidColorBrush x:Key="Brush.Surface3" Color="#F7F9F4" />
+  <SolidColorBrush x:Key="Brush.Elevated" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Primary" Color="#245B3B" />
+  <SolidColorBrush x:Key="Brush.PrimaryHover" Color="#1C4A2F" />
+  <SolidColorBrush x:Key="Brush.OnPrimary" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.Action" Color="#A9D86E" />
+  <SolidColorBrush x:Key="Brush.ActionHover" Color="#9BCF5C" />
+  <SolidColorBrush x:Key="Brush.OnAction" Color="#1B3A26" />
+  <SolidColorBrush x:Key="Brush.Secondary" Color="#4C956C" />
+  <SolidColorBrush x:Key="Brush.Jade" Color="#159E91" />
+  <SolidColorBrush x:Key="Brush.PrimarySoft" Color="#E3EFD6" />
+  <SolidColorBrush x:Key="Brush.Text" Color="#252B27" />
+  <SolidColorBrush x:Key="Brush.Text2" Color="#5F675F" />
+  <SolidColorBrush x:Key="Brush.Text3" Color="#8A928A" />
+  <SolidColorBrush x:Key="Brush.Border" Color="#E1E7DD" />
+  <SolidColorBrush x:Key="Brush.BorderStrong" Color="#CDD6C8" />
+  <SolidColorBrush x:Key="Brush.BorderControl" Color="#7F887F" />
+  <SolidColorBrush x:Key="Brush.Success" Color="#23845B" />
+  <SolidColorBrush x:Key="Brush.SuccessText" Color="#1D6E4B" />
+  <SolidColorBrush x:Key="Brush.SuccessSoft" Color="#E5F3EB" />
+  <SolidColorBrush x:Key="Brush.Warning" Color="#C68125" />
+  <SolidColorBrush x:Key="Brush.WarningText" Color="#8A5711" />
+  <SolidColorBrush x:Key="Brush.WarningSoft" Color="#FBF0DF" />
+  <SolidColorBrush x:Key="Brush.Danger" Color="#D84B4B" />
+  <SolidColorBrush x:Key="Brush.DangerText" Color="#B33636" />
+  <SolidColorBrush x:Key="Brush.DangerSoft" Color="#FBE7E5" />
+  <SolidColorBrush x:Key="Brush.Info" Color="#4386C7" />
+  <SolidColorBrush x:Key="Brush.InfoText" Color="#2E6AA3" />
+  <SolidColorBrush x:Key="Brush.InfoSoft" Color="#E6F0FA" />
+  <SolidColorBrush x:Key="Brush.High" Color="#D06A2E" />
+  <SolidColorBrush x:Key="Brush.HighText" Color="#A34E1C" />
+  <SolidColorBrush x:Key="Brush.HighSoft" Color="#FCEDE2" />
+  <SolidColorBrush x:Key="Brush.Focus" Color="#245B3B" />
+</ResourceDictionary>

@@ -1,0 +1,25 @@
+<Window x:Class="Sitbio.Desktop.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+        Title="{Binding Titulo}"
+        Width="1280"
+        Height="800"
+        MinWidth="1024"
+        MinHeight="700"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource Brush.Background}"
+        Foreground="{DynamicResource Brush.Text}"
+        FontFamily="{StaticResource Font.Ui}">
+  <Window.DataContext>
+    <vm:MainViewModel />
+  </Window.DataContext>
+  <Grid>
+    <Border Style="{StaticResource Card}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="440">
+      <StackPanel>
+        <TextBlock Text="SITBIO" FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Primary}" />
+        <TextBlock Text="{Binding Mensaje}" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text2}" />
+      </StackPanel>
+    </Border>
+  </Grid>
+</Window>

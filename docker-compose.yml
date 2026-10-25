@@ -1,0 +1,38 @@
+# Bases de datos para desarrollo local (DEP-DEV). Las credenciales salen de .env.
+name: sitbio
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: sitbio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database:/sitbio-db:ro
+      - ./database/docker/postgres-init.sh:/docker-entrypoint-initdb.d/00-sitbio.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d sitbio_dev"]
+      interval: 10s
+      retries: 5
+
+  mongo:
+    image: mongo:7
+    container_name: sitbio-mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+      - ./database/02_MongoDB_SITBIO.js:/docker-entrypoint-initdb.d/02-sitbio.js:ro
+
+volumes:
+  pgdata:
+  mongodata:

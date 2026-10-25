@@ -1,0 +1,11 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Authors>Equipo SITBIO - SENA CTMA</Authors>
+    <Product>SITBIO</Product>
+    <Version>0.1.0</Version>
+    <NeutralLanguage>es-CO</NeutralLanguage>
+  </PropertyGroup>
+</Project>

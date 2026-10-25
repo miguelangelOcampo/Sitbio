@@ -1,0 +1,42 @@
+# Compilación .NET
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+publish/
+artifacts/
+*.user
+*.suo
+*.userprefs
+.vs/
+.vscode/
+.idea/
+TestResults/
+coverage*.xml
+*.coverage
+*.nupkg
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Configuración local y secretos (SEC-008)
+.env
+appsettings.*.local.json
+secrets.json
+
+# Datos locales
+/storage/
+*.log
+
+# Sistema operativo
+Thumbs.db
+Desktop.ini
+.DS_Store

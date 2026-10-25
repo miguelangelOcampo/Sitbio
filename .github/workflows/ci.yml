@@ -1,0 +1,47 @@
+# Integración continua (DOC-06 13.2): compila, revisa formato y ejecuta las pruebas en cada pull request.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  dotnet:
+    name: .NET (build, formato y pruebas)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restaurar
+        run: dotnet restore SITBIO.sln
+      - name: Formato
+        run: dotnet format whitespace SITBIO.sln --verify-no-changes
+      - name: Compilar
+        run: dotnet build SITBIO.sln --no-restore --configuration Release
+      - name: Pruebas
+        run: dotnet test SITBIO.sln --no-build --configuration Release --collect:"XPlat Code Coverage" --results-directory TestResults
+      - name: Publicar cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: TestResults/**/coverage.cobertura.xml
+
+  python:
+    name: Analytics (ruff y pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar dependencias
+        run: pip install -r analytics/requirements.txt -r analytics/requirements-dev.txt
+      - name: Ruff
+        run: ruff check . && ruff format --check analytics tests
+      - name: Pytest
+        run: pytest

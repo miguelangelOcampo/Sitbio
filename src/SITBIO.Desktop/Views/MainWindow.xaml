@@ -14,12 +14,12 @@
   <Window.DataContext>
     <vm:MainViewModel />
   </Window.DataContext>
-  <Grid>
-    <Border Style="{StaticResource Card}" HorizontalAlignment="Center" VerticalAlignment="Center" Width="440">
-      <StackPanel>
-        <TextBlock Text="SITBIO" FontSize="28" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Primary}" />
-        <TextBlock Text="{Binding Mensaje}" Margin="0,8,0,0" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text2}" />
-      </StackPanel>
-    </Border>
+  <Grid Margin="48">
+    <StackPanel MaxWidth="520" HorizontalAlignment="Left" VerticalAlignment="Center">
+      <TextBlock Text="SITBIO" Style="{StaticResource PageTitle}" Foreground="{DynamicResource Brush.Primary}" />
+      <Border Style="{StaticResource Section}" Margin="0,16,0,0">
+        <TextBlock Text="{Binding Mensaje}" Style="{StaticResource Muted}" />
+      </Border>
+    </StackPanel>
   </Grid>
 </Window>

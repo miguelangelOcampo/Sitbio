@@ -1,21 +1,22 @@
+using Sitbio.Api;
+using Sitbio.Api.Errores;
 using Sitbio.Api.Modules.Salud;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddProblemDetails();
+builder.Services.AddManejoErrores();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+app.UseManejoErrores();
 
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
 
-app.UseExceptionHandler();
-app.UseStatusCodePages();
-
-var api = app.MapGroup("/api/v1");
+var api = app.MapGroup(RutasApi.V1);
 api.MapSalud();
 
 app.Run();

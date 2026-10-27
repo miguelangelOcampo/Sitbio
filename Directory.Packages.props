@@ -11,6 +11,7 @@
   <ItemGroup Label="Persistencia">
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageVersion Include="MongoDB.Driver" Version="3.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup Label="Reportes (ADR-009)">
     <PackageVersion Include="QuestPDF" Version="2024.12.3" />

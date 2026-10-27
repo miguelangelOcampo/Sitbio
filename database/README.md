@@ -5,6 +5,7 @@
 | `01_PostgreSQL_SITBIO.sql` | Esquema relacional `sitbio` (16 tablas, vistas y catálogos iniciales). |
 | `02_MongoDB_SITBIO.js` | Colecciones `intervenciones`, `configuracion_campos` y `bitacora_auditoria` con validación e índices. |
 | `V002__planes_y_solicitudes.sql` | Campos del plan en `tenant` (RN-009, DT-009) y tabla `solicitud_servicio` (RF-029, DT-010). |
+| `V003__plan_consultorio.sql` | Plan Consultorio y nuevo almacenamiento: Clínica 25 GB, Hospital 100 GB (RN-009, DOC-01 Tabla 4). |
 | `docker/postgres-init.sh` | Ejecuta el script 01 y las migraciones al crear el contenedor. |
 
 Reglas (ADR-005):

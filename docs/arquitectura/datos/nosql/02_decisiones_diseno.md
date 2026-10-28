@@ -14,6 +14,6 @@
 
 ## Decisión 3. Desnormalización con Snapshot Histórico (`equipo_snapshot`)
 
-* **Técnica:** Copia inalterable de los atributos `nombre`, `marca`, `modelo` y `ubicacion_al_intervenir` dentro del documento de la intervención.
+* **Técnica:** Copia inalterable de los atributos `nombre`, `marca`, `modelo`, `tipo_equipo` y `ubicacion` (más `capturado_en`) dentro del documento de la intervención, capturada al firmar la orden (ver `04_modelo_y_decisiones.md`, decisión B).
 
 * **Justificación:** Si un equipo es reubicado o renombrado en PostgreSQL meses después de una intervención, el registro histórico debe conservar la información del activo tal como se encontraba en el momento del mantenimiento. Esta desnormalización garantiza la trazabilidad histórica y evita que los cambios posteriores en los datos maestros alteren el contexto de las intervenciones ya registradas.

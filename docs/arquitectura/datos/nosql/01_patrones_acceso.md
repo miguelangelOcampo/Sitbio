@@ -4,7 +4,7 @@
 
 * **Q01. Metadatos de Campos Dinámicos:** Obtener la configuración de campos según `tenant_id` y `tipo_equipo_id` (INT) para renderizar el formulario dinámico en C# WPF.
 
-* **Q02. Línea de Tiempo por Equipo:** Consultar el historial de intervenciones de un activo mediante `tenant_id` y `equipo_id` (UUID), ordenado por `fecha_registro` en orden descendente.
+* **Q02. Línea de Tiempo por Equipo:** Consultar el historial de intervenciones de un activo mediante `tenant_id` y `equipo_id` (UUID), ordenado por `fecha_intervencion` en orden descendente.
 
 * **Q03. Detalle por Orden de Trabajo:** Obtener la intervención asociada a una orden de trabajo mediante `tenant_id` y `orden_id` (UUID).
 

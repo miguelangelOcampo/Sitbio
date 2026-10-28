@@ -22,7 +22,7 @@ Los nombres y tipos coinciden con el validador `$jsonSchema` de `database/02_Mon
 | `repuestos[].costo_unitario` | Double | No | No | No (se omite si no aplica) | Costo por unidad en COP. |
 | `costo_total` | Double | No | Sí | No | Costo total en COP, mayor o igual a 0. El script usa `double`, no Decimal128: suficiente para sumar costos en pesos, pero no para operaciones contables exactas. |
 | `tiempo_atencion_min` | Int32 | No | Sí | No | Duración de la atención en minutos; mayor que 0. |
-| `estado_equipo_salida` | String (enum) | No | Sí al firmar | Sí, mientras no esté firmada | `Operativo`, `En mantenimiento`, `Fuera de servicio` o `Baja` (RN-005, RN-007). |
+| `estado_equipo_salida` | String (enum) | No | Sí al firmar | No: ausente mientras no esté firmada (el `enum` del validador no acepta null) | `Operativo`, `En mantenimiento`, `Fuera de servicio` o `Baja` (RN-005, RN-007). |
 | `cerrada_firmada` | Boolean | No | Sí | No | `false` al crear y `true` al firmar; desde ese momento el documento es inalterable (RN-004). |
 | `camposDinamicos` | Object | No | Sí | No | Valores técnicos según `configuracion_campos` del tenant y tipo de equipo; `{}` si no hay campos configurados. |
 | `equipo_snapshot` | Object | No declarado | Sí | Sí, mientras no esté firmada | Copia histórica del equipo, capturada al firmar (HU-021). |

@@ -152,6 +152,7 @@ En MongoDB un campo puede tener un valor, valer `null` o no existir. El filtro `
 | `camposDinamicos` | Sí | No | `{}` si el tipo de equipo no tiene campos configurados | `{ "camposDinamicos.<clave>": { $exists: true } }` |
 | `repuestos` | Sí | No | `[]` si no se usaron | `{ repuestos: { $size: 0 } }` |
 | `costo_total` | Sí | No | `0` si no hubo costo | rangos con `$gte` y `$lt` |
+| `estado_equipo_salida` | No: solo desde la firma | No (el `enum` del validador lo rechaza) | ausente hasta firmar; uno de los valores del `enum` desde la firma | `{ estado_equipo_salida: { $exists: true } }` |
 
 ## 4. Integridad y eliminación
 

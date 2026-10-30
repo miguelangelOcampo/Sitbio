@@ -17,16 +17,8 @@
     <DataTemplate DataType="{x:Type vm:LoginViewModel}">
       <views:LoginView />
     </DataTemplate>
-    <!-- Provisional: el commit 11 la reemplaza por el riel y el panel de navegación según el rol -->
-    <DataTemplate DataType="{x:Type vm:SesionIniciadaViewModel}">
-      <StackPanel Margin="48" MaxWidth="520" HorizontalAlignment="Left" VerticalAlignment="Center">
-        <TextBlock Text="Sesión iniciada" Style="{StaticResource PageTitle}" />
-        <Border Style="{StaticResource Section}" Margin="0,16,0,0">
-          <TextBlock Style="{StaticResource Muted}">
-            <Run Text="Rol:" /> <Run Text="{Binding Rol, Mode=OneWay}" FontWeight="SemiBold" />
-          </TextBlock>
-        </Border>
-      </StackPanel>
+    <DataTemplate DataType="{x:Type vm:ShellViewModel}">
+      <views:ShellView />
     </DataTemplate>
   </Window.Resources>
   <ContentControl Content="{Binding VistaActual}" Focusable="False" />

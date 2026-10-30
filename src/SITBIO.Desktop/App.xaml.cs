@@ -1,3 +1,4 @@
+using System.Net.Http;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Sitbio.Desktop.Services;
@@ -16,17 +17,24 @@ public partial class App : Application
         base.OnStartup(e);
 
         var servicios = new ServiceCollection();
-        servicios.AddHttpClient<IServicioAutenticacion, ServicioAutenticacionHttp>(cliente =>
-        {
-            cliente.BaseAddress = ConfiguracionApi.UrlBase();
-            cliente.Timeout = TimeSpan.FromSeconds(15);
-        });
+        servicios.AddSingleton<SesionActual>();
+        servicios.AddTransient<ManejadorToken>();
+        servicios.AddHttpClient<IServicioAutenticacion, ServicioAutenticacionHttp>(ConfigurarCliente);
+
+        // Los servicios de cada historia usan ClienteApi: el token viaja en cada solicitud.
+        servicios.AddHttpClient<ClienteApi>(ConfigurarCliente).AddHttpMessageHandler<ManejadorToken>();
         servicios.AddTransient<LoginViewModel>();
         servicios.AddSingleton<MainViewModel>();
         _servicios = servicios.BuildServiceProvider();
 
         MainWindow = new MainWindow { DataContext = _servicios.GetRequiredService<MainViewModel>() };
         MainWindow.Show();
+    }
+
+    private static void ConfigurarCliente(HttpClient cliente)
+    {
+        cliente.BaseAddress = ConfiguracionApi.UrlBase();
+        cliente.Timeout = TimeSpan.FromSeconds(15);
     }
 
     protected override void OnExit(ExitEventArgs e)

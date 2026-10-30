@@ -2,7 +2,28 @@
      las secciones se separan con líneas finas y espacio, no con tarjetas.
      Las cajas con borde completo quedan solo para diálogos, menús y campos. -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+  <!-- Foco visible solo con teclado (FocusVisualStyle): anillo de 2 px alrededor del control -->
+  <Style x:Key="FocoTeclado">
+    <Setter Property="Control.Template">
+      <Setter.Value>
+        <ControlTemplate>
+          <Border Margin="-3" CornerRadius="12" BorderThickness="2" BorderBrush="{DynamicResource Brush.Focus}" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="FocoTecladoRiel">
+    <Setter Property="Control.Template">
+      <Setter.Value>
+        <ControlTemplate>
+          <Border Margin="8,3" CornerRadius="10" BorderThickness="2" BorderBrush="{DynamicResource Brush.BrandRing}" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
 
   <!-- Sección abierta: línea fina arriba y aire; reemplaza a la tarjeta -->
   <Style x:Key="Section" TargetType="Border">
@@ -86,7 +107,13 @@
           <Grid Background="Transparent" MinHeight="38">
             <Border x:Name="Barra" Width="3" HorizontalAlignment="Left" Margin="0,7" CornerRadius="0,2,2,0"
                     Background="{DynamicResource Brush.Primary}" Visibility="Collapsed" />
-            <ContentPresenter Margin="20,8" VerticalAlignment="Center" />
+            <ContentPresenter Margin="20,8,12,8" VerticalAlignment="Center">
+              <ContentPresenter.Resources>
+                <Style TargetType="TextBlock">
+                  <Setter Property="TextWrapping" Value="Wrap" />
+                </Style>
+              </ContentPresenter.Resources>
+            </ContentPresenter>
           </Grid>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
@@ -155,28 +182,21 @@
   <!-- Botón principal: verde de marca, texto blanco; foco con anillo exterior -->
   <Style x:Key="PrimaryButton" TargetType="Button">
     <Setter Property="Background" Value="{DynamicResource Brush.Primary}" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTeclado}" />
     <Setter Property="Foreground" Value="{DynamicResource Brush.OnPrimary}" />
     <Setter Property="FontSize" Value="15" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Height" Value="46" />
     <Setter Property="Cursor" Value="Hand" />
-    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
-          <Grid>
-            <Border x:Name="Anillo" Margin="-3" CornerRadius="12" BorderThickness="2"
-                    BorderBrush="{DynamicResource Brush.Focus}" Visibility="Collapsed" />
-            <Border x:Name="Fondo" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.Button}">
-              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-          </Grid>
+          <Border x:Name="Fondo" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.Button}">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.PrimaryHover}" />
-            </Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True">
-              <Setter TargetName="Anillo" Property="Visibility" Value="Visible" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter TargetName="Fondo" Property="Opacity" Value="0.7" />
@@ -213,6 +233,7 @@
   <!-- Botón de ícono dentro de un campo (Mostrar/Ocultar) -->
   <Style x:Key="IconButton" TargetType="Button">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text2}" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTeclado}" />
     <Setter Property="Width" Value="36" />
     <Setter Property="Height" Value="36" />
     <Setter Property="Cursor" Value="Hand" />
@@ -226,9 +247,6 @@
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface2}" />
             </Trigger>
-            <Trigger Property="IsKeyboardFocused" Value="True">
-              <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface2}" />
-            </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>
@@ -240,6 +258,54 @@
   <Style x:Key="InfoBar" TargetType="Border">
     <Setter Property="BorderThickness" Value="3,0,0,0" />
     <Setter Property="Padding" Value="14,11" />
+  </Style>
+
+  <!-- Riel de módulos (78 px, fondo de marca): ícono + nombre corto. IsChecked = módulo abierto en el panel;
+       Tag = True para el módulo de la pantalla actual (barra lima a la izquierda). -->
+  <Style x:Key="RailItem" TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.OnBrandPanelMuted}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Height" Value="62" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTecladoRiel}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <Grid Background="Transparent">
+            <Border x:Name="Fondo" Margin="8,3" CornerRadius="10" Background="{DynamicResource Brush.OnBrandPanel}" Opacity="0" />
+            <Border x:Name="Barra" Width="3" HorizontalAlignment="Left" Margin="0,12" CornerRadius="0,2,2,0"
+                    Background="{DynamicResource Brush.BrandRing}" Visibility="Collapsed" />
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Fondo" Property="Opacity" Value="0.08" />
+              <Setter Property="Foreground" Value="{DynamicResource Brush.OnBrandPanel}" />
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Fondo" Property="Opacity" Value="0.12" />
+              <Setter Property="Foreground" Value="{DynamicResource Brush.OnBrandPanel}" />
+            </Trigger>
+            <Trigger Property="Tag">
+              <Trigger.Value>
+                <sys:Boolean>True</sys:Boolean>
+              </Trigger.Value>
+              <Setter TargetName="Barra" Property="Visibility" Value="Visible" />
+              <Setter Property="Foreground" Value="{DynamicResource Brush.OnBrandPanel}" />
+              <Setter Property="FontWeight" Value="SemiBold" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Panel de navegación (200 px, claro) junto al riel: nombre del módulo, buscador y opciones -->
+  <Style x:Key="NavPanel" TargetType="Border">
+    <Setter Property="Width" Value="200" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Nav}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="0,0,1,0" />
   </Style>
 
   <!-- Tabla abierta: sin marco, solo divisores horizontales -->

@@ -62,6 +62,27 @@ public class ContextoUsuarioHttpTests
     }
 
     [Fact]
+    public void Establecer_SinToken_FijaLaIdentidadDelServidor()
+    {
+        var contexto = Contexto(new ClaimsPrincipal(new ClaimsIdentity()));
+
+        contexto.Establecer(Tenant, UsuarioId, "AC-03");
+
+        Assert.Equal(Tenant, contexto.TenantId);
+        Assert.Equal(UsuarioId, contexto.UsuarioId);
+        Assert.Equal("AC-03", contexto.Rol);
+    }
+
+    [Fact]
+    public void Establecer_OtraInstitucion_Lanza()
+    {
+        var contexto = Contexto(new ClaimsPrincipal(new ClaimsIdentity()));
+        contexto.Establecer(Tenant, UsuarioId, "AC-03");
+
+        Assert.Throws<InvalidOperationException>(() => contexto.Establecer(Guid.NewGuid(), UsuarioId, "AC-03"));
+    }
+
+    [Fact]
     public async Task DePuntaAPunta_LoQueEmiteElGeneradorEsLoQueLeeElContexto()
     {
         var opciones = new OpcionesJwt

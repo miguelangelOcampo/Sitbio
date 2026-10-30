@@ -31,9 +31,15 @@ public sealed class ManejadorErrores(IProblemDetailsService problemDetails, ILog
         problema.Title = titulo;
         problema.Detail = excepcion is ErrorAplicacion ? excepcion.Message : null;
 
-        if (excepcion is ErrorConflicto conflicto)
+        var codigo = excepcion switch
         {
-            problema.Extensions["codigo"] = conflicto.Codigo;
+            ErrorConflicto conflicto => conflicto.Codigo,
+            ErrorNoAutenticado { Codigo: not null } noAutenticado => noAutenticado.Codigo,
+            _ => null,
+        };
+        if (codigo is not null)
+        {
+            problema.Extensions["codigo"] = codigo;
         }
 
         // Sin datos personales: solo método, ruta (sin consulta) y código.

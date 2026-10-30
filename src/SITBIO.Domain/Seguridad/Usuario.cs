@@ -54,7 +54,39 @@ public sealed class Usuario : EntidadTenant
 
     public DateTimeOffset FechaCreacion { get; private set; }
 
-    /// <summary>Correo sin espacios y en minúsculas, para que la unicidad por tenant no dependa de mayúsculas.</summary>
+    /// <summary>RN-006: la cuenta se bloquea al quinto intento fallido consecutivo.</summary>
+    public const short MaximoIntentosFallidos = 5;
+
+    public bool PuedeIniciarSesion => EstadoActivo && !EstadoBloqueo;
+
+    /// <summary>Suma un intento fallido y bloquea la cuenta al llegar al máximo (RN-006).</summary>
+    public void RegistrarIntentoFallido()
+    {
+        if (EstadoBloqueo)
+        {
+            return;
+        }
+
+        IntentosFallidos++;
+        if (IntentosFallidos >= MaximoIntentosFallidos)
+        {
+            EstadoBloqueo = true;
+        }
+    }
+
+    /// <summary>Un acceso correcto reinicia el conteo: los intentos de RN-006 son consecutivos.</summary>
+    public void RegistrarAccesoExitoso(DateTimeOffset momento)
+    {
+        if (!PuedeIniciarSesion)
+        {
+            throw new InvalidOperationException("La cuenta no puede iniciar sesión.");
+        }
+
+        IntentosFallidos = 0;
+        UltimoAcceso = momento;
+    }
+
+    /// <summary>Correo sin espacios y en minúsculas: es único en todo el sistema (V005) sin distinguir mayúsculas.</summary>
     public static string NormalizarCorreo(string correo)
     {
         var normalizado = Requerido(correo, nameof(correo)).ToLowerInvariant();

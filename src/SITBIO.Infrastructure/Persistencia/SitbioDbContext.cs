@@ -2,6 +2,7 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Sitbio.Application.Comun;
 using Sitbio.Domain.Comun;
+using Sitbio.Domain.Instituciones;
 using Sitbio.Domain.Seguridad;
 
 namespace Sitbio.Infrastructure.Persistencia;
@@ -31,6 +32,8 @@ public class SitbioDbContext : DbContext
     {
         _contextoUsuario = contextoUsuario;
     }
+
+    public DbSet<Tenant> Tenants => Set<Tenant>();
 
     public DbSet<Rol> Roles => Set<Rol>();
 

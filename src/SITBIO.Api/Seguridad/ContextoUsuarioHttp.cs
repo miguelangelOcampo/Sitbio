@@ -9,14 +9,33 @@ namespace Sitbio.Api.Seguridad;
 /// Usuario, tenant y rol del JWT de la solicitud actual (RN-008, SEC-003): el tenant
 /// nunca sale del cuerpo ni de la URL. Los claims se leen al usarse, así una ruta
 /// anónima puede recibir el servicio sin fallar; si intenta usarlo, responde 401.
+/// En el inicio de sesión, que aún no tiene token, el servidor fija la identidad que
+/// encontró por el correo (<see cref="Establecer"/>).
 /// </summary>
-public sealed class ContextoUsuarioHttp(IHttpContextAccessor accesor) : IContextoUsuario
+public sealed class ContextoUsuarioHttp(IHttpContextAccessor accesor) : IContextoUsuario, IEstablecerContextoUsuario
 {
-    public Guid TenantId => LeerGuid(ClaimsSitbio.Tenant);
+    private (Guid Tenant, Guid Usuario, string Rol)? _establecido;
 
-    public Guid UsuarioId => LeerGuid(ClaimsSitbio.Usuario);
+    public Guid TenantId => _establecido?.Tenant ?? LeerGuid(ClaimsSitbio.Tenant);
 
-    public string Rol => Leer(ClaimsSitbio.Rol);
+    public Guid UsuarioId => _establecido?.Usuario ?? LeerGuid(ClaimsSitbio.Usuario);
+
+    public string Rol => _establecido?.Rol ?? Leer(ClaimsSitbio.Rol);
+
+    public void Establecer(Guid tenantId, Guid usuarioId, string rol)
+    {
+        if (tenantId == Guid.Empty || usuarioId == Guid.Empty || string.IsNullOrWhiteSpace(rol))
+        {
+            throw new ArgumentException("La identidad establecida está incompleta.");
+        }
+
+        if (_establecido is { } actual && actual.Tenant != tenantId)
+        {
+            throw new InvalidOperationException("La solicitud ya tiene otra institución establecida.");
+        }
+
+        _establecido = (tenantId, usuarioId, rol);
+    }
 
     private string Leer(string tipo)
     {

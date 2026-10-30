@@ -32,6 +32,49 @@ public class UsuarioTests
     }
 
     [Fact]
+    public void RegistrarIntentoFallido_AlQuintoBloqueaLaCuenta()
+    {
+        var usuario = new Usuario(Tenant, 3, "Ana", "Pérez", "ana@clinica.co", "hash");
+
+        for (var i = 1; i < Usuario.MaximoIntentosFallidos; i++)
+        {
+            usuario.RegistrarIntentoFallido();
+        }
+
+        Assert.False(usuario.EstadoBloqueo);
+        usuario.RegistrarIntentoFallido();
+        Assert.True(usuario.EstadoBloqueo);
+        Assert.False(usuario.PuedeIniciarSesion);
+        Assert.Equal(Usuario.MaximoIntentosFallidos, usuario.IntentosFallidos);
+    }
+
+    [Fact]
+    public void RegistrarAccesoExitoso_ReiniciaLosIntentosConsecutivos()
+    {
+        var usuario = new Usuario(Tenant, 3, "Ana", "Pérez", "ana@clinica.co", "hash");
+        usuario.RegistrarIntentoFallido();
+        usuario.RegistrarIntentoFallido();
+        var momento = DateTimeOffset.UtcNow;
+
+        usuario.RegistrarAccesoExitoso(momento);
+
+        Assert.Equal(0, usuario.IntentosFallidos);
+        Assert.Equal(momento, usuario.UltimoAcceso);
+    }
+
+    [Fact]
+    public void RegistrarAccesoExitoso_CuentaBloqueada_Lanza()
+    {
+        var usuario = new Usuario(Tenant, 3, "Ana", "Pérez", "ana@clinica.co", "hash");
+        for (var i = 0; i < Usuario.MaximoIntentosFallidos; i++)
+        {
+            usuario.RegistrarIntentoFallido();
+        }
+
+        Assert.Throws<InvalidOperationException>(() => usuario.RegistrarAccesoExitoso(DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
     public void Crear_SinTenant_LanzaExcepcion()
     {
         Assert.Throws<ArgumentException>(() => new Usuario(Guid.Empty, 3, "Ana", "Pérez", "ana@clinica.co", "hash"));

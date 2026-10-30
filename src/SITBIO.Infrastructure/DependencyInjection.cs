@@ -43,6 +43,7 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IHasherContrasenas, HasherBCrypt>();
         services.AddSingleton<IGeneradorTokens, GeneradorJwt>();
+        services.AddScoped<IRepositorioAcceso, RepositorioAcceso>();
 
         return services;
     }

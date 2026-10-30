@@ -7,6 +7,7 @@
 | `V002__planes_y_solicitudes.sql` | Campos del plan en `tenant` (RN-009, DT-009) y tabla `solicitud_servicio` (RF-029, DT-010). |
 | `V003__plan_consultorio.sql` | Plan Consultorio y nuevo almacenamiento: Clínica 25 GB, Hospital 100 GB (RN-009, DOC-01 Tabla 4). |
 | `V004__codigo_roles.sql` | Columna `rol.codigo` (AC-01 a AC-07), nombres según el DOC-01 Tabla 3 y rol AC-07 Ente Regulador. La aplicación usa `rol.codigo`, nunca `id_rol`. |
+| `V005__correo_unico.sql` | Correo único en todo el sistema sin distinguir mayúsculas (HU-001): el inicio de sesión deduce el tenant a partir del correo. |
 | `docker/postgres-init.sh` | Ejecuta el script 01 y las migraciones al crear el contenedor. |
 
 Reglas (ADR-005):

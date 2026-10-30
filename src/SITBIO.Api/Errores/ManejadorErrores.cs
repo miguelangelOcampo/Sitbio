@@ -16,6 +16,7 @@ public sealed class ManejadorErrores(IProblemDetailsService problemDetails, ILog
         var (estado, titulo, nivel) = excepcion switch
         {
             ErrorValidacion => (StatusCodes.Status400BadRequest, "Datos no válidos", LogLevel.Information),
+            ErrorNoAutenticado => (StatusCodes.Status401Unauthorized, "No autenticado", LogLevel.Information),
             ErrorPermiso => (StatusCodes.Status403Forbidden, "Acceso denegado", LogLevel.Warning),
             ErrorNoEncontrado => (StatusCodes.Status404NotFound, "Recurso no encontrado", LogLevel.Information),
             ErrorConflicto => (StatusCodes.Status409Conflict, "Conflicto con una regla de negocio", LogLevel.Warning),

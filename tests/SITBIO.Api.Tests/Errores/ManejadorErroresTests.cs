@@ -28,6 +28,7 @@ public class ManejadorErroresTests
     public static TheoryData<Exception, int> ErroresYCodigos => new()
     {
         { ErrorValidacion.DeCampo("placa", "La placa es obligatoria."), 400 },
+        { new ErrorNoAutenticado(), 401 },
         { new ErrorPermiso(), 403 },
         { new ErrorNoEncontrado("El equipo"), 404 },
         { new ErrorConflicto("RN-001", "Ya existe un equipo con esa serie."), 409 },

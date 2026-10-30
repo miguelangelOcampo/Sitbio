@@ -14,3 +14,4 @@
 | [ADR-008](008-sin-microservicios.md) | No usar microservicios ni mensajería | Aceptado | 22/10/2026 |
 | [ADR-009](009-reportes.md) | Generación de reportes | Propuesto | 22/10/2026 |
 | [ADR-010](010-alojamiento.md) | Alojamiento del servicio | Propuesto | 25/10/2026 |
+| [ADR-011](011-tenant-en-inicio-de-sesion.md) | Tenant en el inicio de sesión | Aceptado | 30/10/2026 |

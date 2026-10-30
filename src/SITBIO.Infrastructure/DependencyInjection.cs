@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
+using Sitbio.Application.Seguridad;
 using Sitbio.Infrastructure.Persistencia;
+using Sitbio.Infrastructure.Seguridad;
 
 namespace Sitbio.Infrastructure;
 
@@ -35,6 +38,12 @@ public static class DependencyInjection
                 ?? throw new InvalidOperationException("Falta el nombre de la base en Mongo:Database.");
             return sp.GetRequiredService<IMongoClient>().GetDatabase(nombre);
         });
+
+        // Seguridad (ADR-003). OpcionesJwt se enlaza en la API junto con JwtBearer.
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddSingleton<IHasherContrasenas, HasherBCrypt>();
+        services.AddSingleton<IGeneradorTokens, GeneradorJwt>();
+        services.AddScoped<IRepositorioAcceso, RepositorioAcceso>();
 
         return services;
     }

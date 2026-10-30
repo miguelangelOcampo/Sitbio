@@ -53,7 +53,10 @@ Los secretos de la API (cadenas de conexión y clave JWT) se guardan con User Se
 
 ```powershell
 dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=sitbio_dev;Username=sitbio;Password=..." --project src/SITBIO.Api
+dotnet user-secrets set "Jwt:Clave" "<clave aleatoria de al menos 32 caracteres>" --project src/SITBIO.Api
 ```
+
+La clave JWT firma los tokens (ADR-003): cada integrante genera la suya en desarrollo, y en los demás entornos se define con la variable de entorno `Jwt__Clave`. Nunca va en `appsettings.json`.
 
 Analítica:
 

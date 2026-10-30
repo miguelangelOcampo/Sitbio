@@ -2,6 +2,8 @@ using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Sitbio.Application.Comun;
 using Sitbio.Domain.Comun;
+using Sitbio.Domain.Instituciones;
+using Sitbio.Domain.Seguridad;
 
 namespace Sitbio.Infrastructure.Persistencia;
 
@@ -30,6 +32,14 @@ public class SitbioDbContext : DbContext
     {
         _contextoUsuario = contextoUsuario;
     }
+
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+
+    public DbSet<Rol> Roles => Set<Rol>();
+
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
+
+    public DbSet<SesionToken> Sesiones => Set<SesionToken>();
 
     /// <summary>Tenant del token; EF Core lo evalúa en cada consulta.</summary>
     protected Guid TenantActual => _contextoUsuario.TenantId;

@@ -2,7 +2,9 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+        xmlns:views="clr-namespace:Sitbio.Desktop.Views"
         Title="{Binding Titulo}"
+        Icon="{DynamicResource Logo.Iso}"
         Width="1280"
         Height="800"
         MinWidth="1024"
@@ -11,15 +13,13 @@
         Background="{DynamicResource Brush.Background}"
         Foreground="{DynamicResource Brush.Text}"
         FontFamily="{StaticResource Font.Ui}">
-  <Window.DataContext>
-    <vm:MainViewModel />
-  </Window.DataContext>
-  <Grid Margin="48">
-    <StackPanel MaxWidth="520" HorizontalAlignment="Left" VerticalAlignment="Center">
-      <TextBlock Text="SITBIO" Style="{StaticResource PageTitle}" Foreground="{DynamicResource Brush.Primary}" />
-      <Border Style="{StaticResource Section}" Margin="0,16,0,0">
-        <TextBlock Text="{Binding Mensaje}" Style="{StaticResource Muted}" />
-      </Border>
-    </StackPanel>
-  </Grid>
+  <Window.Resources>
+    <DataTemplate DataType="{x:Type vm:LoginViewModel}">
+      <views:LoginView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ShellViewModel}">
+      <views:ShellView />
+    </DataTemplate>
+  </Window.Resources>
+  <ContentControl Content="{Binding VistaActual}" Focusable="False" />
 </Window>

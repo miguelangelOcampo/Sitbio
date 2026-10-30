@@ -1,0 +1,225 @@
+<!-- UI-001 Inicio de sesión (DOC-05; prototipo vigente): formulario abierto a la izquierda,
+     panel de marca verde a la derecha con anillos decorativos. Sin selector de tema (va en Mi perfil). -->
+<UserControl x:Class="Sitbio.Desktop.Views.LoginView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             x:Name="Raiz">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+  </UserControl.Resources>
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="6*" />
+      <ColumnDefinition Width="5*" MaxWidth="600" />
+    </Grid.ColumnDefinitions>
+
+    <!-- Formulario -->
+    <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Focusable="False">
+      <StackPanel Width="420" Margin="24,40" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Image Source="{DynamicResource Logo.Completo}" Height="84" HorizontalAlignment="Left" Margin="-6,0,0,22"
+               RenderOptions.BitmapScalingMode="HighQuality" AutomationProperties.Name="SITBIO, Gestión y Trazabilidad Biomédica" />
+        <TextBlock Text="Iniciar sesión" Style="{StaticResource PageTitle}" />
+        <TextBlock Text="Usa tu correo institucional para entrar." Style="{StaticResource Muted}" FontSize="15" Margin="0,4,0,20" />
+
+        <!-- Aviso (MSG-001, MSG-002, MSG-011…) -->
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+                Margin="0,0,0,18" Visibility="{Binding HayAviso, Converter={StaticResource Visible}}"
+                AutomationProperties.LiveSetting="Assertive">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                            Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+            <StackPanel Grid.Column="1">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+                <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+              </DockPanel>
+              <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+              <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding IniciarSesionCommand}"
+                      HorizontalAlignment="Left" Margin="0,8,0,0"
+                      Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- Correo -->
+        <TextBlock Text="Correo institucional" Style="{StaticResource FieldLabel}" />
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border" BasedOn="{StaticResource FieldBox}">
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding TieneErrorCorreo}" Value="True">
+                  <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <DockPanel>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Correo}" Margin="0,0,10,0" />
+            <TextBox x:Name="CampoCorreo" TabIndex="1" Style="{StaticResource FieldInput}" Text="{Binding Correo, UpdateSourceTrigger=PropertyChanged}"
+                     AutomationProperties.Name="Correo institucional" />
+          </DockPanel>
+        </Border>
+        <TextBlock Text="{Binding ErrorCorreo}" Style="{StaticResource FieldError}"
+                   Visibility="{Binding TieneErrorCorreo, Converter={StaticResource Visible}}" />
+
+        <!-- Contraseña -->
+        <TextBlock Text="Contraseña" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+        <Border>
+          <Border.Style>
+            <Style TargetType="Border" BasedOn="{StaticResource FieldBox}">
+              <Setter Property="Padding" Value="13,0,4,0" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding TieneErrorContrasena}" Value="True">
+                  <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+                </DataTrigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                  <Setter Property="Padding" Value="12,0,3,0" />
+                </Trigger>
+              </Style.Triggers>
+            </Style>
+          </Border.Style>
+          <DockPanel>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Candado}" Margin="0,0,10,0" />
+            <Button DockPanel.Dock="Right" TabIndex="3" Command="{Binding AlternarContrasenaCommand}">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                  <Setter Property="AutomationProperties.Name" Value="Mostrar contraseña" />
+                  <Setter Property="Content">
+                    <Setter.Value>
+                      <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Ojo}" />
+                    </Setter.Value>
+                  </Setter>
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding MostrarContrasena}" Value="True">
+                      <Setter Property="AutomationProperties.Name" Value="Ocultar contraseña" />
+                      <Setter Property="Content">
+                        <Setter.Value>
+                          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.OjoTachado}" />
+                        </Setter.Value>
+                      </Setter>
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
+            <Grid>
+              <PasswordBox x:Name="CampoContrasena" TabIndex="2" Style="{StaticResource FieldPassword}" PasswordChanged="CampoContrasena_PasswordChanged"
+                           AutomationProperties.Name="Contraseña" />
+              <TextBox x:Name="CampoContrasenaVisible" TabIndex="2" Style="{StaticResource FieldInput}" Visibility="Collapsed"
+                       Text="{Binding Contrasena, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Contraseña visible" />
+            </Grid>
+          </DockPanel>
+        </Border>
+        <TextBlock Text="{Binding ErrorContrasena}" Style="{StaticResource FieldError}"
+                   Visibility="{Binding TieneErrorContrasena, Converter={StaticResource Visible}}" />
+
+        <Button Content="¿Olvidaste tu contraseña?" TabIndex="4" Style="{StaticResource LinkButton}" HorizontalAlignment="Right" Margin="0,12,0,0"
+                Command="{Binding AlternarAyudaClaveCommand}" />
+
+        <!-- RF-012: la recuperación la hace el administrador con una clave temporal -->
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}"
+                Margin="0,12,0,0" Visibility="{Binding MostrarAyudaClave, Converter={StaticResource Visible}}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}"
+                            Foreground="{DynamicResource Brush.InfoText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+            <StackPanel Grid.Column="1">
+              <TextBlock Text="Recupera el acceso con tu administrador" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+              <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}" Margin="0,3,0,0"
+                         Text="Pide al Administrador del Sistema de tu institución una contraseña temporal. Al ingresar con ella, SITBIO te pedirá crear una nueva." />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <Button Style="{StaticResource PrimaryButton}" TabIndex="5" Margin="0,20,0,0" IsDefault="True" Command="{Binding IniciarSesionCommand}">
+          <Button.Content>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock>
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value="Iniciar sesión" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding IniciarSesionCommand.IsRunning}" Value="True">
+                        <Setter Property="Text" Value="Verificando…" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.FlechaDerecha}" Margin="10,0,0,0"
+                              Foreground="{DynamicResource Brush.OnPrimary}" />
+            </StackPanel>
+          </Button.Content>
+        </Button>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- Panel de marca -->
+    <Grid Grid.Column="1" Background="{DynamicResource Brush.BrandPanel}" ClipToBounds="True">
+      <Ellipse Width="460" Height="460" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-150,-170,0"
+               Stroke="{DynamicResource Brush.BrandRing}" StrokeThickness="1" Opacity="0.28" IsHitTestVisible="False" />
+      <Ellipse Width="300" Height="300" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-70,-90,0"
+               Stroke="{DynamicResource Brush.BrandRing}" StrokeThickness="1" Opacity="0.28" IsHitTestVisible="False" />
+
+      <DockPanel Margin="56,52,56,40">
+        <StackPanel DockPanel.Dock="Top">
+          <TextBlock Text="GESTIÓN DE TECNOLOGÍA BIOMÉDICA" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.BrandRing}" />
+          <TextBlock Text="Cada equipo biomédico, con su historia completa." FontSize="34" FontWeight="SemiBold" TextWrapping="Wrap"
+                     MaxWidth="460" HorizontalAlignment="Left" Margin="0,14,0,0" Foreground="{DynamicResource Brush.OnBrandPanel}" />
+          <TextBlock FontSize="15" TextWrapping="Wrap" MaxWidth="450" HorizontalAlignment="Left" Margin="0,12,0,0" LineHeight="23"
+                     Foreground="{DynamicResource Brush.OnBrandPanelMuted}"
+                     Text="Reporta una falla en menos de dos minutos, asigna la orden al técnico y conserva la hoja de vida lista para la auditoría." />
+          <UniformGrid Columns="3" Margin="0,24,0,0" HorizontalAlignment="Left" Width="470">
+            <StackPanel>
+              <TextBlock Text="&lt; 2 min" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource Brush.OnBrandPanel}" />
+              <TextBlock Text="para reportar una falla" FontSize="13" Foreground="{DynamicResource Brush.OnBrandPanelMuted}" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="100 %" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource Brush.OnBrandPanel}" />
+              <TextBlock Text="trazabilidad por equipo" FontSize="13" Foreground="{DynamicResource Brush.OnBrandPanelMuted}" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="7 roles" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource Brush.OnBrandPanel}" />
+              <TextBlock Text="con acceso aislado" FontSize="13" Foreground="{DynamicResource Brush.OnBrandPanelMuted}" />
+            </StackPanel>
+          </UniformGrid>
+        </StackPanel>
+
+        <!-- Planes del servicio (DOC-01 Tabla 4) -->
+        <StackPanel VerticalAlignment="Bottom">
+          <DockPanel Margin="0,0,0,8">
+            <TextBlock DockPanel.Dock="Right" Text="Mismas funciones · distinta capacidad" FontSize="12" Foreground="{DynamicResource Brush.OnBrandPanelMuted}" />
+            <TextBlock Text="PLANES DEL SERVICIO" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.OnBrandPanel}" />
+          </DockPanel>
+          <ItemsControl ItemsSource="{Binding Planes}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type vm:PlanServicio}">
+                <Border BorderThickness="0,1,0,0" Padding="0,11" BorderBrush="{DynamicResource Brush.OnBrandPanelDivider}">
+                  <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                      <TextBlock Text="{Binding Valor}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Right"
+                                 Foreground="{DynamicResource Brush.OnBrandPanel}" />
+                      <TextBlock Text="{Binding Periodo}" FontSize="12" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.OnBrandPanelMuted}" />
+                    </StackPanel>
+                    <StackPanel>
+                      <TextBlock Text="{Binding Nombre}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Brush.OnBrandPanel}" />
+                      <TextBlock Text="{Binding Capacidad}" FontSize="13" Foreground="{DynamicResource Brush.OnBrandPanelMuted}" />
+                    </StackPanel>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </DockPanel>
+    </Grid>
+  </Grid>
+</UserControl>

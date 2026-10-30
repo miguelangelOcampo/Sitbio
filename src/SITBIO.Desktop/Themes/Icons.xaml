@@ -1,0 +1,32 @@
+<!-- Íconos de trazo sobre una cuadrícula de 24 × 24 (trazo 1.7, color = Foreground).
+     Uso: <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Correo}" /> -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <Geometry x:Key="Icono.Correo">M4,4 H20 A2,2 0 0 1 22,6 V18 A2,2 0 0 1 20,20 H4 A2,2 0 0 1 2,18 V6 A2,2 0 0 1 4,4 Z M22,7 L12,13 L2,7</Geometry>
+  <Geometry x:Key="Icono.Candado">M5,11 H19 A2,2 0 0 1 21,13 V20 A2,2 0 0 1 19,22 H5 A2,2 0 0 1 3,20 V13 A2,2 0 0 1 5,11 Z M7,11 V7 A5,5 0 0 1 17,7 V11</Geometry>
+  <Geometry x:Key="Icono.Ojo">M2,12 C2,12 5,5 12,5 C19,5 22,12 22,12 C22,12 19,19 12,19 C5,19 2,12 2,12 Z M9,12 A3,3 0 1 0 15,12 A3,3 0 1 0 9,12 Z</Geometry>
+  <Geometry x:Key="Icono.OjoTachado">M2,12 C2,12 5,5 12,5 C19,5 22,12 22,12 C22,12 19,19 12,19 C5,19 2,12 2,12 Z M9,12 A3,3 0 1 0 15,12 A3,3 0 1 0 9,12 Z M3,3 L21,21</Geometry>
+  <Geometry x:Key="Icono.FlechaDerecha">M5,12 H19 M12,5 L19,12 L12,19</Geometry>
+  <Geometry x:Key="Icono.Alerta">M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z M12,8 V12 M12,16 H12.01</Geometry>
+  <Geometry x:Key="Icono.Info">M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z M12,16 V12 M12,8 H12.01</Geometry>
+
+  <Style x:Key="Icono" TargetType="ContentControl">
+    <Setter Property="Width" Value="18" />
+    <Setter Property="Height" Value="18" />
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="IsTabStop" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ContentControl">
+          <Viewbox>
+            <Canvas Width="24" Height="24">
+              <Path Data="{TemplateBinding Content}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.7"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+            </Canvas>
+          </Viewbox>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+</ResourceDictionary>

@@ -103,6 +103,145 @@
     </Setter>
   </Style>
 
+  <!-- Campo de formulario: etiqueta arriba, caja con borde completo (permitido en campos),
+       foco visible de 2 px y mensaje de error debajo -->
+  <Style x:Key="FieldLabel" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+  </Style>
+  <Style x:Key="FieldBox" TargetType="Border">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderControl}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="13,0" />
+    <Setter Property="CornerRadius" Value="{StaticResource Radius.Field}" />
+    <Setter Property="MinHeight" Value="46" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text3}" />
+    <Style.Triggers>
+      <Trigger Property="IsKeyboardFocusWithin" Value="True">
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Focus}" />
+        <Setter Property="BorderThickness" Value="2" />
+        <Setter Property="Padding" Value="12,0" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="FieldInput" TargetType="TextBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+  </Style>
+  <Style x:Key="FieldPassword" TargetType="PasswordBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="CaretBrush" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+  </Style>
+  <Style x:Key="FieldError" TargetType="TextBlock">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="Margin" Value="0,6,0,0" />
+  </Style>
+
+  <!-- Botón principal: verde de marca, texto blanco; foco con anillo exterior -->
+  <Style x:Key="PrimaryButton" TargetType="Button">
+    <Setter Property="Background" Value="{DynamicResource Brush.Primary}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.OnPrimary}" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Height" Value="46" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Grid>
+            <Border x:Name="Anillo" Margin="-3" CornerRadius="12" BorderThickness="2"
+                    BorderBrush="{DynamicResource Brush.Focus}" Visibility="Collapsed" />
+            <Border x:Name="Fondo" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.Button}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.PrimaryHover}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Anillo" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Fondo" Property="Opacity" Value="0.7" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Acción secundaria como enlace de texto -->
+  <Style x:Key="LinkButton" TargetType="Button">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Primary}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <TextBlock x:Name="Texto" Text="{TemplateBinding Content}" Background="Transparent" />
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Texto" Property="TextDecorations" Value="Underline" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Texto" Property="TextDecorations" Value="Underline" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Botón de ícono dentro de un campo (Mostrar/Ocultar) -->
+  <Style x:Key="IconButton" TargetType="Button">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text2}" />
+    <Setter Property="Width" Value="36" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Border x:Name="Fondo" Background="Transparent" CornerRadius="8">
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface2}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocused" Value="True">
+              <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface2}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Aviso en línea: fondo suave y barra a la izquierda, sin caja completa.
+       Error: <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"> -->
+  <Style x:Key="InfoBar" TargetType="Border">
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="Padding" Value="14,11" />
+  </Style>
+
   <!-- Tabla abierta: sin marco, solo divisores horizontales -->
   <Style x:Key="OpenGridHeader" TargetType="DataGridColumnHeader">
     <Setter Property="Background" Value="Transparent" />

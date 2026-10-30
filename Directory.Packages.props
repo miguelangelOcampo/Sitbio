@@ -20,6 +20,8 @@
   </ItemGroup>
   <ItemGroup Label="Cliente WPF">
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
   </ItemGroup>
   <ItemGroup Label="Pruebas">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />

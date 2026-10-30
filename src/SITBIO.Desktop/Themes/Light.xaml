@@ -38,4 +38,12 @@
   <SolidColorBrush x:Key="Brush.HighText" Color="#A34E1C" />
   <SolidColorBrush x:Key="Brush.HighSoft" Color="#FCEDE2" />
   <SolidColorBrush x:Key="Brush.Focus" Color="#245B3B" />
+  <!-- Panel de marca (inicio de sesión) y logo del tema -->
+  <SolidColorBrush x:Key="Brush.BrandPanel" Color="#245B3B" />
+  <SolidColorBrush x:Key="Brush.OnBrandPanel" Color="#FFFFFF" />
+  <SolidColorBrush x:Key="Brush.OnBrandPanelMuted" Color="#C5D8BF" />
+  <SolidColorBrush x:Key="Brush.OnBrandPanelDivider" Color="#3DFFFFFF" />
+  <SolidColorBrush x:Key="Brush.BrandRing" Color="#A9D86E" />
+  <BitmapImage x:Key="Logo.Completo" UriSource="pack://application:,,,/Assets/Logo/logo_sitbio_completo.png" />
+  <BitmapImage x:Key="Logo.Iso" UriSource="pack://application:,,,/Assets/Logo/logo_sitbio_iso.png" />
 </ResourceDictionary>

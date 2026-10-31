@@ -24,6 +24,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
   - Pruebas de los criterios CA-HU-001-01 a CA-HU-001-03 (CP-001 a CP-003); trazabilidad en `docs/pruebas/trazabilidad.md`.
 
 ### Cambiado
+- DOC-01 actualizado con el plan Consultorio y el nuevo almacenamiento de los planes (Tabla 4: Consultorio 3/300/5 GB, Clínica 7/1.000/25 GB, Hospital 14/3.000/100 GB, Red de Salud a la medida).
 - Base de datos (cada base local debe aplicar las migraciones nuevas; ver `database/README.md`):
   - V003: plan Consultorio y nuevo almacenamiento de los planes Clínica (25 GB) y Hospital (100 GB) (RN-009).
   - V004: columna `rol.codigo` (AC-01 a AC-07), nombres de roles según el DOC-01 y rol AC-07; la aplicación identifica los roles por código.

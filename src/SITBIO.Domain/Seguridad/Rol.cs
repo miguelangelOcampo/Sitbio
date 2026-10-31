@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Sitbio.Domain.Seguridad;
 
 /// <summary>
@@ -5,6 +7,8 @@ namespace Sitbio.Domain.Seguridad;
 /// Los roles los crea el esquema (script 01 y V004); la aplicación los identifica
 /// por <see cref="Codigo"/> (ver <see cref="CodigosRol"/>), nunca por el id.
 /// </summary>
+[SuppressMessage("Major Bug", "S3453:Classes should not have only private constructors",
+    Justification = "EF Core materializa la entidad con el constructor privado; la aplicación no crea roles.")]
 public sealed class Rol
 {
     private Rol()

@@ -75,6 +75,59 @@ public class UsuarioTests
     }
 
     [Fact]
+    public void Desbloquear_QuitaElBloqueoYReiniciaLosIntentos()
+    {
+        var usuario = new Usuario(Tenant, 3, "Ana", "Pérez", "ana@clinica.co", "hash");
+        for (var i = 0; i < Usuario.MaximoIntentosFallidos; i++)
+        {
+            usuario.RegistrarIntentoFallido();
+        }
+
+        usuario.Desbloquear();
+
+        Assert.False(usuario.EstadoBloqueo);
+        Assert.Equal(0, usuario.IntentosFallidos);
+        Assert.True(usuario.PuedeIniciarSesion);
+    }
+
+    [Fact]
+    public void DesactivarYReactivar_CambianSiPuedeIniciarSesion()
+    {
+        var usuario = new Usuario(Tenant, 3, "Ana", "Pérez", "ana@clinica.co", "hash");
+
+        usuario.Desactivar();
+        Assert.False(usuario.PuedeIniciarSesion);
+
+        usuario.Reactivar();
+        Assert.True(usuario.PuedeIniciarSesion);
+    }
+
+    [Fact]
+    public void AsignarClaveTemporal_ObligaACambiarla()
+    {
+        var usuario = new Usuario(Tenant, 3, "Ana", "Pérez", "ana@clinica.co", "hash");
+
+        usuario.AsignarClaveTemporal("hash-temporal");
+
+        Assert.Equal("hash-temporal", usuario.ContrasenaHash);
+        Assert.True(usuario.CambioContrasenaObligatorio);
+    }
+
+    [Fact]
+    public void Actualizar_NormalizaYValidaComoAlCrear()
+    {
+        var usuario = new Usuario(Tenant, 3, "Ana", "Pérez", "ana@clinica.co", "hash");
+
+        usuario.Actualizar(" Ana María ", "Pérez", " Ana.Maria@Clinica.CO ", "300 123 4567");
+        usuario.CambiarRol(2);
+
+        Assert.Equal("Ana María", usuario.Nombres);
+        Assert.Equal("ana.maria@clinica.co", usuario.Correo);
+        Assert.Equal(2, usuario.RolId);
+        Assert.Throws<ArgumentException>(() => usuario.Actualizar("Ana", "", "ana@clinica.co", null));
+    }
+
+    [Fact]
     public void Crear_SinTenant_LanzaExcepcion()
     {
         Assert.Throws<ArgumentException>(() => new Usuario(Guid.Empty, 3, "Ana", "Pérez", "ana@clinica.co", "hash"));

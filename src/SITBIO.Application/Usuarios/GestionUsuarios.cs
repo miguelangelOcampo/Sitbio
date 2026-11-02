@@ -18,6 +18,7 @@ public sealed class GestionUsuarios(
 {
     public const string CodigoCorreoEnUso = "USR-001";
     public const string CodigoPropiaCuenta = "USR-002";
+    public const string CodigoLimitePlan = "RN-009";
 
     public async Task<Pagina<UsuarioDto>> ListarAsync(int pagina, int tamano, CancellationToken cancellationToken)
     {
@@ -42,7 +43,10 @@ public sealed class GestionUsuarios(
         var rol = await RolValido(datos.Rol, cancellationToken);
         var correo = Normalizar(datos.Correo);
         await ExigirCorreoLibre(correo, null, cancellationToken);
-        // RN-009: el límite de usuarios de gestión del plan se valida aquí (commit 14).
+        if (CodigosRol.EsDeGestion(rol.Codigo))
+        {
+            await ExigirCupoDeGestion(cancellationToken);
+        }
 
         var clave = generadorClaves.Generar();
         var hash = hasher.Hash(clave);
@@ -56,7 +60,7 @@ public sealed class GestionUsuarios(
 
     public async Task<UsuarioDto> ActualizarAsync(Guid id, DatosUsuario datos, CancellationToken cancellationToken)
     {
-        var (usuario, _) = await Buscar(id, cancellationToken);
+        var (usuario, codigoAnterior) = await Buscar(id, cancellationToken);
         var rol = await RolValido(datos.Rol, cancellationToken);
         if (usuario.Id == contexto.UsuarioId && rol.Codigo != CodigosRol.AdministradorSistema)
         {
@@ -65,6 +69,12 @@ public sealed class GestionUsuarios(
 
         var correo = Normalizar(datos.Correo);
         await ExigirCorreoLibre(correo, usuario.Id, cancellationToken);
+
+        // Pasar una cuenta activa de AC-04 o AC-07 a un rol de gestión equivale a crear un usuario de gestión.
+        if (usuario.EstadoActivo && !CodigosRol.EsDeGestion(codigoAnterior) && CodigosRol.EsDeGestion(rol.Codigo))
+        {
+            await ExigirCupoDeGestion(cancellationToken);
+        }
 
         Construir(() =>
         {
@@ -92,7 +102,11 @@ public sealed class GestionUsuarios(
                 usuario.Desactivar();
                 break;
             case "reactivar":
-                // RN-009: reactivar una cuenta de gestión también respeta el límite del plan (commit 14).
+                if (!usuario.EstadoActivo && CodigosRol.EsDeGestion(codigoRol))
+                {
+                    await ExigirCupoDeGestion(cancellationToken);
+                }
+
                 usuario.Reactivar();
                 break;
             case "desbloquear":
@@ -131,6 +145,23 @@ public sealed class GestionUsuarios(
         {
             // No se dice de qué institución es el correo (ADR-011).
             throw new ErrorConflicto(CodigoCorreoEnUso, "Ya existe un usuario con este correo.");
+        }
+    }
+
+    /// <summary>
+    /// RN-009 (CA-HU-011-03): con el cupo de usuarios de gestión lleno no se crean ni reactivan
+    /// cuentas de gestión (409, MSG-019). Dos altas exactamente simultáneas podrían pasar una
+    /// cuenta de más; con un solo Administrador por institución se acepta ese riesgo.
+    /// </summary>
+    private async Task ExigirCupoDeGestion(CancellationToken cancellationToken)
+    {
+        var capacidad = await repositorio.CapacidadGestionAsync(cancellationToken);
+        if (capacidad.Llena)
+        {
+            throw new ErrorConflicto(
+                CodigoLimitePlan,
+                $"Tu institución alcanzó el máximo de usuarios de gestión del plan {capacidad.Plan}. "
+                + "Puedes seguir consultando y trabajando con lo registrado; para ampliar la capacidad, comunícate con SITBIO.");
         }
     }
 

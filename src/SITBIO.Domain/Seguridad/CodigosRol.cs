@@ -26,4 +26,19 @@ public static class CodigosRol
         DirectivaInstitucional,
         EnteRegulador,
     ];
+
+    /// <summary>
+    /// Roles que cuentan como usuarios de gestión en el límite del plan (RN-009). El Personal
+    /// Clínico (AC-04) es ilimitado y el Ente Regulador (AC-07) es temporal y no cuenta.
+    /// </summary>
+    public static IReadOnlyList<string> Gestion { get; } =
+    [
+        AdministradorSistema,
+        IngenieroBiomedico,
+        TecnicoMantenimiento,
+        GerenteBiomedico,
+        DirectivaInstitucional,
+    ];
+
+    public static bool EsDeGestion(string codigo) => Gestion.Contains(codigo);
 }

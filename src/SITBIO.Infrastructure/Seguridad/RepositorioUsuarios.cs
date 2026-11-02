@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Sitbio.Application.Comun;
 using Sitbio.Application.Usuarios;
 using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Persistencia;
@@ -6,8 +7,26 @@ using Sitbio.Infrastructure.Persistencia;
 namespace Sitbio.Infrastructure.Seguridad;
 
 /// <summary>Usuarios sobre PostgreSQL; el filtro global limita todo al tenant del token (RN-008).</summary>
-public sealed class RepositorioUsuarios(SitbioDbContext contexto) : IRepositorioUsuarios
+public sealed class RepositorioUsuarios(SitbioDbContext contexto, IContextoUsuario contextoUsuario) : IRepositorioUsuarios
 {
+    private static readonly string[] RolesGestion = [.. CodigosRol.Gestion];
+
+    public async Task<CapacidadGestion> CapacidadGestionAsync(CancellationToken cancellationToken)
+    {
+        // El tenant sale del token; tenant no lleva filtro global porque es la raíz del aislamiento.
+        var tenantId = contextoUsuario.TenantId;
+        var plan = await contexto.Tenants
+            .Where(t => t.Id == tenantId)
+            .Select(t => new { t.Plan, t.MaxUsuariosGestion })
+            .SingleAsync(cancellationToken);
+
+        // Usuarios activos con rol de gestión; AC-04 y AC-07 no cuentan. Los usuarios ya llevan el filtro por tenant.
+        var activos = await contexto.Usuarios
+            .CountAsync(u => u.EstadoActivo && RolesGestion.Contains(u.Rol!.Codigo), cancellationToken);
+
+        return new CapacidadGestion(plan.Plan, plan.MaxUsuariosGestion, activos);
+    }
+
     public async Task<(IReadOnlyList<(Usuario Usuario, string CodigoRol)> Items, int Total)> ListarAsync(
         int pagina, int tamano, CancellationToken cancellationToken)
     {

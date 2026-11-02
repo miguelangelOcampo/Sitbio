@@ -14,5 +14,7 @@ public sealed class TenantConfiguracion : IEntityTypeConfiguration<Tenant>
         tenant.Property(t => t.Id).HasColumnName("id_tenant");
         tenant.Property(t => t.Nombre).HasColumnName("nombre").HasMaxLength(150).IsRequired();
         tenant.Property(t => t.EstadoActivo).HasColumnName("estado_activo");
+        tenant.Property(t => t.Plan).HasColumnName("plan").HasMaxLength(20).IsRequired();
+        tenant.Property(t => t.MaxUsuariosGestion).HasColumnName("max_usuarios_gestion");
     }
 }

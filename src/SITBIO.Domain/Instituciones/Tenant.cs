@@ -15,4 +15,10 @@ public sealed class Tenant
     public string Nombre { get; private set; } = string.Empty;
 
     public bool EstadoActivo { get; private set; }
+
+    /// <summary>Plan contratado (RN-009): Consultorio, Clínica, Hospital o Red de Salud.</summary>
+    public string Plan { get; private set; } = string.Empty;
+
+    /// <summary>Máximo de usuarios de gestión activos del plan (V002; lo fija el aprovisionamiento, ST-10).</summary>
+    public int MaxUsuariosGestion { get; private set; }
 }

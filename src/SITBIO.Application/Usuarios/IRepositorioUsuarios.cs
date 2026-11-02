@@ -19,9 +19,18 @@ public interface IRepositorioUsuarios
     /// </summary>
     Task<bool> CorreoEnUsoAsync(string correo, Guid? exceptoUsuarioId, CancellationToken cancellationToken);
 
+    /// <summary>Plan del tenant del token, su máximo de usuarios de gestión y cuántos hay activos (RN-009).</summary>
+    Task<CapacidadGestion> CapacidadGestionAsync(CancellationToken cancellationToken);
+
     void Agregar(Usuario usuario);
 
     Task GuardarAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>Consumo de usuarios de gestión frente al límite del plan (RN-009).</summary>
+public sealed record CapacidadGestion(string Plan, int Maximo, int Activos)
+{
+    public bool Llena => Activos >= Maximo;
 }
 
 /// <summary>Claves temporales aleatorias (RF-012).</summary>

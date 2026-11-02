@@ -26,8 +26,16 @@ public class GestionUsuariosTests
         _hasher.Hash("Temporal-2026#").Returns("hash-temporal");
         _repositorio.RolPorCodigoAsync("AC-03", Arg.Any<CancellationToken>()).Returns(new RolAsignable(3, "AC-03"));
         _repositorio.RolPorCodigoAsync("AC-01", Arg.Any<CancellationToken>()).Returns(new RolAsignable(1, "AC-01"));
+        _repositorio.RolPorCodigoAsync("AC-02", Arg.Any<CancellationToken>()).Returns(new RolAsignable(2, "AC-02"));
+        _repositorio.RolPorCodigoAsync("AC-04", Arg.Any<CancellationToken>()).Returns(new RolAsignable(4, "AC-04"));
+        _repositorio.RolPorCodigoAsync("AC-07", Arg.Any<CancellationToken>()).Returns(new RolAsignable(7, "AC-07"));
+        CupoDeGestion(activos: 2);
         _caso = new GestionUsuarios(_repositorio, _hasher, _claves, _contexto);
     }
+
+    // Plan Consultorio: 3 usuarios de gestión (DOC-01 Tabla 4).
+    private void CupoDeGestion(int activos) =>
+        _repositorio.CapacidadGestionAsync(Arg.Any<CancellationToken>()).Returns(new CapacidadGestion("Consultorio", 3, activos));
 
     private static DatosUsuario Datos(string correo = "nuevo@clinica.co", string rol = "AC-03") =>
         new("Laura", "Gómez", correo, null, rol);
@@ -181,6 +189,93 @@ public class GestionUsuariosTests
     public async Task Listar_PaginacionFueraDeRango_Responde400(int pagina, int tamano)
     {
         await Assert.ThrowsAsync<ErrorValidacion>(() => _caso.ListarAsync(pagina, tamano, CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData("AC-03")]
+    [InlineData("AC-01")]
+    public async Task Rn009_CrearCuentaDeGestionConElCupoLleno_Responde409ConElPlan(string rol)
+    {
+        CupoDeGestion(activos: 3);
+
+        var error = await Assert.ThrowsAsync<ErrorConflicto>(() => _caso.CrearAsync(Datos(rol: rol), CancellationToken.None));
+
+        Assert.Equal(GestionUsuarios.CodigoLimitePlan, error.Codigo);
+        Assert.Contains("plan Consultorio", error.Message);
+        _repositorio.DidNotReceiveWithAnyArgs().Agregar(default!);
+    }
+
+    [Theory]
+    [InlineData("AC-04")]
+    [InlineData("AC-07")]
+    public async Task Rn009_PersonalClinicoYEnteRegulador_SeCreanAunConElCupoLleno(string rol)
+    {
+        CupoDeGestion(activos: 3);
+
+        var creado = await _caso.CrearAsync(Datos(rol: rol), CancellationToken.None);
+
+        Assert.Equal(rol, creado.Usuario.Rol);
+        await _repositorio.DidNotReceive().CapacidadGestionAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Rn009_CrearConCupoDisponible_Funciona()
+    {
+        CupoDeGestion(activos: 2);
+
+        var creado = await _caso.CrearAsync(Datos(rol: "AC-03"), CancellationToken.None);
+
+        Assert.Equal("AC-03", creado.Usuario.Rol);
+    }
+
+    [Fact]
+    public async Task Rn009_ReactivarCuentaDeGestionConElCupoLleno_Responde409()
+    {
+        var usuario = Existente();
+        usuario.Desactivar();
+        CupoDeGestion(activos: 3);
+
+        var error = await Assert.ThrowsAsync<ErrorConflicto>(() => _caso.CambiarEstadoAsync(usuario.Id, "reactivar", CancellationToken.None));
+
+        Assert.Equal(GestionUsuarios.CodigoLimitePlan, error.Codigo);
+        Assert.False(usuario.EstadoActivo);
+    }
+
+    [Theory]
+    [InlineData("desactivar")]
+    [InlineData("desbloquear")]
+    public async Task Rn009_ConElCupoLleno_DesactivarYDesbloquearSiguenPermitidos(string accion)
+    {
+        var usuario = Existente();
+        CupoDeGestion(activos: 3);
+
+        await _caso.CambiarEstadoAsync(usuario.Id, accion, CancellationToken.None);
+
+        await _repositorio.Received(1).GuardarAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Rn009_PasarPersonalClinicoARolDeGestionConElCupoLleno_Responde409()
+    {
+        var usuario = Existente(rol: "AC-04");
+        CupoDeGestion(activos: 3);
+
+        var error = await Assert.ThrowsAsync<ErrorConflicto>(() =>
+            _caso.ActualizarAsync(usuario.Id, Datos("carlos@clinica.co", "AC-02"), CancellationToken.None));
+
+        Assert.Equal(GestionUsuarios.CodigoLimitePlan, error.Codigo);
+    }
+
+    [Fact]
+    public async Task Rn009_EditarDatosDeUnaCuentaDeGestionConElCupoLleno_Funciona()
+    {
+        var usuario = Existente(rol: "AC-03");
+        CupoDeGestion(activos: 3);
+
+        var dto = await _caso.ActualizarAsync(usuario.Id, Datos("carlos.perez@clinica.co", "AC-03"), CancellationToken.None);
+
+        Assert.Equal("carlos.perez@clinica.co", dto.Correo);
+        await _repositorio.DidNotReceive().CapacidadGestionAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

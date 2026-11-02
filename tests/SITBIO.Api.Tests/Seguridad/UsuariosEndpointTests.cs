@@ -22,6 +22,7 @@ public class UsuariosEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
 
     private HttpClient Cliente(string? codigoRol)
     {
+        _repositorio.CapacidadGestionAsync(Arg.Any<CancellationToken>()).Returns(new CapacidadGestion("Clínica", 7, 0));
         var cliente = fabrica.WithWebHostBuilder(b => b
                 .UseSetting("Jwt:Clave", ClaveJwt)
                 .ConfigureTestServices(s => s.AddScoped(_ => _repositorio)))

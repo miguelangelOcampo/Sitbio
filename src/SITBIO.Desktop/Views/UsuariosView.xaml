@@ -1,0 +1,671 @@
+<!-- UI-004 Usuarios y roles (HU-011, solo AC-01; prototipo vigente). Diseño clínico editorial:
+     indicadores en franja, tabla abierta, estados con punto y texto, guía de roles sin tarjetas.
+     Panel lateral para crear o editar; diálogos solo para confirmar y para la clave temporal. -->
+<UserControl x:Class="Sitbio.Desktop.Views.UsuariosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+
+    <!-- Caja de campo que se pone roja cuando Tag (el error) tiene texto -->
+    <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}, Converter={StaticResource TextoVisible}}" Value="Visible">
+          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- Aviso en línea: Tag = Aviso. Rojo si es error; verde si confirma una acción. -->
+    <DataTemplate x:Key="PlantillaAviso" DataType="{x:Type vm:Aviso}">
+      <Border x:Name="Barra" Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+              AutomationProperties.LiveSetting="Assertive">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <ContentControl x:Name="Icono" Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                          Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <TextBlock x:Name="Titulo" Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+            </DockPanel>
+            <TextBlock Text="{Binding Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                       Visibility="{Binding Mensaje, Converter={StaticResource TextoVisible}}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding EsError}" Value="False">
+          <Setter TargetName="Barra" Property="Background" Value="{DynamicResource Brush.SuccessSoft}" />
+          <Setter TargetName="Barra" Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
+          <Setter TargetName="Icono" Property="Content" Value="{StaticResource Icono.Check}" />
+          <Setter TargetName="Icono" Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+          <Setter TargetName="Titulo" Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- Opción de rol en el panel: punto de selección + código + nombre, sin caja -->
+    <Style x:Key="OpcionRol" TargetType="ListBoxItem">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text2}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTeclado}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBoxItem">
+            <Border x:Name="Fila" Background="Transparent" Padding="4,8" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,0,0,1">
+              <StackPanel Orientation="Horizontal">
+                <Grid Width="18" Height="18" Margin="0,0,10,0">
+                  <Ellipse Stroke="{DynamicResource Brush.BorderControl}" StrokeThickness="1.5" />
+                  <Ellipse x:Name="Punto" Width="8" Height="8" Fill="{DynamicResource Brush.Primary}" Visibility="Collapsed" />
+                </Grid>
+                <TextBlock Text="{Binding Codigo}" FontFamily="Consolas" FontSize="13" Width="48" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Nombre}" FontSize="14" VerticalAlignment="Center" />
+              </StackPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Fila" Property="Background" Value="{DynamicResource Brush.Surface3}" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Punto" Property="Visibility" Value="Visible" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Velo que cierra el panel o diálogo al hacer clic fuera -->
+    <Style x:Key="Velo" TargetType="Button">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Rectangle Fill="{DynamicResource Brush.Scrim}" />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+      <StackPanel Margin="40,32,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+        <!-- Encabezado -->
+        <TextBlock Text="ADMINISTRACIÓN" Style="{StaticResource Overline}" />
+        <DockPanel Margin="0,6,0,0">
+          <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Command="{Binding NuevoUsuarioCommand}" VerticalAlignment="Top"
+                  AutomationProperties.Name="Nuevo usuario">
+            <StackPanel Orientation="Horizontal">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.UsuarioMas}" Foreground="{DynamicResource Brush.OnPrimary}" Margin="0,0,8,0" />
+              <TextBlock Text="Nuevo usuario" />
+            </StackPanel>
+          </Button>
+          <StackPanel Margin="0,0,24,0">
+            <TextBlock Text="Usuarios y roles" Style="{StaticResource PageTitle}" />
+            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0"
+                       Text="Cuentas de la institución y su rol de acceso. Solo el Administrador del Sistema puede modificarlas." />
+          </StackPanel>
+        </DockPanel>
+
+        <!-- Pestañas -->
+        <Border BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="0,0,0,1" Margin="0,20,0,20">
+          <StackPanel Orientation="Horizontal">
+            <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasUsuarios" Content="{Binding TituloPestanaUsuarios}"
+                         IsChecked="{Binding VerUsuarios, Mode=OneWay}" Command="{Binding MostrarUsuariosCommand}" />
+            <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasUsuarios" Content="Roles y permisos"
+                         IsChecked="{Binding VerRoles, Mode=OneWay}" Command="{Binding MostrarRolesCommand}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Aviso de la pantalla -->
+        <Grid Margin="0,0,0,18" Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+          <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,14,11">
+            <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
+                    Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
+            <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarAvisoCommand}" />
+          </StackPanel>
+        </Grid>
+
+        <!-- ================= Pestaña Usuarios ================= -->
+        <StackPanel Visibility="{Binding VerUsuarios, Converter={StaticResource Visible}}">
+          <Border Style="{StaticResource KpiStrip}">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+              </Grid.ColumnDefinitions>
+              <Border Style="{StaticResource KpiItem}" BorderThickness="0" Padding="0,14,20,14">
+                <StackPanel>
+                  <TextBlock Text="USUARIOS" Style="{StaticResource Overline}" />
+                  <TextBlock Text="{Binding Total}" Style="{StaticResource KpiValue}" />
+                  <TextBlock Text="7 roles definidos" Style="{StaticResource Muted}" FontSize="13" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="1" Style="{StaticResource KpiItem}">
+                <StackPanel>
+                  <TextBlock Text="ACTIVOS" Style="{StaticResource Overline}" />
+                  <TextBlock Text="{Binding Activos}" Style="{StaticResource KpiValue}" />
+                  <TextBlock Text="Con acceso vigente" Style="{StaticResource Muted}" FontSize="13" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="2" Style="{StaticResource KpiItem}">
+                <StackPanel>
+                  <TextBlock Text="BLOQUEADOS" Style="{StaticResource Overline}" />
+                  <TextBlock Text="{Binding Bloqueados}" Style="{StaticResource KpiValue}" />
+                  <TextBlock Text="5 intentos fallidos (RN-006)" Style="{StaticResource Muted}" FontSize="13" />
+                </StackPanel>
+              </Border>
+              <Border Grid.Column="3" Style="{StaticResource KpiItem}">
+                <StackPanel>
+                  <TextBlock Text="INACTIVOS" Style="{StaticResource Overline}" />
+                  <TextBlock Text="{Binding Inactivos}" Style="{StaticResource KpiValue}" />
+                  <TextBlock Text="Conservan su historial" Style="{StaticResource Muted}" FontSize="13" />
+                </StackPanel>
+              </Border>
+            </Grid>
+          </Border>
+
+          <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
+                  Margin="0,18,0,0" Visibility="{Binding HayBloqueados, Converter={StaticResource Visible}}">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="RN-006" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <StackPanel>
+                <TextBlock Text="{Binding TextoBloqueados}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                <TextBlock Text="Verifica la identidad del usuario antes de desbloquear su cuenta." Foreground="{DynamicResource Brush.Text}"
+                           TextWrapping="Wrap" Margin="0,3,0,0" />
+              </StackPanel>
+            </DockPanel>
+          </Border>
+
+          <!-- Filtros -->
+          <Grid Margin="0,22,0,8">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="2*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="12" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource FieldBox}" MinHeight="42">
+              <DockPanel>
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Buscar}" Width="16" Height="16" Margin="0,0,10,0" />
+                <TextBox Style="{StaticResource FieldInput}" FontSize="14" Text="{Binding Busqueda, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Buscar por nombre o correo" />
+              </DockPanel>
+            </Border>
+            <!-- Texto de ayuda mientras la búsqueda está vacía -->
+            <TextBlock Text="Buscar por nombre o correo" Margin="42,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                  <Setter Property="Foreground" Value="{DynamicResource Brush.Text3}" />
+                  <Setter Property="Visibility" Value="Collapsed" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Busqueda.Length}" Value="0">
+                      <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
+            <ComboBox Grid.Column="2" Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:UsuariosViewModel.OpcionesRol}"
+                      SelectedItem="{Binding FiltroRol}" DisplayMemberPath="Texto" AutomationProperties.Name="Filtrar por rol" />
+            <ComboBox Grid.Column="4" Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:UsuariosViewModel.OpcionesEstado}"
+                      SelectedItem="{Binding FiltroEstado}" DisplayMemberPath="Texto" AutomationProperties.Name="Filtrar por estado" />
+          </Grid>
+
+          <!-- Tabla abierta -->
+          <DataGrid Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filtrados}" RowHeight="60"
+                    AutomationProperties.Name="Usuarios de la institución" ScrollViewer.CanContentScroll="False">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="USUARIO" Width="2.2*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaUsuario}">
+                    <StackPanel>
+                      <TextBlock Text="{Binding NombreMostrado}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Correo}" Foreground="{DynamicResource Brush.Text2}" FontSize="13" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="ROL" Width="2*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaUsuario}">
+                    <TextBlock TextTrimming="CharacterEllipsis">
+                      <Run Text="{Binding Rol, Mode=OneWay}" FontFamily="Consolas" FontSize="13" />
+                      <Run Text="·" Foreground="{DynamicResource Brush.Text3}" />
+                      <Run Text="{Binding NombreRol, Mode=OneWay}" Foreground="{DynamicResource Brush.Text2}" />
+                    </TextBlock>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="ESTADO" Width="*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaUsuario}">
+                    <StackPanel Orientation="Horizontal">
+                      <Ellipse x:Name="Punto" Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.Success}" />
+                      <TextBlock Text="{Binding Estado}" />
+                    </StackPanel>
+                    <DataTemplate.Triggers>
+                      <DataTrigger Binding="{Binding Estado}" Value="Bloqueado">
+                        <Setter TargetName="Punto" Property="Fill" Value="{DynamicResource Brush.Warning}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding Estado}" Value="Inactivo">
+                        <Setter TargetName="Punto" Property="Fill" Value="{DynamicResource Brush.Text3}" />
+                      </DataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="ÚLTIMO ACCESO" Width="1.3*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaUsuario}">
+                    <TextBlock Text="{Binding UltimoAcceso}" Foreground="{DynamicResource Brush.Text2}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Width="56">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaUsuario}">
+                    <Button Style="{StaticResource IconButton}" Click="AbrirMenuFila"
+                            Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            AutomationProperties.Name="{Binding NombreCompleto, StringFormat='Acciones de {0}'}" ToolTip="Acciones">
+                      <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Mas}" Width="20" Height="20" />
+                      <Button.ContextMenu>
+                        <ContextMenu Style="{StaticResource MenuFila}"
+                                     DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                          <MenuItem Header="Editar" Command="{Binding EditarCommand}"
+                                    CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                          <MenuItem Header="Desbloquear cuenta" Command="{Binding DesbloquearCommand}"
+                                    CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                    Visibility="{Binding PlacementTarget.DataContext.PuedeDesbloquear, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource Visible}}" />
+                          <MenuItem Header="Restablecer contraseña" Command="{Binding RestablecerClaveCommand}"
+                                    CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                    Visibility="{Binding PlacementTarget.DataContext.PuedeRestablecer, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource Visible}}" />
+                          <MenuItem Header="Desactivar" Command="{Binding PedirDesactivarCommand}"
+                                    CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                    Visibility="{Binding PlacementTarget.DataContext.PuedeDesactivar, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource Visible}}" />
+                          <MenuItem Header="Reactivar" Command="{Binding ReactivarCommand}"
+                                    CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                    Visibility="{Binding PlacementTarget.DataContext.PuedeReactivar, RelativeSource={RelativeSource AncestorType=ContextMenu}, Converter={StaticResource Visible}}" />
+                        </ContextMenu>
+                      </Button.ContextMenu>
+                    </Button>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <TextBlock Text="Cargando usuarios…" Style="{StaticResource Muted}" Margin="0,16,0,0"
+                     Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+          <TextBlock Text="Ningún usuario coincide con los filtros." Style="{StaticResource Muted}" Margin="0,16,0,0"
+                     Visibility="{Binding SinCoincidencias, Converter={StaticResource Visible}}" />
+          <TextBlock Text="{Binding ResumenLista}" Style="{StaticResource Muted}" FontSize="13" Margin="0,12,0,0" />
+        </StackPanel>
+
+        <!-- ================= Pestaña Roles y permisos ================= -->
+        <StackPanel Visibility="{Binding VerRoles, Converter={StaticResource Visible}}">
+          <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}">
+            <StackPanel>
+              <TextBlock Text="Guía de roles de SITBIO" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+              <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                         Text="Consulta qué puede hacer cada rol antes de asignarlo. Los permisos los define el sistema y se validan en el servidor; aquí asignas roles a las personas, no cambias los permisos." />
+            </StackPanel>
+          </Border>
+
+          <Grid Margin="0,24,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="300" />
+              <ColumnDefinition Width="40" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Roles: filas con divisor; la elegida con barra -->
+            <ItemsControl ItemsSource="{Binding RolesGuia}" Focusable="False" BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="0,1,0,0"
+                          AutomationProperties.Name="Roles">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:RolEnGuia}">
+                  <Border Style="{StaticResource ListRow}" Padding="0">
+                    <RadioButton Style="{StaticResource NavItem}" GroupName="RolesGuia" IsChecked="{Binding Seleccionado, Mode=OneWay}"
+                                 Command="{Binding DataContext.ElegirRolGuiaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                 CommandParameter="{Binding Info}" AutomationProperties.Name="{Binding Info.Etiqueta}">
+                      <StackPanel Margin="0,2">
+                        <DockPanel>
+                          <TextBlock DockPanel.Dock="Right" Text="{Binding TextoActivos}" FontSize="12" FontWeight="Normal"
+                                     Foreground="{DynamicResource Brush.Text3}" />
+                          <TextBlock Text="{Binding Info.Codigo}" FontFamily="Consolas" FontSize="12" FontWeight="Normal"
+                                     Foreground="{DynamicResource Brush.Text3}" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding Info.Nombre}" FontSize="15" Margin="0,2,0,0" />
+                        <TextBlock Text="{Binding Detalle}" FontSize="12" FontWeight="Normal" Foreground="{DynamicResource Brush.Text2}" Margin="0,2,0,0" />
+                      </StackPanel>
+                    </RadioButton>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <!-- Detalle del rol elegido -->
+            <Border Grid.Column="2" Style="{StaticResource Section}" DataContext="{Binding RolGuia}">
+              <StackPanel>
+                <TextBlock Style="{StaticResource SectionTitle}" FontSize="20" TextWrapping="Wrap">
+                  <Run Text="{Binding Nombre, Mode=OneWay}" />
+                  <Run Text="{Binding Codigo, Mode=OneWay}" FontFamily="Consolas" FontSize="14" FontWeight="Normal" Foreground="{DynamicResource Brush.Text3}" />
+                </TextBlock>
+                <TextBlock Text="{Binding Quien}" Style="{StaticResource Muted}" Margin="0,4,0,10" />
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+                  <Button Content="{Binding DataContext.TextoVerUsuarios, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                          Style="{StaticResource LinkButton}" Margin="0,0,24,0"
+                          Command="{Binding DataContext.VerUsuariosDelRolCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                  <Button Content="Crear usuario con este rol" Style="{StaticResource LinkButton}"
+                          Command="{Binding DataContext.CrearConRolGuiaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </StackPanel>
+
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1.3*" />
+                    <ColumnDefinition Width="28" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel>
+                    <TextBlock Text="QUÉ PUEDE HACER" Style="{StaticResource Overline}" Margin="0,0,0,8" />
+                    <ItemsControl ItemsSource="{Binding Funciones}" Focusable="False">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <DockPanel Margin="0,0,0,8">
+                            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}" Width="16" Height="16"
+                                            Foreground="{DynamicResource Brush.SuccessText}" VerticalAlignment="Top" Margin="0,2,8,0" />
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}" />
+                          </DockPanel>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                  <StackPanel Grid.Column="2">
+                    <TextBlock Text="LÍMITES DEL ROL" Style="{StaticResource Overline}" Margin="0,0,0,8" />
+                    <ItemsControl ItemsSource="{Binding Restricciones}" Focusable="False">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <DockPanel Margin="0,0,0,8">
+                            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}" Width="16" Height="16"
+                                            Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,2,8,0" />
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}" />
+                          </DockPanel>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Text="OPCIONES DE SU MENÚ" Style="{StaticResource Overline}" Margin="0,12,0,8" />
+                    <ItemsControl ItemsSource="{Binding Menu}" Focusable="False">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <WrapPanel />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <TextBlock Text="{Binding StringFormat='· {0}'}" Foreground="{DynamicResource Brush.Text2}" FontSize="13" Margin="0,0,14,4" />
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <!-- Matriz de permisos -->
+          <Border Style="{StaticResource Section}" Margin="0,32,0,0">
+            <StackPanel>
+              <DockPanel Margin="0,0,0,12">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                  <Ellipse Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.Success}" />
+                  <TextBlock Text="Gestiona" Style="{StaticResource Muted}" FontSize="13" Margin="0,0,16,0" />
+                  <Ellipse Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.Info}" />
+                  <TextBlock Text="Consulta" Style="{StaticResource Muted}" FontSize="13" Margin="0,0,16,0" />
+                  <TextBlock Text="— Sin acceso" Style="{StaticResource Muted}" FontSize="13" Foreground="{DynamicResource Brush.Text3}" />
+                </StackPanel>
+                <TextBlock Text="Matriz de permisos por módulo" Style="{StaticResource SectionTitle}" />
+              </DockPanel>
+
+              <!-- Encabezado: módulo + AC-01..AC-07 -->
+              <Grid Margin="0,0,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="200" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="0,0,0,1" Grid.ColumnSpan="2" />
+                <TextBlock Text="MÓDULO" Style="{StaticResource Overline}" Margin="0,8" VerticalAlignment="Bottom" />
+                <ItemsControl Grid.Column="1" ItemsSource="{Binding RolesMatriz}" Focusable="False">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <UniformGrid Rows="1" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:InfoRol}">
+                      <Button Style="{StaticResource LinkButton}" Margin="8,8,4,8" HorizontalAlignment="Left"
+                              Command="{Binding DataContext.ElegirRolGuiaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              CommandParameter="{Binding}" Content="{Binding Codigo}" AutomationProperties.Name="{Binding Etiqueta}"
+                              ToolTip="{Binding Nombre}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Grid>
+
+              <ItemsControl ItemsSource="{Binding Matriz}" Focusable="False">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaMatriz}">
+                    <Border Style="{StaticResource ListRow}" Padding="0">
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="200" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Modulo}" FontWeight="SemiBold" FontSize="13" Foreground="{DynamicResource Brush.Text}"
+                                   VerticalAlignment="Center" TextWrapping="Wrap" Margin="0,10,8,10" />
+                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Celdas}" Focusable="False">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <UniformGrid Rows="1" />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:CeldaPermiso}">
+                              <Border x:Name="Celda" Background="Transparent" Padding="8,10,4,10">
+                                <DockPanel>
+                                  <Ellipse x:Name="Punto" Style="{StaticResource StatusDot}" Margin="0,4,6,0" VerticalAlignment="Top"
+                                           Fill="{DynamicResource Brush.Success}" />
+                                  <TextBlock x:Name="Texto" Text="{Binding Texto}" FontSize="12" TextWrapping="Wrap"
+                                             Foreground="{DynamicResource Brush.Text}" />
+                                </DockPanel>
+                              </Border>
+                              <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Nivel}" Value="{x:Static vm:NivelPermiso.Consulta}">
+                                  <Setter TargetName="Punto" Property="Fill" Value="{DynamicResource Brush.Info}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Nivel}" Value="{x:Static vm:NivelPermiso.Ninguno}">
+                                  <Setter TargetName="Punto" Property="Visibility" Value="Collapsed" />
+                                  <Setter TargetName="Texto" Property="Text" Value="—" />
+                                  <Setter TargetName="Texto" Property="Foreground" Value="{DynamicResource Brush.Text3}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Seleccionada}" Value="True">
+                                  <Setter TargetName="Celda" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+                                </DataTrigger>
+                              </DataTemplate.Triggers>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Style="{StaticResource Muted}" FontSize="12" Margin="0,12,0,0"
+                         Text="Fuente: DOC-03, Tabla 8, con el ajuste de roles del 01/11/2026. Ningún rol ve datos de otra institución (RN-008)." />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ================= Panel lateral: crear o editar ================= -->
+    <Grid Visibility="{Binding Formulario, Converter={StaticResource NuloVisible}}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CerrarFormularioCommand}" />
+      <Border Width="460" HorizontalAlignment="Right" Background="{DynamicResource Brush.Elevated}"
+              BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0" DataContext="{Binding Formulario}"
+              AutomationProperties.Name="{Binding Titulo}">
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="24,20,16,8">
+            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" AutomationProperties.Name="Cerrar"
+                    Command="{Binding DataContext.CerrarFormularioCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Cerrar}" />
+            </Button>
+            <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="20" VerticalAlignment="Center" />
+          </DockPanel>
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="24,14">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+              <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0"
+                      Command="{Binding DataContext.CerrarFormularioCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+              <Button Content="{Binding TextoGuardar}" Style="{StaticResource PrimaryButton}" IsDefault="True"
+                      Command="{Binding DataContext.GuardarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+            </StackPanel>
+          </Border>
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+            <StackPanel Margin="24,8,24,24">
+              <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,0,0,16"
+                              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" />
+
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition />
+                  <ColumnDefinition Width="12" />
+                  <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Text="Nombres" Style="{StaticResource FieldLabel}" />
+                  <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorNombres}">
+                    <TextBox Style="{StaticResource FieldInput}" Text="{Binding Nombres, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Nombres" />
+                  </Border>
+                  <TextBlock Text="{Binding ErrorNombres}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorNombres, Converter={StaticResource TextoVisible}}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Text="Apellidos" Style="{StaticResource FieldLabel}" />
+                  <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorApellidos}">
+                    <TextBox Style="{StaticResource FieldInput}" Text="{Binding Apellidos, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Apellidos" />
+                  </Border>
+                  <TextBlock Text="{Binding ErrorApellidos}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorApellidos, Converter={StaticResource TextoVisible}}" />
+                </StackPanel>
+              </Grid>
+
+              <TextBlock Text="Correo institucional" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+              <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorCorreo}">
+                <TextBox Style="{StaticResource FieldInput}" Text="{Binding Correo, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Correo institucional" />
+              </Border>
+              <TextBlock Text="{Binding ErrorCorreo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorCorreo, Converter={StaticResource TextoVisible}}" />
+              <TextBlock Text="Será su usuario para iniciar sesión." Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0" />
+
+              <TextBlock Style="{StaticResource FieldLabel}" Margin="0,16,0,6">
+                <Run Text="Teléfono" /><Run Text=" (opcional)" FontWeight="Normal" Foreground="{DynamicResource Brush.Text3}" />
+              </TextBlock>
+              <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorTelefono}">
+                <TextBox Style="{StaticResource FieldInput}" Text="{Binding Telefono, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Teléfono (opcional)" />
+              </Border>
+              <TextBlock Text="{Binding ErrorTelefono}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorTelefono, Converter={StaticResource TextoVisible}}" />
+
+              <TextBlock Text="Rol" Style="{StaticResource FieldLabel}" Margin="0,18,0,4" />
+              <ListBox ItemsSource="{Binding Roles}" SelectedItem="{Binding Rol}" ItemContainerStyle="{StaticResource OpcionRol}"
+                       Background="Transparent" BorderThickness="0" ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                       AutomationProperties.Name="Rol" />
+              <TextBlock Text="{Binding ErrorRol}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorRol, Converter={StaticResource TextoVisible}}" />
+
+              <Border Style="{StaticResource Section}" Margin="0,16,0,0" Visibility="{Binding Rol, Converter={StaticResource NuloVisible}}">
+                <StackPanel>
+                  <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap">
+                    <Run Text="Con el rol" /> <Run Text="{Binding Rol.Nombre, Mode=OneWay}" /><Run Text=" podrá:" />
+                  </TextBlock>
+                  <ItemsControl ItemsSource="{Binding FuncionesDelRol}" Focusable="False" Margin="0,6,0,0">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding StringFormat='• {0}'}" Style="{StaticResource Muted}" FontSize="13" Margin="0,0,0,4" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Text="Cuenta de solo lectura para auditorías; desactívala cuando termine la auditoría." FontSize="13"
+                             Foreground="{DynamicResource Brush.WarningText}" TextWrapping="Wrap" Margin="0,4,0,0"
+                             Visibility="{Binding EsAuditor, Converter={StaticResource Visible}}" />
+                </StackPanel>
+              </Border>
+
+              <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}" Margin="0,16,0,0"
+                      Visibility="{Binding EsNuevo, Converter={StaticResource Visible}}">
+                <StackPanel>
+                  <TextBlock Text="Contraseña temporal" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+                  <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                             Text="Al guardar se genera una contraseña temporal de un solo uso. La verás una sola vez para entregarla al usuario, que deberá cambiarla al ingresar (RF-012)." />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Grid>
+
+    <!-- ================= Confirmar desactivación ================= -->
+    <Grid Visibility="{Binding PorDesactivar, Converter={StaticResource NuloVisible}}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CancelarDesactivarCommand}" />
+      <Border Style="{StaticResource Dialog}" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel>
+          <TextBlock Style="{StaticResource SectionTitle}" FontSize="18" TextWrapping="Wrap"
+                     Text="{Binding PorDesactivar.NombreCompleto, StringFormat='¿Desactivar a {0}?'}" />
+          <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,20"
+                     Text="Perderá el acceso de inmediato. Sus tiquetes, órdenes e intervenciones se conservan para la trazabilidad y puedes reactivarlo después." />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0"
+                    Command="{Binding CancelarDesactivarCommand}" IsCancel="True" />
+            <Button Content="Desactivar" Style="{StaticResource DangerButton}" Command="{Binding ConfirmarDesactivarCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ================= Clave temporal (se muestra una sola vez) ================= -->
+    <Grid Visibility="{Binding ClaveEmitida, Converter={StaticResource NuloVisible}}">
+      <Button Style="{StaticResource Velo}" />
+      <Border Style="{StaticResource Dialog}" Width="480" HorizontalAlignment="Center" VerticalAlignment="Center" DataContext="{Binding ClaveEmitida}">
+        <StackPanel>
+          <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="18" TextWrapping="Wrap" />
+          <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,16">
+            <Run Text="Entrega esta contraseña temporal a" /> <Run Text="{Binding Correo, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" /><Run
+                 Text=" por un canal seguro. Solo se muestra esta vez y el sistema le pedirá cambiarla al ingresar (RF-012)." />
+          </TextBlock>
+          <Border Style="{StaticResource FieldBox}" Background="{DynamicResource Brush.Surface3}">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Content="Copiar" Style="{StaticResource LinkButton}" VerticalAlignment="Center"
+                      Command="{Binding DataContext.CopiarClaveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+              <TextBox Text="{Binding Clave, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" FontSize="20" Style="{StaticResource FieldInput}"
+                       AutomationProperties.Name="Contraseña temporal" />
+            </DockPanel>
+          </Border>
+          <TextBlock Text="Copiada al portapapeles." Foreground="{DynamicResource Brush.SuccessText}" FontSize="13" Margin="0,6,0,0"
+                     Visibility="{Binding Copiada, Converter={StaticResource Visible}}" />
+          <Button Content="Listo" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,20,0,0"
+                  Command="{Binding DataContext.CerrarClaveCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

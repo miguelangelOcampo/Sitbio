@@ -38,6 +38,8 @@
   <SolidColorBrush x:Key="Brush.HighText" Color="#A34E1C" />
   <SolidColorBrush x:Key="Brush.HighSoft" Color="#FCEDE2" />
   <SolidColorBrush x:Key="Brush.Focus" Color="#245B3B" />
+  <!-- Velo detrás de diálogos y paneles laterales -->
+  <SolidColorBrush x:Key="Brush.Scrim" Color="#59252B27" />
   <!-- Panel de marca (inicio de sesión) y logo del tema -->
   <SolidColorBrush x:Key="Brush.BrandPanel" Color="#245B3B" />
   <SolidColorBrush x:Key="Brush.OnBrandPanel" Color="#FFFFFF" />

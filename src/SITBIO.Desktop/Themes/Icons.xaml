@@ -27,6 +27,11 @@
   <!-- Admin: escudo con cerradura -->
   <Geometry x:Key="Icono.Riel.Admin">M12,3.2 L19,6 V11.2 C19,15.5 16.1,18.9 12,20.8 C7.9,18.9 5,15.5 5,11.2 V6 Z M10,10.6 A2,2 0 1 0 14,10.6 A2,2 0 1 0 10,10.6 Z M12,12.6 V15.6</Geometry>
 
+  <Geometry x:Key="Icono.Check">M5,12.5 L10,17.5 L19,7</Geometry>
+  <Geometry x:Key="Icono.Cerrar">M6,6 L18,18 M18,6 L6,18</Geometry>
+  <Geometry x:Key="Icono.Mas">M4.6,12 A1.4,1.4 0 1 0 7.4,12 A1.4,1.4 0 1 0 4.6,12 Z M10.6,12 A1.4,1.4 0 1 0 13.4,12 A1.4,1.4 0 1 0 10.6,12 Z M16.6,12 A1.4,1.4 0 1 0 19.4,12 A1.4,1.4 0 1 0 16.6,12 Z</Geometry>
+  <Geometry x:Key="Icono.Chevron">M6,9 L12,15 L18,9</Geometry>
+  <Geometry x:Key="Icono.UsuarioMas">M15,20 C15,17.2 12.3,15 9,15 C5.7,15 3,17.2 3,20 M9,4.5 A4,4 0 1 0 9,12.5 A4,4 0 1 0 9,4.5 Z M19,8 V14 M16,11 H22</Geometry>
   <Style x:Key="Icono" TargetType="ContentControl">
     <Setter Property="Width" Value="18" />
     <Setter Property="Height" Value="18" />

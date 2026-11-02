@@ -9,6 +9,9 @@
     <BooleanToVisibilityConverter x:Key="Visible" />
     <views:RecursoConverter x:Key="Recurso" />
     <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <DataTemplate DataType="{x:Type vm:UsuariosViewModel}">
+      <views:UsuariosView />
+    </DataTemplate>
     <Style x:Key="RailButton" TargetType="Button">
       <Setter Property="Foreground" Value="{DynamicResource Brush.OnBrandPanelMuted}" />
       <Setter Property="Height" Value="40" />
@@ -134,7 +137,11 @@
       <Ellipse Width="620" Height="620" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-260,-420"
                Stroke="{DynamicResource Brush.Primary}" StrokeThickness="1" Opacity="0.13" IsHitTestVisible="False" />
 
-      <StackPanel Margin="40,36" MaxWidth="760" HorizontalAlignment="Left">
+      <!-- Pantalla de la opción actual (DataTemplate por ViewModel) -->
+      <ContentControl Content="{Binding Contenido}" Focusable="False" />
+
+      <StackPanel Margin="40,36" MaxWidth="760" HorizontalAlignment="Left"
+                  Visibility="{Binding EnConstruccion, Converter={StaticResource Visible}}">
         <TextBlock Text="{Binding TituloModuloActual}" Style="{StaticResource Overline}" />
         <TextBlock Text="{Binding OpcionActual.Etiqueta}" Style="{StaticResource PageTitle}" Margin="0,6,0,24" />
         <Border Style="{StaticResource Section}">

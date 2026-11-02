@@ -6,13 +6,13 @@ namespace Sitbio.Desktop.ViewModels;
 /// <summary>Ventana principal: muestra la vista actual (inicio de sesión o marco de la sesión).</summary>
 public partial class MainViewModel : ObservableObject
 {
-    public MainViewModel(LoginViewModel login, SesionActual sesionActual)
+    public MainViewModel(LoginViewModel login, SesionActual sesionActual, IFabricaPantallas? pantallas = null)
     {
         _vistaActual = login;
         login.SesionIniciada += (_, sesion) =>
         {
             sesionActual.Iniciar(sesion);
-            VistaActual = new ShellViewModel(sesion.Rol);
+            VistaActual = new ShellViewModel(sesion.Rol, pantallas);
         };
     }
 

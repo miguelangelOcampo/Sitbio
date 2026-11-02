@@ -23,6 +23,10 @@ public partial class App : Application
 
         // Los servicios de cada historia usan ClienteApi: el token viaja en cada solicitud.
         servicios.AddHttpClient<ClienteApi>(ConfigurarCliente).AddHttpMessageHandler<ManejadorToken>();
+        servicios.AddTransient<IServicioUsuarios, ServicioUsuariosHttp>();
+        servicios.AddSingleton<IPortapapeles, PortapapelesWpf>();
+        servicios.AddSingleton<IFabricaPantallas, FabricaPantallas>();
+        servicios.AddTransient<UsuariosViewModel>();
         servicios.AddTransient<LoginViewModel>();
         servicios.AddSingleton<MainViewModel>();
         _servicios = servicios.BuildServiceProvider();

@@ -187,16 +187,18 @@
     <Setter Property="FontSize" Value="15" />
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="Height" Value="46" />
+    <Setter Property="Padding" Value="20,0" />
+    <Setter Property="Tag" Value="{DynamicResource Brush.PrimaryHover}" />
     <Setter Property="Cursor" Value="Hand" />
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
           <Border x:Name="Fondo" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.Button}">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
           </Border>
           <ControlTemplate.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-              <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.PrimaryHover}" />
+              <Setter TargetName="Fondo" Property="Background" Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
               <Setter TargetName="Fondo" Property="Opacity" Value="0.7" />
@@ -205,6 +207,12 @@
         </ControlTemplate>
       </Setter.Value>
     </Setter>
+  </Style>
+
+  <!-- Acción destructiva confirmada en un diálogo (Desactivar); Tag = color al pasar el mouse -->
+  <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+    <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+    <Setter Property="Tag" Value="{DynamicResource Brush.DangerText}" />
   </Style>
 
   <!-- Acción secundaria como enlace de texto -->
@@ -308,6 +316,141 @@
     <Setter Property="BorderThickness" Value="0,0,1,0" />
   </Style>
 
+  <!-- Pestaña: texto con barra inferior en la activa (sin caja) -->
+  <Style x:Key="Pestana" TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text2}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTeclado}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <Grid Background="Transparent" Margin="0,0,28,0">
+            <ContentPresenter Margin="0,10,0,12" />
+            <Border x:Name="Barra" Height="2" VerticalAlignment="Bottom" Background="{DynamicResource Brush.Primary}" Visibility="Collapsed" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Barra" Property="Visibility" Value="Visible" />
+              <Setter Property="Foreground" Value="{DynamicResource Brush.Primary}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Lista desplegable de formulario: caja como FieldBox y opciones en un menú -->
+  <Style x:Key="FieldComboItem" TargetType="ComboBoxItem">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBoxItem">
+          <Border x:Name="Fondo" Background="Transparent" Padding="12,8" CornerRadius="6">
+            <ContentPresenter />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True">
+              <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface2}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter Property="FontWeight" Value="SemiBold" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="FieldCombo" TargetType="ComboBox">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="MinHeight" Value="42" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="ItemContainerStyle" Value="{StaticResource FieldComboItem}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ComboBox">
+          <Grid>
+            <ToggleButton Focusable="False" ClickMode="Press"
+                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+              <ToggleButton.Template>
+                <ControlTemplate TargetType="ToggleButton">
+                  <Border x:Name="Borde" Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.BorderControl}"
+                          BorderThickness="1" CornerRadius="{StaticResource Radius.Field}" />
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                      <Setter TargetName="Borde" Property="BorderBrush" Value="{DynamicResource Brush.Text2}" />
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </ToggleButton.Template>
+            </ToggleButton>
+            <Border x:Name="Foco" BorderBrush="{DynamicResource Brush.Focus}" BorderThickness="2" CornerRadius="{StaticResource Radius.Field}"
+                    Visibility="Collapsed" IsHitTestVisible="False" />
+            <ContentPresenter Margin="13,0,36,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                              Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" />
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Chevron}" Width="16" Height="16"
+                            HorizontalAlignment="Right" Margin="0,0,12,0" IsHitTestVisible="False" Foreground="{DynamicResource Brush.Text2}" />
+            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False"
+                   PopupAnimation="Fade" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+              <Border Background="{DynamicResource Brush.Elevated}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                      CornerRadius="{StaticResource Radius.Field}" Padding="4" Margin="0,4,0,0" MaxHeight="320">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                  <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                </ScrollViewer>
+              </Border>
+            </Popup>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+              <Setter TargetName="Foco" Property="Visibility" Value="Visible" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- Menú de acciones de una fila (caja permitida en menús) -->
+  <Style x:Key="MenuFilaItem" TargetType="MenuItem">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="MenuItem">
+          <Border x:Name="Fondo" Background="Transparent" Padding="14,9" CornerRadius="6">
+            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsHighlighted" Value="True">
+              <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface2}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style x:Key="MenuFila" TargetType="ContextMenu">
+    <Setter Property="ItemContainerStyle" Value="{StaticResource MenuFilaItem}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ContextMenu">
+          <Border Background="{DynamicResource Brush.Elevated}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
+                  CornerRadius="{StaticResource Radius.Field}" Padding="4" MinWidth="200">
+            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- Tabla abierta: sin marco, solo divisores horizontales -->
   <Style x:Key="OpenGridHeader" TargetType="DataGridColumnHeader">
     <Setter Property="Background" Value="Transparent" />
@@ -316,7 +459,34 @@
     <Setter Property="FontWeight" Value="SemiBold" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderStrong}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
-    <Setter Property="Padding" Value="0,10,14,10" />
+    <Setter Property="Padding" Value="13,10,14,10" />
+  </Style>
+  <!-- Fila: la seleccionada lleva una barra a la izquierda, sin relleno de color -->
+  <Style x:Key="OpenGridRow" TargetType="DataGridRow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface3}" />
+      </Trigger>
+      <Trigger Property="IsSelected" Value="True">
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+  <Style x:Key="OpenGridCell" TargetType="DataGridCell">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="DataGridCell">
+          <ContentPresenter Margin="10,0,14,0" VerticalAlignment="Center" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
   </Style>
   <Style x:Key="OpenGrid" TargetType="DataGrid">
     <Setter Property="Background" Value="Transparent" />
@@ -330,5 +500,10 @@
     <Setter Property="CanUserAddRows" Value="False" />
     <Setter Property="IsReadOnly" Value="True" />
     <Setter Property="ColumnHeaderStyle" Value="{StaticResource OpenGridHeader}" />
+    <Setter Property="RowStyle" Value="{StaticResource OpenGridRow}" />
+    <Setter Property="CellStyle" Value="{StaticResource OpenGridCell}" />
+    <Setter Property="SelectionMode" Value="Single" />
+    <Setter Property="CanUserResizeRows" Value="False" />
+    <Setter Property="CanUserReorderColumns" Value="False" />
   </Style>
 </ResourceDictionary>

@@ -1,0 +1,15 @@
+using System.Globalization;
+using System.Windows;
+using System.Windows.Data;
+
+namespace Sitbio.Desktop.Views;
+
+/// <summary>Visible si el valor no es null (paneles y diálogos que existen solo mientras están abiertos).</summary>
+public sealed class NuloVisibleConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+        value is null ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}

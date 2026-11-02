@@ -1,3 +1,4 @@
+using NSubstitute;
 using Sitbio.Desktop.ViewModels;
 
 namespace Sitbio.Desktop.Tests.ViewModels;
@@ -75,5 +76,23 @@ public class ShellViewModelTests
 
         shell.AbrirModuloCommand.Execute(shell.Modulos[1]);
         Assert.True(shell.PanelVisible);
+    }
+
+    [Fact]
+    public void Navegar_MuestraLaPantallaDeLaOpcionOElAvisoDeConstruccion()
+    {
+        var pantallas = Substitute.For<IFabricaPantallas>();
+        var usuarios = new object();
+        pantallas.Crear("UI-004").Returns(usuarios);
+        var shell = new ShellViewModel("AC-01", pantallas);
+        var administracion = shell.Modulos.Single(m => m.Corto == "Admin");
+
+        shell.NavegarCommand.Execute(administracion.Opciones.Single(o => o.Opcion.Id == "UI-004"));
+        Assert.Same(usuarios, shell.Contenido);
+        Assert.False(shell.EnConstruccion);
+
+        shell.NavegarCommand.Execute(administracion.Opciones.First(o => o.Opcion.Id != "UI-004"));
+        Assert.Null(shell.Contenido);
+        Assert.True(shell.EnConstruccion);
     }
 }

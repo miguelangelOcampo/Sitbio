@@ -29,6 +29,8 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
   - Pruebas de los criterios CA-HU-011-01 a CA-HU-011-03 (CP-004 a CP-006) contra la API y PostgreSQL reales, incluido el desbloqueo que cierra el pendiente de CP-003.
 
 ### Cambiado
+- DOC-01 actualizado con el plan Consultorio y el nuevo almacenamiento de los planes (Tabla 4: Consultorio 3/300/5 GB, Clínica 7/1.000/25 GB, Hospital 14/3.000/100 GB, Red de Salud a la medida).
+- DOC-01 a DOC-06, el diagrama de casos de uso y el mapa de navegación (DIA-IA-01) sincronizados con el ajuste de roles del 01/11/2026: AC-05 pasa a ser «Gerente de Tecnología Biomédica»; los campos dinámicos y los catálogos técnicos los gestiona AC-02, y las ubicaciones, AC-01 y AC-02.
 - Base de datos (cada base local debe aplicar las migraciones nuevas; ver `database/README.md`):
   - V003: plan Consultorio y nuevo almacenamiento de los planes Clínica (25 GB) y Hospital (100 GB) (RN-009).
   - V004: columna `rol.codigo` (AC-01 a AC-07), nombres de roles según el DOC-01 y rol AC-07; la aplicación identifica los roles por código.

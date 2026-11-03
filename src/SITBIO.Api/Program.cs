@@ -2,6 +2,7 @@ using Sitbio.Api;
 using Sitbio.Api.Errores;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Api.Modules.Salud;
+using Sitbio.Api.Modules.Usuarios;
 using Sitbio.Api.Seguridad;
 using Sitbio.Application.Comun;
 using Sitbio.Application.Seguridad;
@@ -18,6 +19,7 @@ builder.Services.AddScoped<IContextoUsuario>(sp => sp.GetRequiredService<Context
 builder.Services.AddScoped<IEstablecerContextoUsuario>(sp => sp.GetRequiredService<ContextoUsuarioHttp>());
 builder.Services.AddInfraestructura(builder.Configuration);
 builder.Services.AddModuloAutenticacion(builder.Configuration);
+builder.Services.AddModuloUsuarios();
 
 var app = builder.Build();
 
@@ -34,6 +36,7 @@ if (app.Environment.IsDevelopment())
 var api = app.MapGroup(RutasApi.V1);
 api.MapSalud();
 api.MapAutenticacion();
+api.MapUsuarios();
 
 app.Run();
 

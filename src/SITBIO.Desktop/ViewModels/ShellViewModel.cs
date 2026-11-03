@@ -13,10 +13,12 @@ namespace Sitbio.Desktop.ViewModels;
 public partial class ShellViewModel : ObservableObject
 {
     private readonly string _codigoRol;
+    private readonly IFabricaPantallas? _pantallas;
 
-    public ShellViewModel(string codigoRol)
+    public ShellViewModel(string codigoRol, IFabricaPantallas? pantallas = null)
     {
         _codigoRol = codigoRol;
+        _pantallas = pantallas;
         Modulos = MenuPorRol.Para(codigoRol).Select(m => new ModuloViewModel(m)).ToList();
 
         var inicio = MenuPorRol.Inicio(codigoRol);
@@ -43,6 +45,13 @@ public partial class ShellViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _panelVisible = true;
+
+    /// <summary>ViewModel de la pantalla de la opción actual; null mientras la pantalla no exista.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EnConstruccion))]
+    private object? _contenido;
+
+    public bool EnConstruccion => Contenido is null;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ModuloActual), nameof(TituloModuloActual))]
@@ -100,6 +109,7 @@ public partial class ShellViewModel : ObservableObject
 
         opcion.EsActual = true;
         OpcionActual = opcion;
+        Contenido = _pantallas?.Crear(opcion.Opcion.Id);
         ActualizarSeleccion();
     }
 

@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using Sitbio.Application.Seguridad;
+using Sitbio.Application.Usuarios;
 using Sitbio.Infrastructure.Persistencia;
 using Sitbio.Infrastructure.Seguridad;
 
@@ -44,6 +45,8 @@ public static class DependencyInjection
         services.AddSingleton<IHasherContrasenas, HasherBCrypt>();
         services.AddSingleton<IGeneradorTokens, GeneradorJwt>();
         services.AddScoped<IRepositorioAcceso, RepositorioAcceso>();
+        services.AddScoped<IRepositorioUsuarios, RepositorioUsuarios>();
+        services.AddSingleton<IGeneradorClaves, GeneradorClaves>();
 
         return services;
     }

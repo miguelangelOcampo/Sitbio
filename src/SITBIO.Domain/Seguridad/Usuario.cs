@@ -86,6 +86,44 @@ public sealed class Usuario : EntidadTenant
         UltimoAcceso = momento;
     }
 
+    /// <summary>Datos personales editables por el Administrador (HU-011).</summary>
+    public void Actualizar(string nombres, string apellidos, string correo, string? telefono)
+    {
+        Nombres = Requerido(nombres, nameof(nombres));
+        Apellidos = Requerido(apellidos, nameof(apellidos));
+        Correo = NormalizarCorreo(correo);
+        Telefono = string.IsNullOrWhiteSpace(telefono) ? null : telefono.Trim();
+    }
+
+    /// <summary>Asigna otro rol por su id; EF Core actualiza la navegación al guardar.</summary>
+    public void CambiarRol(int rolId)
+    {
+        if (rolId != RolId)
+        {
+            RolId = rolId;
+            Rol = null;
+        }
+    }
+
+    /// <summary>La cuenta deja de poder iniciar sesión; sus datos y su historial se conservan.</summary>
+    public void Desactivar() => EstadoActivo = false;
+
+    public void Reactivar() => EstadoActivo = true;
+
+    /// <summary>RN-006: solo el Administrador desbloquea; el conteo de intentos vuelve a cero.</summary>
+    public void Desbloquear()
+    {
+        EstadoBloqueo = false;
+        IntentosFallidos = 0;
+    }
+
+    /// <summary>RF-012: clave temporal que el usuario debe cambiar en su siguiente inicio de sesión.</summary>
+    public void AsignarClaveTemporal(string contrasenaHash)
+    {
+        ContrasenaHash = Requerido(contrasenaHash, nameof(contrasenaHash));
+        CambioContrasenaObligatorio = true;
+    }
+
     /// <summary>Correo sin espacios y en minúsculas: es único en todo el sistema (V005) sin distinguir mayúsculas.</summary>
     public static string NormalizarCorreo(string correo)
     {

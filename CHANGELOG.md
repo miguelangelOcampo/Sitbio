@@ -22,6 +22,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
   - `IContextoUsuario` a partir de los claims del token; el tenant del inicio de sesión lo deduce el servidor a partir del correo (ADR-011).
   - Cliente WPF: pantalla UI-001 con MSG-001, MSG-002 y MSG-011, tema claro y oscuro, y menú «riel con nombres y panel agrupado» según el rol (AC-01 a AC-07); el token se adjunta a cada solicitud.
   - Pruebas de los criterios CA-HU-001-01 a CA-HU-001-03 (CP-001 a CP-003); trazabilidad en `docs/pruebas/trazabilidad.md`.
+- HU-011 Gestión de usuarios y roles:
+  - `/api/v1/usuarios` solo para el Administrador del Sistema (AC-01, RN-002): listar con paginación, consultar, crear, editar, desactivar, reactivar, desbloquear (RN-006) y emitir una contraseña temporal (RF-012). La contraseña temporal se devuelve una sola vez y se guarda solo su hash BCrypt.
+  - Límite del plan (RN-009): con el cupo de usuarios de gestión lleno no se crean ni se reactivan cuentas AC-01, AC-02, AC-03, AC-05 ni AC-06, ni se cambia una cuenta AC-04 o AC-07 a un rol de gestión (409 con el texto de MSG-019). El Personal Clínico (AC-04) y el ente regulador (AC-07) no cuentan.
+  - Cliente WPF: pantalla UI-004 Usuarios y roles con indicadores, filtros, tabla abierta, menú de acciones por fila, panel lateral para crear o editar, confirmación al desactivar y diálogo que muestra la contraseña temporal una sola vez; pestaña «Roles y permisos» con la guía de cada rol y la matriz de permisos. El marco de la sesión ya muestra la pantalla de cada opción del menú.
+  - Pruebas de los criterios CA-HU-011-01 a CA-HU-011-03 (CP-004 a CP-006) contra la API y PostgreSQL reales, incluido el desbloqueo que cierra el pendiente de CP-003.
 
 ### Cambiado
 - DOC-01 actualizado con el plan Consultorio y el nuevo almacenamiento de los planes (Tabla 4: Consultorio 3/300/5 GB, Clínica 7/1.000/25 GB, Hospital 14/3.000/100 GB, Red de Salud a la medida).
@@ -30,7 +35,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
   - V003: plan Consultorio y nuevo almacenamiento de los planes Clínica (25 GB) y Hospital (100 GB) (RN-009).
   - V004: columna `rol.codigo` (AC-01 a AC-07), nombres de roles según el DOC-01 y rol AC-07; la aplicación identifica los roles por código.
   - V005: correo único en todo el sistema, sin distinguir mayúsculas (ADR-011).
+  - V006: el AC-05 se llama «Gerente de Tecnología Biomédica»; descripciones de AC-01 (ubicaciones) y AC-02 (campos dinámicos y catálogos técnicos) según el ajuste de roles del 01/11/2026.
+- `CodigosRol.DirectorBiomedico` pasa a llamarse `CodigosRol.GerenteBiomedico` (el código AC-05 no cambia).
 
 ### Seguridad
 - La clave JWT se configura solo con User Secrets o con la variable `Jwt__Clave`; sin una clave válida la API arranca y rechaza todo token.
 - El inicio de sesión responde igual a un correo inexistente que a una contraseña errada, y no revela si una cuenta está bloqueada (MSG-002 genérico).
+- Gestión de usuarios: un correo usado en otra institución responde 409 `USR-001` sin revelar a cuál pertenece; un usuario de otra institución responde 404 (SEC-003); el Administrador no puede desactivar su propia cuenta ni quitarse el rol (409 `USR-002`).

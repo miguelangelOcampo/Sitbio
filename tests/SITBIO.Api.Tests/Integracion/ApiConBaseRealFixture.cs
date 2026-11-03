@@ -1,3 +1,8 @@
+using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -11,8 +16,8 @@ using Sitbio.Infrastructure.Seguridad;
 namespace Sitbio.Api.Tests.Integracion;
 
 /// <summary>
-/// API completa contra PostgreSQL real (script 01 + V002..V005). Crea dos tenants con
-/// usuarios de clave conocida y borra todo al terminar. Sin la variable de entorno no
+/// API completa contra PostgreSQL real (script 01 + V002..V006). Crea dos tenants (y los
+/// que pidan las pruebas) con usuarios de clave conocida y borra todo al terminar. Sin la variable de entorno no
 /// toca la base (las pruebas se omiten).
 /// </summary>
 public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsyncLifetime
@@ -23,6 +28,8 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
     private static readonly string HashClave = new HasherBCrypt().Hash(Clave);
     private readonly string _cadena = Environment.GetEnvironmentVariable(FactIntegracionAttribute.VariablePostgres) ?? string.Empty;
     private readonly string _sufijo = Guid.NewGuid().ToString("N")[..8];
+    private readonly ConcurrentBag<Guid> _tenantsAdicionales = [];
+    private int _consecutivoTenant;
 
     public Guid TenantA { get; } = Guid.NewGuid();
 
@@ -37,6 +44,50 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         builder.UseSetting("Mongo:Database", "sitbio_pruebas");
         builder.UseSetting("Jwt:Clave", ClaveJwt);
         builder.UseSetting(AutenticacionEndpoints.SeccionLimite, "1000");
+    }
+
+    /// <summary>
+    /// Crea un tenant con su plan fijado de forma explícita (RN-009: los valores por defecto
+    /// de la base son los de Clínica). Se borra al terminar.
+    /// </summary>
+    public async Task<Guid> CrearTenantAsync(string plan, int maxUsuariosGestion, int maxEquipos, int maxAlmacenamientoGb)
+    {
+        var id = Guid.NewGuid();
+        var nit = $"T{_sufijo}{Interlocked.Increment(ref _consecutivoTenant)}";
+        _tenantsAdicionales.Add(id);
+        await EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.tenant (id_tenant, nombre, nit, plan, max_usuarios_gestion, max_equipos, max_almacenamiento_gb) VALUES ({id}, {"Prueba " + plan}, {nit}, {plan}, {maxUsuariosGestion}, {maxEquipos}, {maxAlmacenamientoGb})"));
+        return id;
+    }
+
+    /// <summary>POST /auth/login real; devuelve el estado y el cuerpo.</summary>
+    public async Task<(HttpStatusCode Estado, JsonElement Cuerpo)> LoginAsync(string correo, string clave)
+    {
+        var respuesta = await CreateClient().PostAsJsonAsync("/api/v1/auth/login", new { correo, contrasena = clave });
+        var cuerpo = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync()).RootElement.Clone();
+        return (respuesta.StatusCode, cuerpo);
+    }
+
+    /// <summary>Cliente con el token que entrega el inicio de sesión real del usuario.</summary>
+    public async Task<HttpClient> IniciarSesionAsync(string correo, string clave = Clave)
+    {
+        var (estado, cuerpo) = await LoginAsync(correo, clave);
+        if (estado != HttpStatusCode.OK)
+        {
+            throw new InvalidOperationException($"El inicio de sesión de prueba respondió {(int)estado}.");
+        }
+
+        var cliente = CreateClient();
+        cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cuerpo.GetProperty("token").GetString());
+        return cliente;
+    }
+
+    /// <summary>Cuántos usuarios tiene el tenant, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<int> ContarUsuariosAsync(Guid tenant)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Usuarios.IgnoreQueryFilters().CountAsync(u => u.TenantId == tenant);
     }
 
     /// <summary>Crea un usuario con la clave conocida en el tenant indicado.</summary>
@@ -83,11 +134,12 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
     {
         if (!string.IsNullOrWhiteSpace(_cadena))
         {
+            Guid[] tenants = [TenantA, TenantB, .. _tenantsAdicionales];
             await EjecutarSqlAsync(async contexto =>
             {
-                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.sesion_token WHERE tenant_id IN ({TenantA}, {TenantB})");
-                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.usuario WHERE tenant_id IN ({TenantA}, {TenantB})");
-                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tenant WHERE id_tenant IN ({TenantA}, {TenantB})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.sesion_token WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.usuario WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tenant WHERE id_tenant = ANY({tenants})");
             });
         }
 

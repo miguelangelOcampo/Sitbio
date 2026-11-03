@@ -84,18 +84,6 @@
         </Setter.Value>
       </Setter>
     </Style>
-
-    <!-- Velo que cierra el panel o diálogo al hacer clic fuera -->
-    <Style x:Key="Velo" TargetType="Button">
-      <Setter Property="Focusable" Value="False" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Rectangle Fill="{DynamicResource Brush.Scrim}" />
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
   </UserControl.Resources>
 
   <Grid>

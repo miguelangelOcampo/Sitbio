@@ -88,9 +88,24 @@
     <!-- Panel agrupado del módulo -->
     <Border Grid.Column="1" Style="{StaticResource NavPanel}" Visibility="{Binding PanelVisible, Converter={StaticResource Visible}}">
       <DockPanel Margin="0,22,0,14">
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="20,0">
-          <Image Source="{DynamicResource Logo.Iso}" Height="22" Opacity="0.8" RenderOptions.BitmapScalingMode="HighQuality" />
-          <TextBlock Text="SITBIO v1.0" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" />
+        <StackPanel DockPanel.Dock="Bottom">
+          <!-- Sesión: rol y «Cerrar sesión» (HU-012) -->
+          <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Margin="12,0,8,10" Padding="8,10,0,0">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Command="{Binding PedirCierreCommand}"
+                      AutomationProperties.Name="Cerrar sesión" ToolTip="Cerrar sesión">
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Salir}" Width="17" Height="17" />
+              </Button>
+              <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="{Binding NombreRol}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Rol}" FontSize="12" Foreground="{DynamicResource Brush.Text3}" />
+              </StackPanel>
+            </DockPanel>
+          </Border>
+          <StackPanel Orientation="Horizontal" Margin="20,0">
+            <Image Source="{DynamicResource Logo.Iso}" Height="22" Opacity="0.8" RenderOptions.BitmapScalingMode="HighQuality" />
+            <TextBlock Text="SITBIO v1.0" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" />
+          </StackPanel>
         </StackPanel>
         <StackPanel DockPanel.Dock="Top" Margin="20,0,16,10">
           <TextBlock Text="{Binding ModuloEnPanel.Nombre}" Style="{StaticResource SectionTitle}" TextWrapping="Wrap" />
@@ -155,6 +170,23 @@
           </StackPanel>
         </Border>
       </StackPanel>
+    </Grid>
+
+    <!-- Confirmar el cierre de sesión (CA-HU-012-02) -->
+    <Grid Grid.ColumnSpan="3" Visibility="{Binding ConfirmandoCierre, Converter={StaticResource Visible}}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CancelarCierreCommand}" />
+      <Border Style="{StaticResource Dialog}" Width="420" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel>
+          <TextBlock Text="¿Cerrar sesión?" Style="{StaticResource SectionTitle}" FontSize="18" />
+          <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,20"
+                     Text="Tu token se invalida y tendrás que iniciar sesión de nuevo. Lo que guardaste se conserva." />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0"
+                    Command="{Binding CancelarCierreCommand}" IsCancel="True" />
+            <Button Content="Cerrar sesión" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarCierreCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
     </Grid>
   </Grid>
 </UserControl>

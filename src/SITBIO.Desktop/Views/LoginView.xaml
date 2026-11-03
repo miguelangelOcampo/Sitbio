@@ -139,7 +139,8 @@
           </Grid>
         </Border>
 
-        <Button Style="{StaticResource PrimaryButton}" TabIndex="5" Margin="0,20,0,0" IsDefault="True" Command="{Binding IniciarSesionCommand}">
+        <Button Style="{StaticResource PrimaryButton}" TabIndex="5" Margin="0,20,0,0" IsDefault="True" Command="{Binding IniciarSesionCommand}"
+                AutomationProperties.Name="Iniciar sesión">
           <Button.Content>
             <StackPanel Orientation="Horizontal">
               <TextBlock>

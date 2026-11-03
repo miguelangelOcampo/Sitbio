@@ -33,6 +33,15 @@ public partial class ShellViewModel : ObservableObject
 
     public string Rol => _codigoRol;
 
+    /// <summary>Nombre del rol de la sesión para el pie del panel.</summary>
+    public string NombreRol => GuiaRoles.NombreDe(_codigoRol);
+
+    /// <summary>El usuario confirmó «Cerrar sesión» (CA-HU-012-02); la ventana principal lo atiende.</summary>
+    public event EventHandler? CierreSolicitado;
+
+    [ObservableProperty]
+    private bool _confirmandoCierre;
+
     public IReadOnlyList<ModuloViewModel> Modulos { get; }
 
     [ObservableProperty]
@@ -115,6 +124,19 @@ public partial class ShellViewModel : ObservableObject
 
     [RelayCommand]
     private void AlternarPanel() => PanelVisible = !PanelVisible;
+
+    [RelayCommand]
+    private void PedirCierre() => ConfirmandoCierre = true;
+
+    [RelayCommand]
+    private void CancelarCierre() => ConfirmandoCierre = false;
+
+    [RelayCommand]
+    private void ConfirmarCierre()
+    {
+        ConfirmandoCierre = false;
+        CierreSolicitado?.Invoke(this, EventArgs.Empty);
+    }
 
     private void ActualizarSeleccion()
     {

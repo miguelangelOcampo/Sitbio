@@ -1,10 +1,15 @@
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using Sitbio.Application.Comun;
 using Sitbio.Application.Seguridad;
 
 namespace Sitbio.Api.Modules.Autenticacion;
 
-/// <summary>API-AUTH-LOGIN (DOC-06): inicio de sesión con límite de intentos por IP.</summary>
+/// <summary>
+/// API-AUTH-LOGIN, API-AUTH-REFRESH y API-AUTH-LOGOUT (DOC-06): inicio de sesión con límite
+/// de intentos por IP, renovación del token y cierre de sesión con revocación del jti (HU-012).
+/// </summary>
 public static class AutenticacionEndpoints
 {
     public const string PoliticaLogin = "login";
@@ -14,6 +19,8 @@ public static class AutenticacionEndpoints
     public static IServiceCollection AddModuloAutenticacion(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IniciarSesion>();
+        services.AddScoped<RenovarSesion>();
+        services.AddScoped<CerrarSesion>();
 
         var intentos = configuration.GetValue(SeccionLimite, IntentosPorMinutoPredeterminados);
         services.AddRateLimiter(opciones =>
@@ -55,6 +62,22 @@ public static class AutenticacionEndpoints
             .AllowAnonymous()
             .RequireRateLimiting(PoliticaLogin);
 
+        grupo.MapPost("/auth/refresh", async (ClaimsPrincipal usuario, IContextoUsuario contexto, RenovarSesion caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.EjecutarAsync(contexto.UsuarioId, IdToken(usuario), cancellationToken)))
+            .WithName("RenovarSesion")
+            .RequireAuthorization();
+
+        grupo.MapPost("/auth/logout", async ([FromBody] SolicitudCierreSesion? solicitud, ClaimsPrincipal usuario, CerrarSesion caso, CancellationToken cancellationToken) =>
+            {
+                await caso.EjecutarAsync(IdToken(usuario), solicitud?.Motivo, cancellationToken);
+                return Results.NoContent();
+            })
+            .WithName("CerrarSesion")
+            .RequireAuthorization();
+
         return grupo;
     }
+
+    // El jti sale del token ya validado, nunca del cuerpo de la solicitud.
+    private static string? IdToken(ClaimsPrincipal usuario) => usuario.FindFirst(ClaimsSitbio.IdToken)?.Value;
 }

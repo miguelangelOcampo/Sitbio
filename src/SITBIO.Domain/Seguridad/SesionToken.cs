@@ -9,6 +9,7 @@ namespace Sitbio.Domain.Seguridad;
 public sealed class SesionToken : EntidadTenant
 {
     public const int LongitudMaximaJti = 36;
+    public const int LongitudMaximaMotivo = 200;
 
     // Constructor para EF Core.
     private SesionToken(Guid tenantId)
@@ -52,4 +53,39 @@ public sealed class SesionToken : EntidadTenant
     public DateTimeOffset? FechaRevocacion { get; private set; }
 
     public string? MotivoRevocacion { get; private set; }
+
+    public bool EstaRevocada => FechaRevocacion is not null;
+
+    /// <summary>Vigente: no revocada y sin expirar en <paramref name="momento"/>.</summary>
+    public bool EstaVigente(DateTimeOffset momento) => !EstaRevocada && momento < FechaExpiracion;
+
+    /// <summary>
+    /// Invalida el token antes de que expire (HU-012, SEC-002). La revocación es definitiva:
+    /// si ya estaba revocada, conserva la fecha y el motivo originales y devuelve false.
+    /// </summary>
+    public bool Revocar(DateTimeOffset momento, string motivo)
+    {
+        if (string.IsNullOrWhiteSpace(motivo) || motivo.Length > LongitudMaximaMotivo)
+        {
+            throw new ArgumentException($"El motivo es obligatorio y tiene como máximo {LongitudMaximaMotivo} caracteres.", nameof(motivo));
+        }
+
+        if (EstaRevocada)
+        {
+            return false;
+        }
+
+        FechaRevocacion = momento;
+        MotivoRevocacion = motivo;
+        return true;
+    }
+}
+
+/// <summary>Motivos de revocación que se guardan en <c>sesion_token.motivo_revocacion</c>.</summary>
+public static class MotivosRevocacion
+{
+    public const string CierreDeSesion = "Cierre de sesión";
+    public const string Inactividad = "Cierre por 30 minutos de inactividad (RF-011)";
+    public const string Renovacion = "Renovada con un token nuevo";
+    public const string AccesoNoDisponible = "Cuenta o institución no disponible";
 }

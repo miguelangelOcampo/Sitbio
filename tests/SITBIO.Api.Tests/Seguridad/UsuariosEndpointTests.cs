@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using Sitbio.Application.Seguridad;
 using Sitbio.Application.Usuarios;
 using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Seguridad;
@@ -20,12 +21,16 @@ public class UsuariosEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
     private static readonly string Ruta = $"{RutasApi.V1}/usuarios";
     private readonly IRepositorioUsuarios _repositorio = Substitute.For<IRepositorioUsuarios>();
 
+    // Los tokens de estas pruebas no pasan por el login: su sesión se da por activa (HU-012).
+    private readonly IRepositorioSesiones _sesiones = Substitute.For<IRepositorioSesiones>();
+
     private HttpClient Cliente(string? codigoRol)
     {
         _repositorio.CapacidadGestionAsync(Arg.Any<CancellationToken>()).Returns(new CapacidadGestion("Clínica", 7, 0));
+        _sesiones.EstaActivaAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
         var cliente = fabrica.WithWebHostBuilder(b => b
                 .UseSetting("Jwt:Clave", ClaveJwt)
-                .ConfigureTestServices(s => s.AddScoped(_ => _repositorio)))
+                .ConfigureTestServices(s => s.AddScoped(_ => _repositorio).AddScoped(_ => _sesiones)))
             .CreateClient();
 
         if (codigoRol is not null)

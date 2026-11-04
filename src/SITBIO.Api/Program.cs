@@ -1,9 +1,12 @@
 using Sitbio.Api;
+using Microsoft.AspNetCore.Authorization;
 using Sitbio.Api.Errores;
+using Sitbio.Api.Modules.Auditoria;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Api.Modules.Salud;
 using Sitbio.Api.Modules.Usuarios;
 using Sitbio.Api.Seguridad;
+using Sitbio.Application.Auditoria;
 using Sitbio.Application.Comun;
 using Sitbio.Application.Seguridad;
 using Sitbio.Infrastructure;
@@ -17,9 +20,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ContextoUsuarioHttp>();
 builder.Services.AddScoped<IContextoUsuario>(sp => sp.GetRequiredService<ContextoUsuarioHttp>());
 builder.Services.AddScoped<IEstablecerContextoUsuario>(sp => sp.GetRequiredService<ContextoUsuarioHttp>());
+builder.Services.AddScoped<IOrigenSolicitud, OrigenSolicitudHttp>();
+builder.Services.AddSingleton<IAuthorizationMiddlewareResultHandler, RegistroDenegacionesAutorizacion>();
 builder.Services.AddInfraestructura(builder.Configuration);
 builder.Services.AddModuloAutenticacion(builder.Configuration);
 builder.Services.AddModuloUsuarios();
+builder.Services.AddModuloAuditoria();
 
 var app = builder.Build();
 
@@ -37,6 +43,7 @@ var api = app.MapGroup(RutasApi.V1);
 api.MapSalud();
 api.MapAutenticacion();
 api.MapUsuarios();
+api.MapAuditoria();
 
 app.Run();
 

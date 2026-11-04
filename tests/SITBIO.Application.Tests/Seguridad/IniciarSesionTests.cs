@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sitbio.Application.Auditoria;
 using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Seguridad;
@@ -16,6 +17,7 @@ public class IniciarSesionTests
     private readonly IHasherContrasenas _hasher = Substitute.For<IHasherContrasenas>();
     private readonly IGeneradorTokens _generador = Substitute.For<IGeneradorTokens>();
     private readonly IEstablecerContextoUsuario _contexto = Substitute.For<IEstablecerContextoUsuario>();
+    private readonly IRegistroAuditoria _auditoria = Substitute.For<IRegistroAuditoria>();
     private readonly IniciarSesion _caso;
 
     private sealed class TiempoFijo : TimeProvider
@@ -29,7 +31,7 @@ public class IniciarSesionTests
         _hasher.Hash(Arg.Any<string>()).Returns("hash-ficticio");
         _generador.Generar(Arg.Any<Usuario>(), Arg.Any<string>())
             .Returns(c => new TokenEmitido("token.jwt", "jti-1", Ahora, Ahora.AddMinutes(30)));
-        _caso = new IniciarSesion(_repositorio, _hasher, _generador, _contexto, new TiempoFijo());
+        _caso = new IniciarSesion(_repositorio, _hasher, _generador, _contexto, _auditoria, new TiempoFijo());
     }
 
     private Usuario Registrar(bool institucionActiva = true)
@@ -114,5 +116,77 @@ public class IniciarSesionTests
     public async Task DatosVacios_RespondeErrorDeValidacion(string correo, string clave)
     {
         await Assert.ThrowsAsync<ErrorValidacion>(() => Entrar(clave, correo));
+    }
+
+    private Task Registrado(Usuario usuario, string accion, string? motivo = null) =>
+        _auditoria.Received(1).RegistrarAsync(
+            usuario.Id,
+            accion,
+            IniciarSesion.EntidadUsuario,
+            usuario.Id.ToString(),
+            motivo is null ? Arg.Any<IReadOnlyDictionary<string, string>?>() : Arg.Is<IReadOnlyDictionary<string, string>?>(d => d != null && d["motivo"] == motivo),
+            Arg.Any<CancellationToken>());
+
+    [Fact]
+    public async Task HU010_CredencialesValidas_RegistranLoginOk()
+    {
+        var usuario = Registrar();
+
+        await Entrar(Clave);
+
+        await Registrado(usuario, AccionesAuditoria.LoginOk);
+    }
+
+    [Fact]
+    public async Task HU010_ClaveIncorrecta_RegistraLoginFallidoPorCredenciales()
+    {
+        var usuario = Registrar();
+
+        await Assert.ThrowsAsync<ErrorNoAutenticado>(() => Entrar("otra"));
+
+        await Registrado(usuario, AccionesAuditoria.LoginFallido, "credenciales");
+    }
+
+    [Fact]
+    public async Task HU010_CuentaBloqueada_RegistraLoginFallidoPorBloqueo()
+    {
+        var usuario = Registrar();
+        for (var i = 0; i < Usuario.MaximoIntentosFallidos; i++)
+        {
+            usuario.RegistrarIntentoFallido();
+        }
+
+        await Assert.ThrowsAsync<ErrorNoAutenticado>(() => Entrar(Clave));
+
+        await Registrado(usuario, AccionesAuditoria.LoginFallido, "bloqueada");
+    }
+
+    [Fact]
+    public async Task HU010_InstitucionInactiva_RegistraLoginFallidoNoDisponible()
+    {
+        var usuario = Registrar(institucionActiva: false);
+
+        await Assert.ThrowsAsync<ErrorNoAutenticado>(() => Entrar(Clave));
+
+        await Registrado(usuario, AccionesAuditoria.LoginFallido, "no_disponible");
+    }
+
+    [Fact]
+    public async Task HU010_CorreoInexistente_NoSeRegistra()
+    {
+        await Assert.ThrowsAsync<ErrorNoAutenticado>(() => Entrar(Clave, "nadie@demo-a.co"));
+
+        await _auditoria.DidNotReceiveWithAnyArgs().RegistrarAsync(default, default!, default!, default, default, default);
+    }
+
+    [Fact]
+    public async Task HU010_ElDetalleNoLlevaCorreoNiClave()
+    {
+        Registrar();
+
+        await Assert.ThrowsAsync<ErrorNoAutenticado>(() => Entrar("otra"));
+
+        var detalle = (IReadOnlyDictionary<string, string>?)_auditoria.ReceivedCalls().Single().GetArguments()[4];
+        Assert.DoesNotContain(detalle!.Values, v => v.Contains('@') || v.Contains("otra", StringComparison.Ordinal));
     }
 }

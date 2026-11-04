@@ -1,3 +1,4 @@
+using Sitbio.Application.Auditoria;
 using Sitbio.Application.Comun.Errores;
 using Sitbio.Domain.Seguridad;
 
@@ -11,16 +12,17 @@ public sealed record SolicitudCierreSesion(string? Motivo);
 /// reutilizarse (CA-HU-012-02). El cliente lo llama también al cerrar por inactividad
 /// (CA-HU-012-01). El motivo guardado es siempre uno de los textos fijos.
 /// </summary>
-public sealed class CerrarSesion(IRepositorioSesiones repositorio, TimeProvider tiempo)
+public sealed class CerrarSesion(IRepositorioSesiones repositorio, IRegistroAuditoria auditoria, TimeProvider tiempo)
 {
     public const string MotivoVoluntario = "voluntario";
     public const string MotivoInactividad = "inactividad";
 
     public async Task EjecutarAsync(string? jti, string? motivo, CancellationToken cancellationToken)
     {
-        var texto = motivo?.Trim().ToLowerInvariant() switch
+        var clave = string.IsNullOrWhiteSpace(motivo) ? MotivoVoluntario : motivo.Trim().ToLowerInvariant();
+        var texto = clave switch
         {
-            null or "" or MotivoVoluntario => MotivosRevocacion.CierreDeSesion,
+            MotivoVoluntario => MotivosRevocacion.CierreDeSesion,
             MotivoInactividad => MotivosRevocacion.Inactividad,
             _ => throw ErrorValidacion.DeCampo("motivo", "El motivo debe ser «voluntario» o «inactividad»."),
         };
@@ -34,6 +36,13 @@ public sealed class CerrarSesion(IRepositorioSesiones repositorio, TimeProvider 
         if (sesion.Revocar(tiempo.GetUtcNow(), texto))
         {
             await repositorio.GuardarAsync(cancellationToken);
+            await auditoria.RegistrarAsync(
+                sesion.UsuarioId,
+                AccionesAuditoria.CierreSesion,
+                "sesion",
+                sesion.Id.ToString(),
+                new Dictionary<string, string> { ["motivo"] = clave },
+                cancellationToken);
         }
     }
 }

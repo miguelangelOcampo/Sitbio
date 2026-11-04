@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using Sitbio.Application.Auditoria;
 using Sitbio.Application.Seguridad;
 using Sitbio.Application.Usuarios;
 using Sitbio.Domain.Seguridad;
@@ -24,13 +25,16 @@ public class UsuariosEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
     // Los tokens de estas pruebas no pasan por el login: su sesión se da por activa (HU-012).
     private readonly IRepositorioSesiones _sesiones = Substitute.For<IRepositorioSesiones>();
 
+    // Bitácora en memoria: estas pruebas no escriben en MongoDB.
+    private readonly IBitacoraAuditoria _bitacora = Substitute.For<IBitacoraAuditoria>();
+
     private HttpClient Cliente(string? codigoRol)
     {
         _repositorio.CapacidadGestionAsync(Arg.Any<CancellationToken>()).Returns(new CapacidadGestion("Clínica", 7, 0));
         _sesiones.EstaActivaAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
         var cliente = fabrica.WithWebHostBuilder(b => b
                 .UseSetting("Jwt:Clave", ClaveJwt)
-                .ConfigureTestServices(s => s.AddScoped(_ => _repositorio).AddScoped(_ => _sesiones)))
+                .ConfigureTestServices(s => s.AddScoped(_ => _repositorio).AddScoped(_ => _sesiones).AddScoped(_ => _bitacora)))
             .CreateClient();
 
         if (codigoRol is not null)
@@ -71,6 +75,14 @@ public class UsuariosEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
 
         Assert.All(respuestas, r => Assert.Equal(HttpStatusCode.Forbidden, r.StatusCode));
         await _repositorio.DidNotReceiveWithAnyArgs().GuardarAsync(default);
+
+        // CA-HU-010-01: cada 403 queda en la bitácora con el método y la ruta, sin datos personales.
+        await _bitacora.Received(4).RegistrarAsync(
+            Arg.Is<EventoAuditoria>(e => e.Accion == AccionesAuditoria.AccesoDenegado && e.Entidad == "usuarios" && e.Detalle!["rol"] == rol),
+            Arg.Any<CancellationToken>());
+        await _bitacora.Received(1).RegistrarAsync(
+            Arg.Is<EventoAuditoria>(e => e.Detalle!["metodo"] == "PATCH" && e.Detalle["ruta"] == $"{Ruta}/{id}/estado"),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

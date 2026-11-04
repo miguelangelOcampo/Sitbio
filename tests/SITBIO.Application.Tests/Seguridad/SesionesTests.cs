@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sitbio.Application.Auditoria;
 using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Seguridad;
@@ -13,6 +14,7 @@ public class SesionesTests
 
     private readonly IRepositorioSesiones _repositorio = Substitute.For<IRepositorioSesiones>();
     private readonly IGeneradorTokens _generador = Substitute.For<IGeneradorTokens>();
+    private readonly IRegistroAuditoria _auditoria = Substitute.For<IRegistroAuditoria>();
     private readonly Usuario _usuario = new(Tenant, 3, "Ana", "Pérez", "ana.perez@demo-a.co", "hash");
 
     private sealed class TiempoFijo : TimeProvider
@@ -36,7 +38,7 @@ public class SesionesTests
     private void UsuarioDisponible(bool institucionActiva = true) =>
         _repositorio.BuscarUsuarioAsync(_usuario.Id, Arg.Any<CancellationToken>()).Returns(new UsuarioParaAcceso(_usuario, "AC-03", institucionActiva));
 
-    private CerrarSesion Cerrar() => new(_repositorio, new TiempoFijo());
+    private CerrarSesion Cerrar() => new(_repositorio, _auditoria, new TiempoFijo());
 
     private RenovarSesion Renovar() => new(_repositorio, _generador, new TiempoFijo());
 
@@ -166,5 +168,33 @@ public class SesionesTests
 
         Assert.Equal("MSG-002", error.Codigo);
         Assert.True(sesion.EstaRevocada);
+    }
+
+    [Theory]
+    [InlineData(null, "voluntario")]
+    [InlineData("inactividad", "inactividad")]
+    public async Task HU010_CerrarSesion_RegistraCierreSesionConElMotivo(string? motivo, string esperado)
+    {
+        var sesion = Sesion();
+
+        await Cerrar().EjecutarAsync("jti-actual", motivo, CancellationToken.None);
+
+        await _auditoria.Received(1).RegistrarAsync(
+            _usuario.Id,
+            AccionesAuditoria.CierreSesion,
+            "sesion",
+            sesion.Id.ToString(),
+            Arg.Is<IReadOnlyDictionary<string, string>>(d => d["motivo"] == esperado),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HU010_CerrarSesionYaRevocada_NoRegistraOtraVez()
+    {
+        Sesion().Revocar(Ahora.AddMinutes(-1), MotivosRevocacion.Renovacion);
+
+        await Cerrar().EjecutarAsync("jti-actual", null, CancellationToken.None);
+
+        await _auditoria.DidNotReceiveWithAnyArgs().RegistrarAsync(default, default!, default!, default, default, default);
     }
 }

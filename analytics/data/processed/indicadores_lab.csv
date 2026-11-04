@@ -1,0 +1,9 @@
+indicador,universo,numerador,denominador,valor
+Proporción de intervenciones firmadas,todas las intervenciones,7.0,12,0.5833
+Proporción de intervenciones firmadas,intervenciones anteriores a la fecha de corte,7.0,8,0.875
+Proporción con prioridad Alta,todas las intervenciones,2.0,12,0.1667
+Costo promedio (COP),correctivos firmados (costo confirmado),679000.0,2,339500.0
+Tiempo de atención promedio (min),intervenciones anteriores a la fecha de corte,525.0,8,65.625
+SpO2 promedio en la prueba (%),intervenciones con el campo dinámico spo2 registrado,392.0,4,98.0
+Proporción de intervenciones firmadas,"Clínica Demo A, anteriores a la fecha de corte",5.0,6,0.8333
+Proporción de intervenciones firmadas,"Clínica Demo B, anteriores a la fecha de corte",2.0,2,1.0

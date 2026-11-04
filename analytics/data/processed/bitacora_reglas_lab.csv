@@ -1,0 +1,17 @@
+regla,descripcion,columna,filas_afectadas,huella_fuente
+R01,fecha_intervencion se interpreta en UTC,fecha_intervencion,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+R02,posterior a la fecha de corte 2026-10-21T00:00:00+00:00,posterior_corte,4,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+R03,etiqueta legible del tipo de mantenimiento (map),tipo_etiqueta,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+R04,nombre del tenant de laboratorio (map),tenant,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+R05,columna calculada vectorizada,mes,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+R06,columna calculada vectorizada,firmada,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+R07,columna calculada vectorizada,num_repuestos,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+R08,columna calculada vectorizada,suma_repuestos,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+R09,columna calculada vectorizada,costo_por_hora,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+C1,ubicación del snapshot ≠ ubicación actual (solo con snapshot),conflicto_ubicacion,1,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+C2,sin firmar con costo_total > 0,conflicto_costo_sin_firma,1,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+C3,costo_total ≠ suma de repuestos,conflicto_suma_repuestos,0,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+C0,tiene al menos un conflicto (NA de C1 cuenta como sin conflicto),con_conflicto,2,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+P01,estado de firma (np.where),estado_firma,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+P02,prioridad: 1) conflicto→Alta 2) correctivo sin firma/posterior al corte/no operativo→Media 3) Baja,prioridad_revision,6,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680
+X01,exportación del conjunto derivado,intervenciones_lab.csv,12,901984ff11a2ecb3be61c7b11654fdd4f5316f07e73815043a7887de72585680

@@ -3,9 +3,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
+using Sitbio.Application.Auditoria;
 using Sitbio.Application.Seguridad;
 using Sitbio.Application.Usuarios;
 using Sitbio.Infrastructure.Persistencia;
+using Sitbio.Infrastructure.Persistencia.Mongo;
 using Sitbio.Infrastructure.Seguridad;
 
 namespace Sitbio.Infrastructure;
@@ -46,6 +48,7 @@ public static class DependencyInjection
         services.AddSingleton<IGeneradorTokens, GeneradorJwt>();
         services.AddScoped<IRepositorioAcceso, RepositorioAcceso>();
         services.AddScoped<IRepositorioSesiones, RepositorioSesiones>();
+        services.AddScoped<IBitacoraAuditoria, BitacoraAuditoriaMongo>();
         services.AddScoped<IRepositorioUsuarios, RepositorioUsuarios>();
         services.AddSingleton<IGeneradorClaves, GeneradorClaves>();
 

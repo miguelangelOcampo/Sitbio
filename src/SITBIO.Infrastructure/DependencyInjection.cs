@@ -45,6 +45,7 @@ public static class DependencyInjection
         services.AddSingleton<IHasherContrasenas, HasherBCrypt>();
         services.AddSingleton<IGeneradorTokens, GeneradorJwt>();
         services.AddScoped<IRepositorioAcceso, RepositorioAcceso>();
+        services.AddScoped<IRepositorioSesiones, RepositorioSesiones>();
         services.AddScoped<IRepositorioUsuarios, RepositorioUsuarios>();
         services.AddSingleton<IGeneradorClaves, GeneradorClaves>();
 

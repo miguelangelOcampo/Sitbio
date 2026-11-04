@@ -14,6 +14,8 @@
         Foreground="{DynamicResource Brush.Text}"
         FontFamily="{StaticResource Font.Ui}">
   <Window.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
     <DataTemplate DataType="{x:Type vm:LoginViewModel}">
       <views:LoginView />
     </DataTemplate>
@@ -21,5 +23,27 @@
       <views:ShellView />
     </DataTemplate>
   </Window.Resources>
-  <ContentControl Content="{Binding VistaActual}" Focusable="False" />
+  <Grid>
+    <!-- Mientras se muestra el aviso de cierre, los datos de la pantalla se ocultan (DOC-05) -->
+    <ContentControl Content="{Binding VistaActual}" Focusable="False"
+                    Visibility="{Binding ContenidoVisible, Converter={StaticResource Visible}}" />
+
+    <!-- Sesión terminada: MSG-003 por inactividad o token rechazado (HU-012) -->
+    <Grid Visibility="{Binding Cierre, Converter={StaticResource NuloVisible}}">
+      <Border Style="{StaticResource Dialog}" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
+              DataContext="{Binding Cierre}" AutomationProperties.LiveSetting="Assertive">
+        <StackPanel>
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding Codigo}" Style="{StaticResource Overline}" VerticalAlignment="Center" />
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Candado}" Width="20" Height="20"
+                            Foreground="{DynamicResource Brush.WarningText}" Margin="0,0,10,0" />
+            <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="18" />
+          </DockPanel>
+          <TextBlock Text="{Binding Mensaje}" Style="{StaticResource Muted}" Margin="0,12,0,22" />
+          <Button Content="Iniciar sesión de nuevo" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" IsDefault="True"
+                  Command="{Binding DataContext.ReingresarCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
 </Window>

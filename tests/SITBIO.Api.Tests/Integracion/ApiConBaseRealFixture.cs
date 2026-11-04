@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Seguridad;
@@ -101,6 +103,50 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         contexto.Usuarios.Add(usuario);
         await contexto.SaveChangesAsync();
         return usuario.Id;
+    }
+
+    /// <summary>Lee la sesión de un jti sin pasar por el filtro de tenant (solo para comprobar); null si no existe.</summary>
+    public async Task<SesionToken?> LeerSesionAsync(string jti)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Sesiones.IgnoreQueryFilters().AsNoTracking().SingleOrDefaultAsync(s => s.Jti == jti);
+    }
+
+    /// <summary>
+    /// JWT firmado con la clave de pruebas, emitido en <paramref name="emision"/>, y su sesión
+    /// registrada (sin revocar) en el tenant <paramref name="tenantSesion"/>. Sirve para fabricar
+    /// tokens vencidos o con un jti de otra institución sin depender del reloj del login.
+    /// </summary>
+    public async Task<string> TokenConSesionAsync(Guid usuarioId, Guid tenant, string codigoRol, DateTimeOffset emision, Guid? tenantSesion = null, Guid? usuarioSesion = null)
+    {
+        var jti = Guid.NewGuid().ToString();
+        var expiracion = emision.AddMinutes(OpcionesJwt.MinutosMaximos);
+        var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
+            Issuer = "sitbio-api",
+            Audience = "sitbio-desktop",
+            IssuedAt = emision.UtcDateTime,
+            NotBefore = emision.UtcDateTime,
+            Expires = expiracion.UtcDateTime,
+            SigningCredentials = new SigningCredentials(new OpcionesJwt { Clave = ClaveJwt }.CrearClaveFirma(), SecurityAlgorithms.HmacSha256),
+            Claims = new Dictionary<string, object>
+            {
+                [ClaimsSitbio.Usuario] = usuarioId.ToString(),
+                [ClaimsSitbio.Tenant] = tenant.ToString(),
+                [ClaimsSitbio.Rol] = codigoRol,
+                [ClaimsSitbio.IdToken] = jti,
+            },
+        });
+
+        var tenantDeLaSesion = tenantSesion ?? tenant;
+        var usuarioDeLaSesion = usuarioSesion ?? usuarioId;
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        alcance.ServiceProvider.GetRequiredService<IEstablecerContextoUsuario>().Establecer(tenantDeLaSesion, usuarioDeLaSesion, codigoRol);
+        contexto.Sesiones.Add(new SesionToken(tenantDeLaSesion, usuarioDeLaSesion, jti, emision, expiracion));
+        await contexto.SaveChangesAsync();
+        return token;
     }
 
     /// <summary>Lee una columna de usuario sin pasar por el filtro de tenant (solo para comprobar).</summary>

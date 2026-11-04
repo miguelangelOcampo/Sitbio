@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Sitbio.Application.Seguridad;
 using Sitbio.Infrastructure.Seguridad;
 
 namespace Sitbio.Api.Seguridad;
@@ -21,6 +22,7 @@ public static class AutenticacionExtensions
             {
                 // Conserva los nombres de los claims (sub, tenant_id, rol) sin mapearlos a los de Microsoft.
                 bearer.MapInboundClaims = false;
+                bearer.Events = new JwtBearerEvents { OnTokenValidated = RechazarSesionRevocadaAsync };
                 try
                 {
                     bearer.TokenValidationParameters = ParametrosValidacionJwt.Crear(jwt.Value);
@@ -38,5 +40,26 @@ public static class AutenticacionExtensions
         services.AddAuthorization();
 
         return services;
+    }
+
+    /// <summary>
+    /// Un token firmado y sin expirar se rechaza (401) si su jti no está registrado o ya fue
+    /// revocado: cierre de sesión, renovación o inactividad (HU-012, SEC-002).
+    /// </summary>
+    public static async Task RechazarSesionRevocadaAsync(TokenValidatedContext contexto)
+    {
+        var jti = contexto.Principal?.FindFirst(ClaimsSitbio.IdToken)?.Value;
+        var tenant = contexto.Principal?.FindFirst(ClaimsSitbio.Tenant)?.Value;
+        if (string.IsNullOrWhiteSpace(jti) || !Guid.TryParse(tenant, out var tenantId))
+        {
+            contexto.Fail("El token no identifica la sesión.");
+            return;
+        }
+
+        var sesiones = contexto.HttpContext.RequestServices.GetRequiredService<IRepositorioSesiones>();
+        if (!await sesiones.EstaActivaAsync(tenantId, jti, contexto.HttpContext.RequestAborted))
+        {
+            contexto.Fail("La sesión fue cerrada.");
+        }
     }
 }

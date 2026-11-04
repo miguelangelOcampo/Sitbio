@@ -17,9 +17,10 @@ public sealed class SesionTokenConfiguracion : IEntityTypeConfiguration<SesionTo
         sesion.Property(s => s.FechaEmision).HasColumnName("fecha_emision");
         sesion.Property(s => s.FechaExpiracion).HasColumnName("fecha_expiracion");
         sesion.Property(s => s.FechaRevocacion).HasColumnName("fecha_revocacion");
-        sesion.Property(s => s.MotivoRevocacion).HasColumnName("motivo_revocacion").HasMaxLength(200);
+        sesion.Property(s => s.MotivoRevocacion).HasColumnName("motivo_revocacion").HasMaxLength(SesionToken.LongitudMaximaMotivo);
 
         sesion.HasOne<Usuario>().WithMany().HasForeignKey(s => s.UsuarioId).IsRequired();
         sesion.HasIndex(s => s.Jti).IsUnique().HasDatabaseName("uq_sesion_jti");
+        sesion.Ignore(s => s.EstaRevocada);
     }
 }

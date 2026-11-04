@@ -5,6 +5,7 @@ public static class Mensajes
 {
     public const string Msg001 = "Credenciales incorrectas. Verifique sus datos e intente de nuevo.";
     public const string Msg002 = "No fue posible iniciar sesión. Si el problema continúa, comuníquese con el administrador del sistema.";
+    public const string Msg003 = "Su sesión se cerró por inactividad. Inicie sesión de nuevo para continuar.";
     public const string Msg011 = "No fue posible conectar con el servidor de SITBIO. Sus datos no se han perdido; intente de nuevo.";
 }
 

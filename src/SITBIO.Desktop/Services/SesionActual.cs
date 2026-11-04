@@ -19,9 +19,21 @@ public sealed class SesionActual
     /// </summary>
     public Guid? UsuarioId => Sesion is null ? null : LeerUsuario(Sesion.Token);
 
+    /// <summary>La API rechazó el token de la sesión abierta (401): revocado o vencido.</summary>
+    public event EventHandler? Rechazada;
+
     public void Iniciar(SesionUsuario sesion) => Sesion = sesion;
 
     public void Cerrar() => Sesion = null;
+
+    /// <summary>Avisa que la API rechazó el token; puede llamarse desde cualquier hilo.</summary>
+    public void NotificarRechazo()
+    {
+        if (Abierta)
+        {
+            Rechazada?.Invoke(this, EventArgs.Empty);
+        }
+    }
 
     private static Guid? LeerUsuario(string token)
     {

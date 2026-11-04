@@ -215,6 +215,18 @@
     <Setter Property="Tag" Value="{DynamicResource Brush.DangerText}" />
   </Style>
 
+  <!-- Velo detrás de un diálogo o panel lateral; al pulsarlo ejecuta su Command (por ejemplo, cancelar) -->
+  <Style x:Key="Velo" TargetType="Button">
+    <Setter Property="Focusable" Value="False" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="Button">
+          <Rectangle Fill="{DynamicResource Brush.Scrim}" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- Acción secundaria como enlace de texto -->
   <Style x:Key="LinkButton" TargetType="Button">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Primary}" />

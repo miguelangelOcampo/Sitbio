@@ -27,7 +27,12 @@ public partial class App : Application
         servicios.AddSingleton<IPortapapeles, PortapapelesWpf>();
         servicios.AddSingleton<IFabricaPantallas, FabricaPantallas>();
         servicios.AddTransient<UsuariosViewModel>();
+        servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
+        servicios.AddSingleton(TimeProvider.System);
+        servicios.AddSingleton<ControlSesion>(sp => new ControlSesion(
+            sp.GetRequiredService<IServicioSesion>(), sp.GetRequiredService<SesionActual>(), sp.GetRequiredService<TimeProvider>()));
         servicios.AddTransient<LoginViewModel>();
+        servicios.AddSingleton<Func<LoginViewModel>>(sp => () => sp.GetRequiredService<LoginViewModel>());
         servicios.AddSingleton<MainViewModel>();
         _servicios = servicios.BuildServiceProvider();
 

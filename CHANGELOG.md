@@ -42,6 +42,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 ### Cambiado
 - DOC-01 actualizado con el plan Consultorio y el nuevo almacenamiento de los planes (Tabla 4: Consultorio 3/300/5 GB, Clínica 7/1.000/25 GB, Hospital 14/3.000/100 GB, Red de Salud a la medida).
 - DOC-01 a DOC-06, el diagrama de casos de uso y el mapa de navegación (DIA-IA-01) sincronizados con el ajuste de roles del 01/11/2026: AC-05 pasa a ser «Gerente de Tecnología Biomédica»; los campos dinámicos y los catálogos técnicos los gestiona AC-02, y las ubicaciones, AC-01 y AC-02.
+- DOC-01 y DOC-03 a DOC-06 sincronizados con el ajuste del 04/11/2026: información regulatoria del equipo (RF-030, RN-010: autorización INVIMA con número y vigencia, clase de riesgo y calibración independiente de la clase) y fotografía opcional del equipo (RF-031, con HU-015). El DOC-02 no cambia.
 - Base de datos (cada base local debe aplicar las migraciones nuevas; ver `database/README.md`):
   - V003: plan Consultorio y nuevo almacenamiento de los planes Clínica (25 GB) y Hospital (100 GB) (RN-009).
   - V004: columna `rol.codigo` (AC-01 a AC-07), nombres de roles según el DOC-01 y rol AC-07; la aplicación identifica los roles por código.

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using Sitbio.Application.Auditoria;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Seguridad;
@@ -20,13 +21,14 @@ public class SesionEndpointTests(WebApplicationFactory<Program> fabrica) : IClas
     private static readonly string Auth = $"{RutasApi.V1}/auth";
 
     private readonly IRepositorioSesiones _sesiones = Substitute.For<IRepositorioSesiones>();
+    private readonly IBitacoraAuditoria _bitacora = Substitute.For<IBitacoraAuditoria>();
     private readonly Usuario _usuario = new(Guid.NewGuid(), 3, "Ana", "Pérez", "ana.perez@demo-a.co", "hash");
 
     private (HttpClient Cliente, TokenEmitido Token) Cliente(bool conToken = true)
     {
         var cliente = fabrica.WithWebHostBuilder(b => b
                 .UseSetting("Jwt:Clave", ClaveJwt)
-                .ConfigureTestServices(s => s.AddScoped(_ => _sesiones)))
+                .ConfigureTestServices(s => s.AddScoped(_ => _sesiones).AddScoped(_ => _bitacora)))
             .CreateClient();
 
         var opciones = new OpcionesJwt { Issuer = "sitbio-api", Audience = "sitbio-desktop", Clave = ClaveJwt, MinutosVigencia = 30 };

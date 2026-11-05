@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Bson;
+using MongoDB.Driver;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Seguridad;
@@ -19,7 +21,8 @@ namespace Sitbio.Api.Tests.Integracion;
 
 /// <summary>
 /// API completa contra PostgreSQL real (script 01 + V002..V006). Crea dos tenants (y los
-/// que pidan las pruebas) con usuarios de clave conocida y borra todo al terminar. Sin la variable de entorno no
+/// que pidan las pruebas) con usuarios de clave conocida y borra todo al terminar. Si hay
+/// MongoDB de pruebas, la bitácora va a una base temporal con el validador real (02 + V007). Sin la variable de entorno no
 /// toca la base (las pruebas se omiten).
 /// </summary>
 public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsyncLifetime
@@ -30,6 +33,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
     private static readonly string HashClave = new HasherBCrypt().Hash(Clave);
     private readonly string _cadena = Environment.GetEnvironmentVariable(FactIntegracionAttribute.VariablePostgres) ?? string.Empty;
     private readonly string _sufijo = Guid.NewGuid().ToString("N")[..8];
+    private readonly string _cadenaMongo = Environment.GetEnvironmentVariable(FactIntegracionAttribute.VariableMongo) ?? string.Empty;
     private readonly ConcurrentBag<Guid> _tenantsAdicionales = [];
     private int _consecutivoTenant;
 
@@ -39,11 +43,21 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
 
     public string Correo(string nombre) => $"{nombre}.{_sufijo}@demo.co";
 
+    /// <summary>Base temporal de MongoDB de este fixture; se borra al terminar.</summary>
+    public string BaseMongo => $"sitbio_pruebas_api_{_sufijo}";
+
+    /// <summary>Eventos de la bitácora de un tenant tal como quedaron en MongoDB, del más reciente al más antiguo.</summary>
+    public async Task<List<BsonDocument>> LeerBitacoraAsync(Guid tenant)
+    {
+        var coleccion = new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("bitacora_auditoria");
+        return await coleccion.Find(new BsonDocument("tenant_id", tenant.ToString())).Sort(new BsonDocument("fecha_hora", -1)).ToListAsync();
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("ConnectionStrings:Postgres", _cadena);
-        builder.UseSetting("ConnectionStrings:Mongo", "mongodb://localhost:27017");
-        builder.UseSetting("Mongo:Database", "sitbio_pruebas");
+        builder.UseSetting("ConnectionStrings:Mongo", string.IsNullOrWhiteSpace(_cadenaMongo) ? "mongodb://localhost:27017" : _cadenaMongo);
+        builder.UseSetting("Mongo:Database", BaseMongo);
         builder.UseSetting("Jwt:Clave", ClaveJwt);
         builder.UseSetting(AutenticacionEndpoints.SeccionLimite, "1000");
     }
@@ -174,6 +188,21 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
 
         await EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"INSERT INTO sitbio.tenant (id_tenant, nombre, nit) VALUES ({TenantA}, {"Prueba HU-001 A"}, {"HA" + _sufijo}), ({TenantB}, {"Prueba HU-001 B"}, {"HB" + _sufijo})"));
+
+        if (!string.IsNullOrWhiteSpace(_cadenaMongo))
+        {
+            // Misma validación que en desarrollo: se copia el validador de sitbio_dev (02 + V007).
+            var cliente = new MongoClient(_cadenaMongo);
+            var origen = await (await cliente.GetDatabase("sitbio_dev").ListCollectionsAsync(
+                new ListCollectionsOptions { Filter = new BsonDocument("name", "bitacora_auditoria") })).SingleAsync();
+            await cliente.GetDatabase(BaseMongo).RunCommandAsync<BsonDocument>(new BsonDocument
+            {
+                { "create", "bitacora_auditoria" },
+                { "validator", origen["options"]["validator"] },
+                { "validationLevel", "strict" },
+                { "validationAction", "error" },
+            });
+        }
     }
 
     async Task IAsyncLifetime.DisposeAsync()
@@ -187,6 +216,11 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.usuario WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tenant WHERE id_tenant = ANY({tenants})");
             });
+        }
+
+        if (!string.IsNullOrWhiteSpace(_cadenaMongo))
+        {
+            await new MongoClient(_cadenaMongo).DropDatabaseAsync(BaseMongo);
         }
 
         await base.DisposeAsync();

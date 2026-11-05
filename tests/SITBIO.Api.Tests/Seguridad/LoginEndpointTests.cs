@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
+using Sitbio.Application.Auditoria;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Seguridad;
@@ -29,7 +30,7 @@ public class LoginEndpointTests(WebApplicationFactory<Program> fabrica) : IClass
         return fabrica.WithWebHostBuilder(b => b
                 .UseSetting("Jwt:Clave", "clave-de-pruebas-con-mas-de-32-bytes!!")
                 .UseSetting(AutenticacionEndpoints.SeccionLimite, intentosPorMinuto.ToString())
-                .ConfigureTestServices(s => s.AddScoped(_ => repositorio)))
+                .ConfigureTestServices(s => s.AddScoped(_ => repositorio).AddScoped(_ => Substitute.For<IBitacoraAuditoria>())))
             .CreateClient();
     }
 

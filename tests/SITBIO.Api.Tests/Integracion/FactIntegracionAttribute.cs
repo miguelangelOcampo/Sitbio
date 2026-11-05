@@ -1,18 +1,29 @@
 namespace Sitbio.Api.Tests.Integracion;
 
 /// <summary>
-/// Prueba contra PostgreSQL real (docker compose). Se omite si no está definida la
-/// variable SITBIO_PRUEBAS_POSTGRES, como ocurre en el CI.
+/// Prueba contra PostgreSQL real (docker compose) y, si se pide, también contra MongoDB.
+/// Se omite si no están definidas las variables SITBIO_PRUEBAS_POSTGRES (y
+/// SITBIO_PRUEBAS_MONGO), como ocurre en el CI.
 /// </summary>
 public sealed class FactIntegracionAttribute : FactAttribute
 {
     public const string VariablePostgres = "SITBIO_PRUEBAS_POSTGRES";
+    public const string VariableMongo = "SITBIO_PRUEBAS_MONGO";
 
     public FactIntegracionAttribute()
+        : this(requiereMongo: false)
     {
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(VariablePostgres)))
+    }
+
+    public FactIntegracionAttribute(bool requiereMongo)
+    {
+        foreach (var variable in requiereMongo ? new[] { VariablePostgres, VariableMongo } : [VariablePostgres])
         {
-            Skip = $"Defina {VariablePostgres} para ejecutar esta prueba de integración.";
+            if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable)))
+            {
+                Skip = $"Defina {variable} para ejecutar esta prueba de integración.";
+                return;
+            }
         }
     }
 }

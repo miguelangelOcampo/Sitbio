@@ -1,3 +1,4 @@
+using Sitbio.Application.Auditoria;
 using Sitbio.Application.Comun.Errores;
 using Sitbio.Domain.Seguridad;
 
@@ -10,14 +11,19 @@ public sealed record ResultadoInicioSesion(string Token, DateTimeOffset ExpiraEn
 /// <summary>
 /// Inicio de sesión (HU-001, CU-001, RN-006). Las respuestas de error no revelan si el
 /// correo existe: credenciales inválidas dan MSG-001 y una cuenta que no puede entrar, MSG-002.
+/// Registra LOGIN_OK y LOGIN_FALLIDO en la bitácora (HU-010); un correo inexistente no se
+/// registra porque no pertenece a ninguna institución.
 /// </summary>
 public sealed class IniciarSesion(
     IRepositorioAcceso repositorio,
     IHasherContrasenas hasher,
     IGeneradorTokens generador,
     IEstablecerContextoUsuario contexto,
+    IRegistroAuditoria auditoria,
     TimeProvider tiempo)
 {
+    public const string EntidadUsuario = "usuario";
+
     public const string MensajeCredenciales = "Credenciales incorrectas. Verifique sus datos e intente de nuevo.";
     public const string MensajeAccesoNoDisponible =
         "No fue posible iniciar sesión. Si el problema continúa, comuníquese con el administrador del sistema.";
@@ -46,19 +52,22 @@ public sealed class IniciarSesion(
         }
 
         var usuario = acceso.Usuario;
-        if (!usuario.PuedeIniciarSesion || !acceso.InstitucionActiva)
-        {
-            hasher.Verificar(solicitud.Contrasena, HashFicticio());
-            throw new ErrorNoAutenticado(MensajeAccesoNoDisponible, "MSG-002");
-        }
 
         // El tenant lo determina el servidor a partir del correo, nunca el cliente (RN-008).
         contexto.Establecer(usuario.TenantId, usuario.Id, acceso.CodigoRol);
+
+        if (!usuario.PuedeIniciarSesion || !acceso.InstitucionActiva)
+        {
+            hasher.Verificar(solicitud.Contrasena, HashFicticio());
+            await RegistrarFalloAsync(usuario, usuario.EstadoBloqueo ? "bloqueada" : "no_disponible", cancellationToken);
+            throw new ErrorNoAutenticado(MensajeAccesoNoDisponible, "MSG-002");
+        }
 
         if (!hasher.Verificar(solicitud.Contrasena, usuario.ContrasenaHash))
         {
             usuario.RegistrarIntentoFallido();
             await repositorio.GuardarAsync(usuario, null, cancellationToken);
+            await RegistrarFalloAsync(usuario, "credenciales", cancellationToken);
             throw CredencialesIncorrectas();
         }
 
@@ -66,9 +75,19 @@ public sealed class IniciarSesion(
         var emitido = generador.Generar(usuario, acceso.CodigoRol);
         var sesion = new SesionToken(usuario.TenantId, usuario.Id, emitido.Jti, emitido.Emision, emitido.Expiracion);
         await repositorio.GuardarAsync(usuario, sesion, cancellationToken);
+        await auditoria.RegistrarAsync(usuario.Id, AccionesAuditoria.LoginOk, EntidadUsuario, usuario.Id.ToString(), cancellationToken: cancellationToken);
 
         return new ResultadoInicioSesion(emitido.Token, emitido.Expiracion, acceso.CodigoRol, usuario.CambioContrasenaObligatorio);
     }
+
+    private Task RegistrarFalloAsync(Usuario usuario, string motivo, CancellationToken cancellationToken) =>
+        auditoria.RegistrarAsync(
+            usuario.Id,
+            AccionesAuditoria.LoginFallido,
+            EntidadUsuario,
+            usuario.Id.ToString(),
+            new Dictionary<string, string> { ["motivo"] = motivo },
+            cancellationToken);
 
     private static ErrorNoAutenticado CredencialesIncorrectas() => new(MensajeCredenciales, "MSG-001");
 

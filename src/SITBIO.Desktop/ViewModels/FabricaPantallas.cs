@@ -19,6 +19,10 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var usuarios = servicios.GetRequiredService<UsuariosViewModel>();
                 usuarios.CargarCommand.Execute(null);
                 return usuarios;
+            case "UI-024":
+                var bitacora = servicios.GetRequiredService<BitacoraViewModel>();
+                bitacora.CargarCommand.Execute(null);
+                return bitacora;
             default:
                 return null;
         }

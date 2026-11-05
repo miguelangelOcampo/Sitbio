@@ -107,3 +107,79 @@ El usuario se devuelve como `{ id, nombres, apellidos, correo, telefono, rol, es
 - **Consumo del plan en UI-004:** la barra «X de Y usuarios de gestión» necesita un endpoint que lo exponga (HU-024); hoy el límite se informa cuando la API responde 409.
 - **Bitácora (UI-024):** las acciones sobre usuarios todavía no se registran en la bitácora de auditoría.
 - **Envío de la contraseña temporal por correo:** la API la devuelve una sola vez y el Administrador la entrega por un canal seguro.
+
+## HU-012 · Control de sesión y cierre por inactividad
+
+Caso de uso CU-001 · RF-011 · RNF-004 · SEC-002 · ADR-003 · Pantalla UI-001 (regreso al inicio de sesión) · Mensajes MSG-002, MSG-003 y MSG-011.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-016 | CA-HU-012-01: tras 30 minutos sin actividad, al intentar una acción la aplicación cierra la sesión, invalida el token JWT y lleva al inicio de sesión. | RF-011, RNF-004, MSG-003 | Integración (API + PostgreSQL): `CriteriosHu012Tests.CA_HU_012_01_CierrePorInactividad_GuardaElMotivoEInvalidaElToken`. API: `SesionEndpointTests.CA_HU_012_01_LogoutPorInactividad_GuardaEseMotivo`. Aplicación: `SesionesTests.CA_HU_012_01_CerrarPorInactividad_GuardaEseMotivo`. Cliente: `ControlSesionTests.CA_HU_012_01_*` (4): no cierra antes de 30 minutos, a los 30 revoca el token y muestra MSG-003, la actividad reinicia el conteo y cierra una sola vez; `MainViewModelTests.CA_HU_012_01_*` (2): oculta los datos y «Ingresar de nuevo» vuelve al inicio de sesión. | Aprobado |
+| CP-016 | CA-HU-012-02: al presionar «Cerrar sesión» y confirmar, el token queda invalidado y no puede reutilizarse. | RF-011, RNF-004 | Integración: `CriteriosHu012Tests.CA_HU_012_02_CerrarSesion_RevocaElTokenYNoPuedeReutilizarse`. API: `SesionEndpointTests.CA_HU_012_02_*` (2): 204 y el mismo token se rechaza en cualquier ruta. Aplicación: `SesionesTests.CA_HU_012_02_CerrarSesion_RevocaElJtiDelToken`. Cliente: `ControlSesionTests.CA_HU_012_02_CierreVoluntario_RevocaYOlvidaElTokenSinAvisoDeExpiracion`, `MainViewModelTests.CA_HU_012_02_CerrarSesion_PideConfirmacionYVuelveAlInicioDeSesion`, `ServicioSesionHttpTests.Cerrar_*` (2). | Aprobado |
+
+Pruebas adicionales de la historia:
+
+- **Renovación (SEC-002):** `CriteriosHu012Tests.Renovar_EntregaOtroJtiYElTokenAnteriorQuedaRevocado`, `SesionEndpointTests.Refresh_DevuelveOtroTokenYRevocaElAnterior`, `SesionesTests.Renovar_*` (6) y `ControlSesionTests`: renueva solo con el token por vencer y el usuario activo, y sin conexión conserva la sesión y reintenta.
+- **Cuenta o institución no disponibles:** `CriteriosHu012Tests.CuentaDesactivadaDuranteLaSesion_NoPuedeRenovarYSuSesionSeCierra` y `SesionesTests.Renovar_CuentaBloqueada_*`, `Renovar_InstitucionInactiva_*` (MSG-002).
+- **Aislamiento y tokens sin sesión:** `CriteriosHu012Tests.JtiDeUnaSesionDeOtraInstitucion_Responde401`, `TokenExpirado_ConSuSesionSinRevocar_Responde401` y `SesionEndpointTests.TokenSinSesionRegistrada_Responde401`.
+- **Dominio:** `SesionTokenTests` (7): la revocación conserva la primera fecha y el primer motivo.
+- **Cliente:** `ManejadorTokenTests` (5): un 401 de la API termina la sesión; `ControlSesionTests.LimiteDesdeEntorno_SoloAceptaDe1A30Minutos`.
+
+### Verificación manual
+
+En el cliente WPF contra la API real: con `SITBIO_MINUTOS_INACTIVIDAD=1` la sesión se cerró sola y apareció MSG-003 sobre la ventana a los 93 segundos (el control revisa cada 30 s); `sesion_token` quedó revocada con el motivo de inactividad. La confirmación de «Cerrar sesión» se cubre con las pruebas del cliente.
+
+### Contrato implementado: `/api/v1/auth/refresh` y `/api/v1/auth/logout` (API-AUTH-REFRESH, API-AUTH-LOGOUT)
+
+Ambas rutas exigen un token vigente cuyo `jti` no esté revocado.
+
+| Método y ruta | Cuerpo | Respuesta correcta |
+|---|---|---|
+| `POST /auth/refresh` | — | 200 `{ token, expiraEn, rol, debeCambiarClave }` con otro `jti`; el anterior queda revocado |
+| `POST /auth/logout` | `{ motivo }` opcional: `voluntario` (por defecto) o `inactividad` | 204 |
+
+| Error | Cuándo |
+|---|---|
+| 400 con `errors.motivo` | Motivo distinto de `voluntario` o `inactividad` (el texto no se guarda) |
+| 401 | Sin token, token revocado o expirado, o `jti` sin sesión registrada |
+| 401 · `codigo: MSG-002` | Al renovar, la cuenta está bloqueada o inactiva o la institución está inactiva; la sesión se cierra |
+
+## HU-010 · Auditoría de acceso y denegación de permisos RBAC
+
+Caso de uso CU-001 · RF-013 · RN-008 · RNF-003 · RNF-015 · ADR-002 · Pantalla UI-024.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-014 | CA-HU-010-01: si un usuario intenta una acción sin permiso, la API responde 403 y registra el evento con usuario, fecha, hora y acción. | RNF-003, RNF-015 | Integración (API + PostgreSQL + MongoDB con el validador real): `CriteriosHu010Tests.CA_HU_010_01_UnaAccionSinPermiso_Responde403YQuedaEnLaBitacora` (método, ruta, rol y hora; sin el correo del usuario ni el del formulario). API: `AuditoriaEndpointTests.OtroRol_Responde403YQuedaRegistrado`, `SinToken_Responde401SinRegistrar`, `SiLaBitacoraFalla_El403SeRespondeIgual`. Infraestructura: `RegistroAuditoriaTests` (4), `BitacoraAuditoriaMongoTests.Registrar_*` (2), `ElValidadorRechazaUnaAccionFueraDelCatalogo`. Aplicación: `EventoAuditoriaTests` (4), incluido que las acciones son las del validador de V007. | Aprobado |
+| CP-014 | CA-HU-010-02: una consulta con un tenant distinto al del usuario no devuelve datos de otro tenant. | RN-008, SEC-003 | Integración: `CriteriosHu010Tests.CA_HU_010_02_CadaAdministradorSoloVeLaBitacoraDeSuInstitucion` (ni la lista ni el filtro por un usuario de otra institución devuelven sus eventos). Infraestructura: `BitacoraAuditoriaMongoTests.CA_HU_010_02_CadaTenantSoloVeSuBitacora`. | Aprobado |
+| CP-014 | CA-HU-010-03: el Administrador o el Auditor consultan la bitácora con filtros por usuario y fecha y ven los eventos registrados. | RF-013, RNF-003 | Integración: `CriteriosHu010Tests.CA_HU_010_03_*` (2): AC-01 y AC-07 filtran por usuario, fechas y acción; el Técnico recibe 403 y el intento queda registrado. API: `AuditoriaEndpointTests.CA_HU_010_03_AdministradorYAuditor_ConsultanConNombreDelUsuario`, `FiltroInvalido_Responde400`. Infraestructura: `BitacoraAuditoriaMongoTests.CA_HU_010_03_*`, `Consultar_PaginaConElTotalCompleto`. Cliente: `BitacoraViewModelTests` (12), `ServicioBitacoraHttpTests` (6). | Aprobado |
+
+Pruebas adicionales de la historia:
+
+- **Inicios y cierres de sesión en la bitácora:** `CriteriosHu010Tests.LoginYCierreDeSesion_QuedanEnLaBitacoraDelTenant`; `IniciarSesionTests.HU010_*` (6): `LOGIN_OK` y `LOGIN_FALLIDO` con el motivo, sin correo ni clave, y nada para un correo inexistente; `SesionesTests.HU010_*` (2).
+- **Tolerancia a fallos:** si MongoDB no responde, el inicio de sesión, el cierre y el 403 siguen funcionando (`RegistroAuditoriaTests`, `AuditoriaEndpointTests.SiLaBitacoraFalla_El403SeRespondeIgual`).
+
+Última ejecución: 05/11/2026 (UTC−5), rama `feature/HU-010-auditoria`, con PostgreSQL y MongoDB de Docker: 336 pruebas aprobadas, 0 fallidas, 0 omitidas. Las pruebas de integración usan una base temporal de MongoDB con el validador de `sitbio_dev` y la borran al terminar; en el CI se omiten porque allí no hay bases de datos.
+
+### Verificación manual
+
+En el cliente WPF contra la API real, con la institución de demostración: un inicio de sesión fallido, un 403 al consultar la bitácora y un cierre de sesión del Técnico aparecieron en UI-024 con su detalle en español. Como Auditor (AC-07) y como Administrador (AC-01): indicadores, filtro por usuario y por acción, fechas (incluidos el aviso de fecha mal escrita y el de fecha final anterior a la inicial), estado vacío y «Limpiar».
+
+### Contrato implementado: `GET /api/v1/bitacora` (API-AUD)
+
+Solo para AC-01 y AC-07 (sin token 401; con otro rol 403 y el intento queda registrado). El tenant sale del token.
+
+| Parámetro | Uso |
+|---|---|
+| `usuarioId` | Eventos de un usuario |
+| `desde`, `hasta` | Rango de fechas ISO 8601 (`hasta` exclusivo y posterior a `desde`) |
+| `accion` | Una acción del catálogo: `LOGIN_OK`, `LOGIN_FALLIDO`, `CIERRE_SESION`, `ACCESO_DENEGADO`, `CREAR`, `ACTUALIZAR`, `ELIMINAR`, `EXPORTAR`, `CIERRE_OT`, `CAMBIO_ROL`, `CAMBIO_TENANT`, `IMPORTAR_CSV` |
+| `page`, `pageSize` | Paginación (`pageSize` de 1 a 100, por defecto 50) |
+
+Respuesta 200 `{ items, page, pageSize, total }`, del más reciente al más antiguo; cada evento es `{ id, fechaHora, usuarioId, usuario, accion, entidad, entidadId, ipOrigen, detalle }`. Con fechas o acción inválidas responde 400 con `errors` por campo.
+
+### Pendientes
+
+- **Acciones de cada módulo:** por ahora se registran los inicios y cierres de sesión y los 403. Crear, editar, desactivar, exportar o importar se registran a medida que llegue cada historia (el pendiente de HU-011 sobre la bitácora sigue abierto).
+- **UI-024 frente al prototipo:** faltan la exportación a CSV, el indicador de integridad con hash encadenado y el filtro por entidad; ninguna historia ni la API los incluye todavía.
+- **Validación de filtros:** se prueba en la API (`FiltroInvalido_Responde400`), no con pruebas propias de `ConsultarBitacora` en la capa de aplicación.

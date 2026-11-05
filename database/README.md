@@ -9,6 +9,7 @@
 | `V004__codigo_roles.sql` | Columna `rol.codigo` (AC-01 a AC-07), nombres según el DOC-01 Tabla 3 y rol AC-07 Ente Regulador. La aplicación usa `rol.codigo`, nunca `id_rol`. |
 | `V005__correo_unico.sql` | Correo único en todo el sistema sin distinguir mayúsculas (HU-001): el inicio de sesión deduce el tenant a partir del correo. |
 | `V006__nombres_y_alcance_roles.sql` | Ajuste de roles del 01/11/2026: AC-05 «Gerente de Tecnología Biomédica»; campos dinámicos y catálogos técnicos para AC-02; ubicaciones para AC-01 y AC-02. Solo nombres y descripciones; los códigos no cambian. |
+| `V007__bitacora_acciones.js` | MongoDB: `bitacora_auditoria` acepta las acciones `ACCESO_DENEGADO` (403, CA-HU-010-01) y `CIERRE_SESION` (HU-012). Reemplaza el validador con `collMod`; idempotente. |
 | `docker/postgres-init.sh` | Ejecuta el script 01 y las migraciones al crear el contenedor. |
 
 Reglas (ADR-005):
@@ -23,4 +24,10 @@ Cuando llega una migración nueva, una base ya creada no la ejecuta sola (los sc
 
 ```bash
 docker exec sitbio-postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d sitbio_dev -f /sitbio-db/V004__codigo_roles.sql'
+```
+
+Las migraciones de MongoDB (`V###__*.js`) se aplican con `mongosh`; Docker las ejecuta solas al crear el contenedor (`docker-entrypoint-initdb.d`, después del script 02). En una base ya creada:
+
+```bash
+docker exec -i sitbio-mongo sh -c 'mongosh --quiet -u "$MONGO_INITDB_ROOT_USERNAME" -p "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin' < database/V007__bitacora_acciones.js
 ```

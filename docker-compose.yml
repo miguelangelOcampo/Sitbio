@@ -32,6 +32,7 @@ services:
     volumes:
       - mongodata:/data/db
       - ./database/02_MongoDB_SITBIO.js:/docker-entrypoint-initdb.d/02-sitbio.js:ro
+      - ./database/V007__bitacora_acciones.js:/docker-entrypoint-initdb.d/07-bitacora-acciones.js:ro
 
 volumes:
   pgdata:

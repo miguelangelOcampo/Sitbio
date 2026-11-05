@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Sitbio.Api.Seguridad;
 using Sitbio.Application.Comun.Errores;
 
 namespace Sitbio.Api.Errores;
@@ -40,6 +41,12 @@ public sealed class ManejadorErrores(IProblemDetailsService problemDetails, ILog
         if (codigo is not null)
         {
             problema.Extensions["codigo"] = codigo;
+        }
+
+        // CA-HU-010-01: un 403 de una regla de permisos también queda en la bitácora.
+        if (excepcion is ErrorPermiso)
+        {
+            await Denegaciones.RegistrarAsync(http);
         }
 
         // Sin datos personales: solo método, ruta (sin consulta) y código.

@@ -244,6 +244,12 @@
             <Trigger Property="IsKeyboardFocused" Value="True">
               <Setter TargetName="Texto" Property="TextDecorations" Value="Underline" />
             </Trigger>
+            <!-- Deshabilitado (p. ej. «Siguiente ›» en la última página): gris y sin subrayado -->
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="Texto" Property="Foreground" Value="{DynamicResource Brush.Text3}" />
+              <Setter TargetName="Texto" Property="TextDecorations" Value="{x:Null}" />
+              <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
           </ControlTemplate.Triggers>
         </ControlTemplate>
       </Setter.Value>

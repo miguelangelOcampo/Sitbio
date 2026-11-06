@@ -12,6 +12,9 @@
     <DataTemplate DataType="{x:Type vm:UsuariosViewModel}">
       <views:UsuariosView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:EquiposViewModel}">
+      <views:EquiposView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:BitacoraViewModel}">
       <views:BitacoraView />
     </DataTemplate>

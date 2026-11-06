@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using Sitbio.Application.Comun;
-using Sitbio.Domain.Comun;
 using Sitbio.Infrastructure.Persistencia;
 
 namespace Sitbio.Infrastructure.Tests.Aislamiento;
@@ -20,61 +19,24 @@ public class AislamientoTenantPostgresTests : IAsyncLifetime
     private readonly Guid _ubicacionA = Guid.NewGuid();
     private readonly Guid _ubicacionB = Guid.NewGuid();
 
-    private sealed class UbicacionDePrueba : EntidadTenant
-    {
-        public UbicacionDePrueba(Guid id, Guid tenantId, string nombre)
-            : base(tenantId)
-        {
-            Id = id;
-            Nombre = nombre;
-        }
-
-        public string Nombre { get; set; }
-    }
-
-    private sealed class ContextoDePrueba(DbContextOptions options, IContextoUsuario contextoUsuario)
-        : SitbioDbContext(options, contextoUsuario)
-    {
-        public DbSet<UbicacionDePrueba> Ubicaciones => Set<UbicacionDePrueba>();
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-            var ubicacion = modelBuilder.Entity<UbicacionDePrueba>();
-            ubicacion.ToTable("ubicacion");
-            ubicacion.HasKey(u => u.Id);
-            ubicacion.Property(u => u.Id).HasColumnName("id_ubicacion");
-            ubicacion.Property(u => u.Nombre).HasColumnName("nombre");
-        }
-    }
-
-    private ContextoDePrueba CrearContexto(Guid tenantId)
+    private SitbioDbContext CrearContexto(Guid tenantId)
     {
         var contextoUsuario = Substitute.For<IContextoUsuario>();
         contextoUsuario.TenantId.Returns(tenantId);
-        var options = new DbContextOptionsBuilder<ContextoDePrueba>().UseNpgsql(_cadena).Options;
-        return new ContextoDePrueba(options, contextoUsuario);
+        var options = new DbContextOptionsBuilder<SitbioDbContext>().UseNpgsql(_cadena).Options;
+        return new SitbioDbContext(options, contextoUsuario);
     }
 
     public async Task InitializeAsync()
     {
-        await using (var contexto = CrearContexto(_tenantA))
+        await using var contexto = CrearContexto(_tenantA);
+        foreach (var (tenant, ubicacion, nombre) in new[] { (_tenantA, _ubicacionA, "Urgencias A"), (_tenantB, _ubicacionB, "Urgencias B") })
         {
-            foreach (var tenant in new[] { _tenantA, _tenantB })
-            {
-                var nit = $"T{Random.Shared.NextInt64(100_000_000, 999_999_999)}";
-                await contexto.Database.ExecuteSqlAsync(
-                    $"INSERT INTO sitbio.tenant (id_tenant, nombre, nit) VALUES ({tenant}, {"Prueba aislamiento"}, {nit})");
-            }
-
-            contexto.Ubicaciones.Add(new UbicacionDePrueba(_ubicacionA, _tenantA, "Urgencias A"));
-            await contexto.SaveChangesAsync();
-        }
-
-        await using (var contexto = CrearContexto(_tenantB))
-        {
-            contexto.Ubicaciones.Add(new UbicacionDePrueba(_ubicacionB, _tenantB, "Urgencias B"));
-            await contexto.SaveChangesAsync();
+            var nit = $"T{Random.Shared.NextInt64(100_000_000, 999_999_999)}";
+            await contexto.Database.ExecuteSqlAsync(
+                $"INSERT INTO sitbio.tenant (id_tenant, nombre, nit) VALUES ({tenant}, {"Prueba aislamiento"}, {nit})");
+            await contexto.Database.ExecuteSqlAsync(
+                $"INSERT INTO sitbio.ubicacion (id_ubicacion, tenant_id, nombre) VALUES ({ubicacion}, {tenant}, {nombre})");
         }
     }
 
@@ -115,8 +77,9 @@ public class AislamientoTenantPostgresTests : IAsyncLifetime
     {
         await using (var contextoA = CrearContexto(_tenantA))
         {
-            var ajena = new UbicacionDePrueba(_ubicacionB, _tenantB, "Modificada por A");
-            contextoA.Ubicaciones.Update(ajena);
+            // Aunque se salte el filtro, guardar un registro de otro tenant se rechaza.
+            var ajena = await contextoA.Ubicaciones.IgnoreQueryFilters().SingleAsync(u => u.Id == _ubicacionB);
+            contextoA.Entry(ajena).Property(u => u.Nombre).CurrentValue = "Modificada por A";
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => contextoA.SaveChangesAsync());
         }

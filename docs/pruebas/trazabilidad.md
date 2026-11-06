@@ -61,9 +61,9 @@ RF-001 · RF-012 · RN-002 · RN-006 · RN-008 · RN-009 · SEC-003 · ADR-011 �
 
 | CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
 |---|---|---|---|---|
-| CP-004 | CA-HU-011-01: al completar los datos y elegir un rol, la cuenta se crea con la contraseña cifrada con BCrypt. | RF-001, RF-012, RNF-004 | Integración (API + PostgreSQL): `CriteriosHu011Tests.CA_HU_011_01_AdministradorCreaUsuario_ConHashBCryptYClaveTemporalQueDebeCambiar` (hash `$2…$12$` en la base y la clave temporal permite entrar con `debeCambiarClave`). Aplicación: `GestionUsuariosTests.Crear_*` (4), `ClaveTemporal_*`. API: `UsuariosEndpointTests.Administrador_CreaUsuarioConClaveTemporalYSinHash`. Cliente: `UsuariosViewModelTests.CA_HU_011_01_*` (2), `ServicioUsuariosHttpTests.Crear_*`. | Aprobado |
-| CP-005 | CA-HU-011-02: sin rol de Administrador, crear o desactivar cuentas se deniega (RN-002). | RN-002, RNF-003 | Integración: `CriteriosHu011Tests.CA_HU_011_02_*` (2): el Ingeniero (AC-02) y el Técnico (AC-03), con sesión real, reciben 403 en las cinco operaciones y la base no cambia; sin token, 401. API: `UsuariosEndpointTests.OtroRol_Responde403EnTodasLasOperaciones` (AC-02, AC-03 y AC-07), `SinToken_Responde401`. Cliente: `GuiaRolesTests.ElMenuDeCadaRolEsElDelShell`. | Aprobado |
-| CP-006 | CA-HU-011-03: con el cupo de usuarios de gestión lleno no se crean ni reactivan cuentas de gestión; Personal Clínico y ente regulador sí (RN-009). | RN-009, MSG-019 | Integración: `CriteriosHu011Tests.CA_HU_011_03_*` (2), con un tenant del plan Consultorio (3 cupos): 409 `RN-009` con «plan Consultorio», 201 para AC-04 y AC-07, desactivar libera cupo y reactivar con el cupo lleno responde 409. Aplicación: `GestionUsuariosTests.Rn009_*` (10), incluido el cambio de AC-04 a un rol de gestión. Cliente: `UsuariosViewModelTests.CA_HU_011_03_*` (2), `GuiaRolesTests.Rn009_*` (7). | Aprobado |
+| CP-015 | CA-HU-011-01: al completar los datos y elegir un rol, la cuenta se crea con la contraseña cifrada con BCrypt. | RF-001, RF-012, RNF-004 | Integración (API + PostgreSQL): `CriteriosHu011Tests.CA_HU_011_01_AdministradorCreaUsuario_ConHashBCryptYClaveTemporalQueDebeCambiar` (hash `$2…$12$` en la base y la clave temporal permite entrar con `debeCambiarClave`). Aplicación: `GestionUsuariosTests.Crear_*` (4), `ClaveTemporal_*`. API: `UsuariosEndpointTests.Administrador_CreaUsuarioConClaveTemporalYSinHash`. Cliente: `UsuariosViewModelTests.CA_HU_011_01_*` (2), `ServicioUsuariosHttpTests.Crear_*`. | Aprobado |
+| CP-015 | CA-HU-011-02: sin rol de Administrador, crear o desactivar cuentas se deniega (RN-002). | RN-002, RNF-003 | Integración: `CriteriosHu011Tests.CA_HU_011_02_*` (2): el Ingeniero (AC-02) y el Técnico (AC-03), con sesión real, reciben 403 en las cinco operaciones y la base no cambia; sin token, 401. API: `UsuariosEndpointTests.OtroRol_Responde403EnTodasLasOperaciones` (AC-02, AC-03 y AC-07), `SinToken_Responde401`. Cliente: `GuiaRolesTests.ElMenuDeCadaRolEsElDelShell`. | Aprobado |
+| CP-015 | CA-HU-011-03: con el cupo de usuarios de gestión lleno no se crean ni reactivan cuentas de gestión; Personal Clínico y ente regulador sí (RN-009). | RN-009, MSG-019 | Integración: `CriteriosHu011Tests.CA_HU_011_03_*` (2), con un tenant del plan Consultorio (3 cupos): 409 `RN-009` con «plan Consultorio», 201 para AC-04 y AC-07, desactivar libera cupo y reactivar con el cupo lleno responde 409. Aplicación: `GestionUsuariosTests.Rn009_*` (10), incluido el cambio de AC-04 a un rol de gestión. Cliente: `UsuariosViewModelTests.CA_HU_011_03_*` (2), `GuiaRolesTests.Rn009_*` (7). | Aprobado |
 
 Pruebas adicionales de la historia:
 
@@ -183,3 +183,69 @@ Respuesta 200 `{ items, page, pageSize, total }`, del más reciente al más anti
 - **Acciones de cada módulo:** por ahora se registran los inicios y cierres de sesión y los 403. Crear, editar, desactivar, exportar o importar se registran a medida que llegue cada historia (el pendiente de HU-011 sobre la bitácora sigue abierto).
 - **UI-024 frente al prototipo:** faltan la exportación a CSV, el indicador de integridad con hash encadenado y el filtro por entidad; ninguna historia ni la API los incluye todavía.
 - **Validación de filtros:** se prueba en la API (`FiltroInvalido_Responde400`), no con pruebas propias de `ConsultarBitacora` en la capa de aplicación.
+
+## HU-002 · Registro de hoja de vida biomédica y placa única
+
+Caso de uso CU-002 · RF-003 · RF-019 · RF-020 · RF-030 · RN-001 · RN-008 · RN-009 · RN-010 · SEC-003 · Pantallas UI-005, UI-006 y UI-007 · Mensajes MSG-008, MSG-011 y MSG-019 · Migración V008.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-004 | CA-HU-002-01: con los datos obligatorios (serie, placa, marca, modelo y ubicación), el equipo se guarda en PostgreSQL con estado «Operativo». | RF-003 | Integración (API + PostgreSQL): `CriteriosHu002Tests.CA_HU_002_01_*` (2): 201 con el equipo «Operativo» leído de la base, y 400 en el campo que falta sin guardar nada. Dominio: `EquipoBiomedicoTests.Crear_*` (4). Aplicación: `GestionEquiposTests.Crear_DatosCompletos_GuardaOperativoYDevuelveElDto`, `Crear_TipoInexistenteOUbicacionInactiva_Responde400`. API: `EquiposEndpointTests.IngenieroBiomedico_RegistraEquipo201`. Infraestructura: `MapeoInventarioTests` (5), `InventarioPostgresTests.GuardarEquipoConInformacionRegulatoriaYPlan_*`. Cliente: `EquiposViewModelTests.Registrar_EnviaLosDatosCierraYConfirma`, `FormularioIncompleto_NoLlamaALaApi`; `FormularioEquipoViewModelTests.Validar_MarcaLosCamposObligatoriosConMsg008`, `Datos_ArmaElCuerpoParaLaApi`; `ServicioEquiposHttpTests.Registrar_*` (3). | Aprobado |
+| CP-004 | CA-HU-002-02: una placa o un número de serie repetidos en la misma institución se rechazan (RN-001). | RN-001, RN-008 | Integración: `CriteriosHu002Tests.CA_HU_002_02_*` (3): 409 `RN-001` al registrar y al editar con la placa de otro equipo (sin cambiar nada), y la misma placa en otra institución se acepta. Aplicación: `GestionEquiposTests.Crear_PlacaOSerieRepetida_Responde409Rn001`. Infraestructura: `InventarioPostgresTests.PlacaRepetidaEnLaMismaInstitucion_*`, `MismaPlacaEnOtraInstitucion_SeAcepta`; `RepositorioEquiposPostgresTests.Duplicados_*`. Cliente: `EquiposViewModelTests.PlacaRepetida_DejaElFormularioAbiertoConElError`, `FormularioEquipoViewModelTests.ErrorRn001_SeMuestraEnLaPlaca`. | Aprobado |
+| CP-004 | CA-HU-002-03: con el máximo de equipos activos del plan no se registra uno nuevo, se muestra el consumo y se conservan la consulta y la edición (RN-009). | RN-009, MSG-019 | Integración: `CriteriosHu002Tests.CA_HU_002_03_*` (2), con un tenant del plan Consultorio: 409 `RN-009` con el consumo, la lista y la edición siguen respondiendo, y un equipo dado de baja libera cupo. Aplicación: `GestionEquiposTests.Crear_ConElCupoDelPlanLleno_Responde409Rn009ConElConsumo`, `Actualizar_ConElCupoLleno_SiSePermite`, `Capacidad`. API: `EquiposEndpointTests.IngenieroBiomedico_CupoLleno_Responde409ConCodigoRn009`. Infraestructura: `RepositorioEquiposPostgresTests.Capacidad_CuentaSoloLosEquiposQueNoEstanDeBaja`. Cliente: `FormularioEquipoViewModelTests.ErrorRn009_EsElLimiteDelPlanMsg019`. | Aprobado |
+| CP-004 | CA-HU-002-04: al elegir el tipo se proponen la clase de riesgo y la calibración, se pueden ajustar y se exigen el número y la vigencia de la autorización INVIMA (RF-030, RN-010). | RF-030, RN-010 | Integración: `CriteriosHu002Tests.CA_HU_002_04_*` (4): 400 sin número ni vigencia, periodicidad de calibración de 1 a 60 meses, estetoscopio clase I sin calibración ni periodicidad, y el ajuste frente al tipo queda en la bitácora. Dominio: `EquipoBiomedicoTests.InformacionRegulatoria_*` (6), `TipoEquipoYPlanTests.TipoEquipo_*` (2). Aplicación: `GestionEquiposTests.Crear_FaltanDatosRegulatorios_*`, `Crear_ConCalibracionYPeriodicidadFueraDeRango_*`, `Crear_SinCalibracion_*`, `Crear_IgualAlTipo_NoAnotaDiferencias`. Catálogos: `ConsultaCatalogosTests` (3), `CatalogosEndpointTests` (4), `RepositorioCatalogosPostgresTests` (3). Cliente: `FormularioEquipoViewModelTests.AlElegirElTipo_ProponeClaseYCalibracion`, `SiElEquipoDifiereDelTipo_Avisa`, `CalibracionFueraDeRango_SeRechaza` (3), `SinCalibracion_NoEnviaPeriodicidad`, `AutorizacionPorVencer_AvisaSinBloquear`; `EquiposViewModelTests.NuevoEquipo_CargaLosCatalogosYAbreElFormulario`, `SiNoCarganLosCatalogos_NoAbreElFormulario`. | Aprobado |
+| CP-005 | CA-HU-002-05: al filtrar el inventario por clase de riesgo o por calibración se ven solo los equipos que cumplen, y la hoja de vida muestra la información regulatoria con el aviso de registro vencido o por vencer (RN-010). | RF-030, RN-010 | Integración: `CriteriosHu002Tests.CA_HU_002_05_*` (2). Dominio: `EquipoBiomedicoTests.AvisoDelRegistro_SegunLosDiasQueFaltan`. Aplicación: `GestionEquiposTests.Listar_*` (2), `Obtener_CalculaElAvisoConLaFechaDeColombia`. Infraestructura: `RepositorioEquiposPostgresTests.Listar_*` (2). Cliente: `EquiposViewModelTests` (lista, filtros y paginación, entre ellas `FiltroDeRiesgo_DistingueClaseYCalibracion`), `DetalleEquipoViewModelTests` (11, entre ellas `RN010_*` (3)), `ServicioEquiposHttpTests` (7 de consulta). | Aprobado |
+| CP-004 | CA-HU-002-06: con la periodicidad y el último preventivo se calcula el próximo (ajustable) y se crea el plan activo; si ya pasó, nace vencido (RF-020); si no se conoce el último, se indica el próximo. | RF-019, RF-020 | Integración: `CriteriosHu002Tests.CA_HU_002_06_*` (5): cálculo y plan activo, plan vencido, próximo ajustado, próximo sin último que no puede haber pasado y reprogramación del mismo plan al editar. Dominio: `TipoEquipoYPlanTests.Plan_*` (4). Aplicación: `GestionEquiposTests.Preventivo_*` (4). Cliente: `FormularioEquipoViewModelTests.ProximoPreventivo_*`, `ProximoAjustadoAMano_NoSeRecalcula`, `SiElProximoCalculadoYaPaso_AvisaQueNaceVencido`, `NoSeConoceElUltimo_*`, `Editar_*` (2); `EquiposViewModelTests.EditarDesdeLaHojaDeVida_ActualizaElDetalle`. | Aprobado |
+
+Pruebas adicionales de la historia:
+
+- **Permisos (RNF-003):** `CriteriosHu002Tests.Permisos_ElTecnicoConsultaPeroNoRegistraYLaDirectivaNoConsulta`; `EquiposEndpointTests.SinToken_Responde401`, `RolesDeConsulta_ListanEquipos`, `Directiva_NoConsultaElInventario`, `SoloElIngenieroBiomedico_RegistraYEdita`; en el cliente, `EquiposViewModelTests.SoloElIngenieroBiomedico_VeRegistrar` y `ServicioEquiposHttpTests.Registrar_ConOtroRol_DaElMensajeDeGestion`.
+- **Aislamiento entre instituciones (RN-008, SEC-003):** `CriteriosHu002Tests.Aislamiento_OtraInstitucionNoVeNiEditaElEquipo` (404); `EquiposEndpointTests.EquipoDeOtroTenant_Responde404`; `GestionEquiposTests.Actualizar_EquipoDeOtroTenant_Responde404`; `RepositorioEquiposPostgresTests.Listar_FiltraSoloLosEquiposDeLaInstitucion`, `ObtenerParaEditar_*`; `RepositorioCatalogosPostgresTests` (catálogos de cada institución).
+
+Última ejecución: 06/11/2026 (UTC−5), rama `feature/HU-002-hoja-de-vida`, con PostgreSQL y MongoDB de Docker: 524 pruebas aprobadas, 0 fallidas, 0 omitidas (Dominio 52, Aplicación 88, Infraestructura 71, API 127, Cliente 186). En el CI se omiten las de integración porque allí no hay bases de datos.
+
+### Verificación manual
+
+En el cliente WPF contra la API real, como Ingeniero Biomédico (AC-02) de la institución de demostración, con datos de prueba que se borraron al terminar:
+
+- Lista UI-005 con indicadores, búsqueda por serie, filtros por estado, clase y calibración, y paginación (enlaces desactivados en gris); hoja de vida UI-006 con el aviso «Autorización INVIMA por vencer» y la pestaña de información técnica.
+- Formulario UI-007: al elegir «Monitor de signos vitales» se propone la clase IIb; con 6 meses de calibración aparece el aviso de diferencia con el tipo; el aviso de vencimiento cuenta los días; con un último preventivo antiguo, el próximo se calcula y aparece «Preventivo atrasado»; «Sin proveedor» como opción; guardar vacío marca los campos con MSG-008; la edición abre con los datos y el plan del equipo. No se guardó desde la interfaz (la bitácora es solo de inserción); el guardado lo cubren las pruebas de integración.
+
+### Contrato implementado: `/api/v1/equipos` (API-EQ-LIST, API-EQ) y `GET /api/v1/catalogos/{tipo}` (API-CAT)
+
+El tenant sale del token. Consultan AC-01, AC-02, AC-03, AC-04, AC-05 y AC-07; registran y editan solo AC-02 (otro rol 403, sin token 401). Un equipo de otra institución responde 404.
+
+| Método y ruta | Uso | Respuestas |
+|---|---|---|
+| `GET /equipos` | Lista con `placa`, `serie` (coincidencia parcial), `estado`, `clase` (I, IIa, IIb, III), `calibracion` (true/false), `page` y `pageSize` (1 a 100, por defecto 20) | 200 `{ items, page, pageSize, total }`; 400 con `errors` por filtro |
+| `GET /equipos/{id}` | Hoja de vida | 200; 404 |
+| `POST /equipos` | Registrar | 201 con `Location`; 400 por campo; 409 `RN-001` (placa o serie repetida) o `RN-009` (cupo del plan) |
+| `PUT /equipos/{id}` | Editar (el cupo del plan no la impide) | 200; 400; 404; 409 `RN-001` |
+| `GET /catalogos/{tipo}` | `tipos-equipo`, `ubicaciones` o `proveedores`, con los inactivos, ordenados por nombre (solo AC-01 y AC-02) | 200 `[{ id, nombre, activo, claseRiesgo, requiereCalibracion, periodicidadCalibracionMeses }]` (los tres últimos solo en tipos de equipo); 404 si el catálogo no existe |
+
+Cuerpo de `POST` y `PUT` (fechas ISO 8601):
+
+```json
+{
+  "tipoEquipoId": "…", "ubicacionId": "…", "proveedorId": null,
+  "numeroSerie": "SN-100", "placaInventario": "CSR-EQ-0100", "marca": "Philips", "modelo": "MX450",
+  "fechaAdquisicion": "2022-03-15",
+  "tipoAutorizacion": "registro_sanitario", "registroInvima": "INVIMA 2019DM-0019801", "venceRegistro": "2027-02-10",
+  "claseRiesgo": "IIb", "requiereCalibracion": true, "periodicidadCalibracionMeses": 12,
+  "preventivo": { "periodicidadDias": 90, "ultimaEjecucion": "2026-09-02", "proximaFecha": null }
+}
+```
+
+Cada equipo en la respuesta trae además `estado`, `estadoNombre`, los nombres de tipo, ubicación y proveedor, `avisoRegistro` (`Vigente`, `PorVencer`, `Vencido`), `tieneFoto` y `preventivo { id, periodicidadDias, ultimaEjecucion, proximaFecha, vencido }`.
+
+### Cómo reproducir
+
+La base local debe tener aplicada V008 (`database/README.md`). Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas, `dotnet test SITBIO.sln`.
+
+### Pendientes
+
+- **Gestión de catálogos:** por ahora solo se consultan; crear y editar tipos de equipo, ubicaciones y proveedores llega con HU-025 (commits 40 y 41), que extienden el mismo módulo `Modules/Catalogos`.
+- **Fotografía del equipo (RF-031):** V008 ya tiene `foto_documento_id` y la API devuelve `tieneFoto`; la subida y API-EQ-FOTO llegan con HU-015.
+- **Cambio de estado y baja:** la API todavía no ofrece `PATCH` de estado; llega con HU-014.
+- **Alerta del plan vencido (RF-020):** el plan se marca vencido y la interfaz lo avisa; la alerta en el módulo de alertas llega con su historia.
+- **Numeración de CP:** con esta historia se corrigió la tabla de HU-011 a CP-015, como asigna el DOC-04; antes usaba CP-004 a CP-006, que corresponden a HU-002 y HU-003.

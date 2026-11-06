@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Sitbio.Api.Errores;
 using Sitbio.Api.Modules.Auditoria;
 using Sitbio.Api.Modules.Autenticacion;
+using Sitbio.Api.Modules.Catalogos;
+using Sitbio.Api.Modules.Equipos;
 using Sitbio.Api.Modules.Salud;
 using Sitbio.Api.Modules.Usuarios;
 using Sitbio.Api.Seguridad;
@@ -26,6 +28,8 @@ builder.Services.AddInfraestructura(builder.Configuration);
 builder.Services.AddModuloAutenticacion(builder.Configuration);
 builder.Services.AddModuloUsuarios();
 builder.Services.AddModuloAuditoria();
+builder.Services.AddModuloEquipos();
+builder.Services.AddModuloCatalogos();
 
 var app = builder.Build();
 
@@ -44,6 +48,8 @@ api.MapSalud();
 api.MapAutenticacion();
 api.MapUsuarios();
 api.MapAuditoria();
+api.MapEquipos();
+api.MapCatalogos();
 
 app.Run();
 

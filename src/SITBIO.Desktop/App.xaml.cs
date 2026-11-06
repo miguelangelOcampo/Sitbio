@@ -30,6 +30,7 @@ public partial class App : Application
         servicios.AddTransient<IServicioBitacora, ServicioBitacoraHttp>();
         servicios.AddTransient<BitacoraViewModel>();
         servicios.AddTransient<IServicioEquipos, ServicioEquiposHttp>();
+        servicios.AddTransient<IServicioCatalogos, ServicioCatalogosHttp>();
         servicios.AddTransient<EquiposViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
         servicios.AddSingleton(TimeProvider.System);

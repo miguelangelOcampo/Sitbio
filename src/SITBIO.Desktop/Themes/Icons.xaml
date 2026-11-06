@@ -29,6 +29,7 @@
 
   <!-- Equipo biomédico: monitor con pulso (lista y hoja de vida, mientras no hay fotografía) -->
   <Geometry x:Key="Icono.Equipo">M5,4 H19 A2,2 0 0 1 21,6 V15 A2,2 0 0 1 19,17 H5 A2,2 0 0 1 3,15 V6 A2,2 0 0 1 5,4 Z M6.5,10.5 H9 L10.3,8 L12.3,13 L13.7,10.5 H17.5 M9,21 H15 M12,17 V21</Geometry>
+  <Geometry x:Key="Icono.Agregar">M12,5 V19 M5,12 H19</Geometry>
   <Geometry x:Key="Icono.Check">M5,12.5 L10,17.5 L19,7</Geometry>
   <Geometry x:Key="Icono.Cerrar">M6,6 L18,18 M18,6 L6,18</Geometry>
   <Geometry x:Key="Icono.Mas">M4.6,12 A1.4,1.4 0 1 0 7.4,12 A1.4,1.4 0 1 0 4.6,12 Z M10.6,12 A1.4,1.4 0 1 0 13.4,12 A1.4,1.4 0 1 0 10.6,12 Z M16.6,12 A1.4,1.4 0 1 0 19.4,12 A1.4,1.4 0 1 0 16.6,12 Z</Geometry>

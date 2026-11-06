@@ -14,9 +14,20 @@ public partial class DetalleEquipoViewModel(
     TimeProvider tiempo,
     Guid equipoId,
     string placa,
-    Action volver) : ObservableObject
+    Action volver,
+    bool puedeEditar = false) : ObservableObject
 {
     public string Placa { get; } = placa;
+
+    /// <summary>Solo AC-02 ve «Editar» (la API también lo valida, RNF-003).</summary>
+    public bool PuedeEditar => puedeEditar && HayEquipo;
+
+    /// <summary>Confirmación tras guardar cambios desde el formulario UI-007.</summary>
+    [ObservableProperty]
+    private Aviso? _confirmacion;
+
+    [RelayCommand]
+    private void CerrarConfirmacion() => Confirmacion = null;
 
     [ObservableProperty]
     private bool _cargando;
@@ -26,7 +37,7 @@ public partial class DetalleEquipoViewModel(
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
-        nameof(HayEquipo), nameof(Titulo), nameof(Subtitulo), nameof(Estado), nameof(Tono), nameof(AvisoRegulatorio), nameof(AvisoBaja),
+        nameof(HayEquipo), nameof(PuedeEditar), nameof(Titulo), nameof(Subtitulo), nameof(Estado), nameof(Tono), nameof(AvisoRegulatorio), nameof(AvisoBaja),
         nameof(ProximoMantenimiento), nameof(DetalleMantenimiento), nameof(MantenimientoVencido), nameof(Calibracion), nameof(DetalleCalibracion),
         nameof(Autorizacion), nameof(DetalleAutorizacion), nameof(AutorizacionEnAlerta), nameof(DatosActivo), nameof(InformacionTecnica),
         nameof(InformacionRegulatoria))]

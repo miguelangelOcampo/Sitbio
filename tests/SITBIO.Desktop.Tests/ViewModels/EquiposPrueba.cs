@@ -29,6 +29,14 @@ internal static class EquiposPrueba
 
     public static PaginaEquipos Pagina(int total, params Equipo[] equipos) => new(equipos, 1, 20, total);
 
+    /// <summary>Sesión con el rol indicado (el token no se lee en estas pruebas).</summary>
+    public static SesionActual Sesion(string rol)
+    {
+        var sesion = new SesionActual();
+        sesion.Iniciar(new SesionUsuario("a.b.c", DateTimeOffset.Now.AddMinutes(30), rol, false));
+        return sesion;
+    }
+
     /// <summary>Reloj fijo a las 10:00 de Bogotá.</summary>
     public sealed class Reloj : TimeProvider
     {

@@ -1,15 +1,40 @@
 namespace Sitbio.Desktop.Services;
 
 /// <summary>
-/// Consulta del inventario (API-EQ-LIST y API-EQ, HU-002) para AC-01 a AC-05 y AC-07. El permiso
-/// y el tenant los decide la API (RNF-003, RN-008); el cliente solo muestra sus respuestas.
+/// Inventario (API-EQ-LIST y API-EQ, HU-002): consulta para AC-01 a AC-05 y AC-07; registro y
+/// edición para AC-02. El permiso y el tenant los decide la API (RNF-003, RN-008).
 /// </summary>
 public interface IServicioEquipos
 {
     Task<PaginaEquipos> ListarAsync(FiltroEquipos filtro, CancellationToken cancellationToken);
 
     Task<Equipo> ObtenerAsync(Guid id, CancellationToken cancellationToken);
+
+    Task<Equipo> CrearAsync(DatosEquipo datos, CancellationToken cancellationToken);
+
+    Task<Equipo> ActualizarAsync(Guid id, DatosEquipo datos, CancellationToken cancellationToken);
 }
+
+/// <summary>Cuerpo de POST y PUT /equipos (RF-030, CA-HU-002-06).</summary>
+public sealed record DatosEquipo(
+    Guid? TipoEquipoId,
+    Guid? UbicacionId,
+    Guid? ProveedorId,
+    string NumeroSerie,
+    string PlacaInventario,
+    string Marca,
+    string Modelo,
+    DateOnly? FechaAdquisicion,
+    string? TipoAutorizacion,
+    string RegistroInvima,
+    DateOnly? VenceRegistro,
+    string? ClaseRiesgo,
+    bool? RequiereCalibracion,
+    int? PeriodicidadCalibracionMeses,
+    DatosPreventivo? Preventivo);
+
+/// <summary>Plan preventivo del formulario: sin próximo, la API lo calcula como último + periodicidad.</summary>
+public sealed record DatosPreventivo(int PeriodicidadDias, DateOnly? UltimaEjecucion, DateOnly? ProximaFecha);
 
 /// <summary>Filtros de GET /equipos; null = sin filtro. Placa y serie buscan por coincidencia parcial.</summary>
 public sealed record FiltroEquipos(

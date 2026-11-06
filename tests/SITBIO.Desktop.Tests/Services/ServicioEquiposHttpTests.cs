@@ -119,4 +119,85 @@ public class ServicioEquiposHttpTests
 
         Assert.True(error.SinConexion);
     }
+
+    // ---------- Registro y edición (AC-02) ----------
+
+    private static DatosEquipo Datos() => new(
+        Guid.Parse("11111111-0000-0000-0000-000000000001"), Guid.Parse("11111111-0000-0000-0000-000000000002"), null,
+        "SN-100", "CSR-EQ-0100", "Philips", "MX450", new DateOnly(2022, 3, 15), "registro_sanitario", "INVIMA 1",
+        new DateOnly(2028, 12, 31), "IIb", true, 12, new DatosPreventivo(90, null, new DateOnly(2026, 12, 1)));
+
+    private static string EquipoJson(Guid id) => $$"""
+        {"id":"{{id}}","placaInventario":"CSR-EQ-0100","numeroSerie":"SN-100","marca":"Philips","modelo":"MX450",
+         "tipoEquipoId":"{{Guid.NewGuid()}}","tipoEquipo":"Monitor","ubicacionId":"{{Guid.NewGuid()}}","ubicacion":"UCI",
+         "estado":"OPERATIVO","estadoNombre":"Operativo","avisoRegistro":"Vigente","requiereCalibracion":true,"tieneFoto":false}
+        """;
+
+    [Fact]
+    public async Task Registrar_EnviaElCuerpoEnCamelCaseConFechasIso()
+    {
+        string? cuerpo = null;
+        var (servicio, manejador) = Crear(solicitud =>
+        {
+            cuerpo = solicitud.Content!.ReadAsStringAsync().Result;
+            return Json(HttpStatusCode.Created, EquipoJson(Guid.NewGuid()));
+        });
+
+        var creado = await servicio.CrearAsync(Datos(), CancellationToken.None);
+
+        Assert.Equal("POST /api/v1/equipos", manejador.Rutas.Single());
+        Assert.Equal("CSR-EQ-0100", creado.PlacaInventario);
+        Assert.Contains("\"placaInventario\":\"CSR-EQ-0100\"", cuerpo);
+        Assert.Contains("\"venceRegistro\":\"2028-12-31\"", cuerpo);
+        Assert.Contains("\"preventivo\":{\"periodicidadDias\":90,\"ultimaEjecucion\":null,\"proximaFecha\":\"2026-12-01\"}", cuerpo);
+    }
+
+    [Fact]
+    public async Task Editar_UsaPutConElId()
+    {
+        var id = Guid.NewGuid();
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, EquipoJson(id)));
+
+        var actualizado = await servicio.ActualizarAsync(id, Datos(), CancellationToken.None);
+
+        Assert.Equal($"PUT /api/v1/equipos/{id}", manejador.Rutas.Single());
+        Assert.Equal(id, actualizado.Id);
+    }
+
+    [Fact]
+    public async Task Registrar_ConOtroRol_DaElMensajeDeGestion()
+    {
+        var (servicio, _) = Crear(_ => Json(HttpStatusCode.Forbidden, """{"status":403}"""));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.CrearAsync(Datos(), CancellationToken.None));
+
+        Assert.Equal("Solo el Ingeniero Biomédico registra y edita equipos.", error.Message);
+    }
+
+    [Fact]
+    public async Task Registrar_PlacaRepetida_ConservaElCodigoRn001()
+    {
+        var (servicio, _) = Crear(_ => Json(HttpStatusCode.Conflict,
+            """{"status":409,"codigo":"RN-001","detail":"Ya existe un equipo con la placa de inventario CSR-EQ-0100 en tu institución."}"""));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.CrearAsync(Datos(), CancellationToken.None));
+
+        Assert.Equal("RN-001", error.Codigo);
+        Assert.Equal("Ya existe un equipo con la placa de inventario CSR-EQ-0100 en tu institución.", error.Message);
+    }
+
+    [Fact]
+    public async Task Catalogos_ConsultaPorTipoYLeeLosValoresDelTipo()
+    {
+        var manejador = new ManejadorFalso(_ => Json(HttpStatusCode.OK,
+            $$"""[{"id":"{{Guid.NewGuid()}}","nombre":"Tensiómetro","activo":true,"claseRiesgo":"I","requiereCalibracion":true,"periodicidadCalibracionMeses":12}]"""));
+        var http = new HttpClient(manejador) { BaseAddress = new Uri("http://localhost:5080/api/v1/") };
+        var catalogos = new ServicioCatalogosHttp(new ClienteApi(http));
+
+        var tipos = await catalogos.ListarAsync(TiposCatalogo.TiposEquipo, CancellationToken.None);
+
+        Assert.Equal("GET /api/v1/catalogos/tipos-equipo", manejador.Rutas.Single());
+        var tipo = Assert.Single(tipos);
+        Assert.Equal(("Tensiómetro", "I", 12), (tipo.Nombre, tipo.ClaseRiesgo, tipo.PeriodicidadCalibracionMeses));
+    }
 }

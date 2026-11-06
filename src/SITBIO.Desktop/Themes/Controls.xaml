@@ -215,6 +215,38 @@
     <Setter Property="Tag" Value="{DynamicResource Brush.DangerText}" />
   </Style>
 
+  <!-- Casilla de formulario (p. ej. «No se conoce»): cuadro de 18 px con borde de campo y marca de verificación -->
+  <Style x:Key="Casilla" TargetType="CheckBox">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTeclado}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="CheckBox">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Border x:Name="Cuadro" Width="18" Height="18" CornerRadius="4" BorderThickness="1.5" VerticalAlignment="Center"
+                    BorderBrush="{DynamicResource Brush.BorderControl}" Background="{DynamicResource Brush.Surface}">
+              <Path x:Name="Marca" Data="M3.5,9 L7.5,13 L14.5,5" Stroke="{DynamicResource Brush.OnPrimary}" StrokeThickness="2"
+                    StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed" Margin="-1.5" />
+            </Border>
+            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Cuadro" Property="Background" Value="{DynamicResource Brush.Primary}" />
+              <Setter TargetName="Cuadro" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+              <Setter TargetName="Marca" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Cuadro" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- Velo detrás de un diálogo o panel lateral; al pulsarlo ejecuta su Command (por ejemplo, cancelar) -->
   <Style x:Key="Velo" TargetType="Button">
     <Setter Property="Focusable" Value="False" />

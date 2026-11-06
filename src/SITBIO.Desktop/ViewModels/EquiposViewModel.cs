@@ -8,8 +8,13 @@ namespace Sitbio.Desktop.ViewModels;
 /// UI-005 Equipos biomédicos (HU-002; AC-01 a AC-05 y AC-07). Busca por código de activo o serie y
 /// filtra por estado, clase de riesgo y calibración en la API (paginación del servidor). Al abrir un
 /// equipo muestra su hoja de vida (UI-006) y, al volver, la lista conserva filtros y página (NAV-006).
+/// El Ingeniero Biomédico (AC-02) registra y edita con el formulario UI-007; la API vuelve a validar el permiso.
 /// </summary>
-public partial class EquiposViewModel(IServicioEquipos servicio, TimeProvider tiempo) : ObservableObject
+public partial class EquiposViewModel(
+    IServicioEquipos servicio,
+    IServicioCatalogos catalogos,
+    SesionActual sesion,
+    TimeProvider tiempo) : ObservableObject
 {
     public const int TamanoPagina = 20;
 
@@ -91,6 +96,21 @@ public partial class EquiposViewModel(IServicioEquipos servicio, TimeProvider ti
 
     public bool EnLista => Detalle is null;
 
+    /// <summary>Solo AC-02 ve «Registrar equipo» y «Editar» (RNF-003: la API también lo valida).</summary>
+    public bool PuedeGestionar => sesion.Sesion?.Rol == "AC-02";
+
+    /// <summary>Formulario UI-007 abierto; null = cerrado.</summary>
+    [ObservableProperty]
+    private FormularioEquipoViewModel? _formulario;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GuardarCommand))]
+    private bool _ocupado;
+
+    /// <summary>Confirmación en la lista tras registrar un equipo.</summary>
+    [ObservableProperty]
+    private Aviso? _confirmacion;
+
     public bool SinEquipos => !Cargando && Aviso is null && Total == 0;
 
     public bool HayAnterior => Pagina > 1;
@@ -136,13 +156,110 @@ public partial class EquiposViewModel(IServicioEquipos servicio, TimeProvider ti
             return Task.CompletedTask;
         }
 
-        var detalle = new DetalleEquipoViewModel(servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver);
+        var detalle = new DetalleEquipoViewModel(servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar);
         Detalle = detalle;
         return detalle.CargarCommand.ExecuteAsync(null);
     }
 
     [RelayCommand]
     private void CerrarAviso() => Aviso = null;
+
+    [RelayCommand]
+    private void CerrarConfirmacion() => Confirmacion = null;
+
+    [RelayCommand]
+    private Task NuevoEquipoAsync() => AbrirFormularioAsync(null);
+
+    /// <summary>Editar desde la hoja de vida.</summary>
+    [RelayCommand]
+    private Task EditarAsync(Equipo? equipo) => equipo is null ? Task.CompletedTask : AbrirFormularioAsync(equipo);
+
+    [RelayCommand]
+    private void CerrarFormulario() => Formulario = null;
+
+    [RelayCommand(CanExecute = nameof(PuedeGuardar))]
+    private async Task GuardarAsync()
+    {
+        if (Formulario is not { } formulario || !formulario.Validar())
+        {
+            return;
+        }
+
+        Ocupado = true;
+        try
+        {
+            if (formulario.EsNuevo)
+            {
+                var creado = await servicio.CrearAsync(formulario.Datos(), CancellationToken.None);
+                Formulario = null;
+                Confirmacion = new Aviso(
+                    $"Equipo {creado.PlacaInventario} registrado",
+                    creado.Preventivo?.Vencido == true
+                        ? "Su plan preventivo quedó vencido y aparecerá en las alertas para programarlo."
+                        : "Ya está en el inventario con su plan preventivo.",
+                    null,
+                    EsError: false);
+                await ConsultarAsync(Pagina);
+            }
+            else
+            {
+                var actualizado = await servicio.ActualizarAsync(formulario.Id!.Value, formulario.Datos(), CancellationToken.None);
+                Formulario = null;
+                if (Detalle is { } detalle)
+                {
+                    detalle.Equipo = actualizado;
+                    detalle.Confirmacion = new Aviso("Cambios guardados", "La hoja de vida quedó actualizada y el cambio está en la bitácora.", null, EsError: false);
+                }
+
+                await ConsultarAsync(Pagina);
+            }
+        }
+        catch (ErrorApi error)
+        {
+            formulario.MostrarError(error);
+        }
+        finally
+        {
+            Ocupado = false;
+        }
+    }
+
+    private bool PuedeGuardar() => !Ocupado;
+
+    /// <summary>Carga tipos, ubicaciones y proveedores (API-CAT) y abre el formulario.</summary>
+    private async Task AbrirFormularioAsync(Equipo? existente)
+    {
+        Ocupado = true;
+        try
+        {
+            var tipos = catalogos.ListarAsync(TiposCatalogo.TiposEquipo, CancellationToken.None);
+            var ubicaciones = catalogos.ListarAsync(TiposCatalogo.Ubicaciones, CancellationToken.None);
+            var proveedores = catalogos.ListarAsync(TiposCatalogo.Proveedores, CancellationToken.None);
+            await Task.WhenAll(tipos, ubicaciones, proveedores);
+            Formulario = new FormularioEquipoViewModel(await tipos, await ubicaciones, await proveedores, Hoy(), existente);
+        }
+        catch (ErrorApi error)
+        {
+            var aviso = new Aviso(
+                error.SinConexion ? "Sin conexión" : "No pudimos abrir el formulario",
+                error.Message,
+                error.SinConexion ? "MSG-011" : error.Codigo);
+            if (Detalle is { } detalle)
+            {
+                detalle.Aviso = aviso;
+            }
+            else
+            {
+                Aviso = aviso;
+            }
+        }
+        finally
+        {
+            Ocupado = false;
+        }
+    }
+
+    private DateOnly Hoy() => DateOnly.FromDateTime(tiempo.GetLocalNow().DateTime);
 
     // ---------- Apoyo ----------
 
@@ -205,7 +322,7 @@ public partial class EquiposViewModel(IServicioEquipos servicio, TimeProvider ti
                 return;
             }
 
-            var hoy = DateOnly.FromDateTime(tiempo.GetLocalNow().DateTime);
+            var hoy = Hoy();
             Filas = resultado.Items.Select(e => new FilaEquipo(e, hoy)).ToList();
             Total = resultado.Total;
             Pagina = pagina;

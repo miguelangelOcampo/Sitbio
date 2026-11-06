@@ -9,11 +9,12 @@ namespace Sitbio.Desktop.Tests.ViewModels;
 public class EquiposViewModelTests
 {
     private readonly IServicioEquipos _servicio = Substitute.For<IServicioEquipos>();
+    private readonly IServicioCatalogos _catalogos = Substitute.For<IServicioCatalogos>();
 
     private EquiposViewModel Crear(PaginaEquipos? pagina = null)
     {
         _servicio.ListarAsync(Arg.Any<FiltroEquipos>(), Arg.Any<CancellationToken>()).Returns(pagina ?? Pagina(0));
-        return new EquiposViewModel(_servicio, new Reloj());
+        return new EquiposViewModel(_servicio, _catalogos, Sesion("AC-03"), new Reloj());
     }
 
     private FiltroEquipos UltimoFiltro() =>
@@ -124,7 +125,7 @@ public class EquiposViewModelTests
         _servicio.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == null), Arg.Any<CancellationToken>()).Returns(lenta.Task);
         _servicio.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == "HSV"), Arg.Any<CancellationToken>())
             .Returns(Pagina(1, Equipo("HSV-EQ-0001")));
-        var pantalla = new EquiposViewModel(_servicio, new Reloj());
+        var pantalla = new EquiposViewModel(_servicio, _catalogos, Sesion("AC-03"), new Reloj());
 
         var primera = pantalla.CargarCommand.ExecuteAsync(null);
         pantalla.Busqueda = "HSV";
@@ -191,5 +192,139 @@ public class EquiposViewModelTests
         Assert.Null(fila.AvisoRegistro);
         Assert.Null(fila.DetalleMantenimiento);
         Assert.Equal(TonoEstado.Neutro, fila.Tono);
+    }
+
+    // ---------- UI-007: registrar y editar (AC-02) ----------
+
+    private static readonly ElementoCatalogo TipoMonitor = new(Guid.NewGuid(), "Monitor de signos vitales", true, "IIb", true, 12);
+    private static readonly ElementoCatalogo AreaUci = new(Guid.NewGuid(), "UCI adultos", true);
+
+    private EquiposViewModel ComoIngeniero(PaginaEquipos? pagina = null)
+    {
+        _servicio.ListarAsync(Arg.Any<FiltroEquipos>(), Arg.Any<CancellationToken>()).Returns(pagina ?? Pagina(0));
+        _catalogos.ListarAsync(TiposCatalogo.TiposEquipo, Arg.Any<CancellationToken>()).Returns([TipoMonitor]);
+        _catalogos.ListarAsync(TiposCatalogo.Ubicaciones, Arg.Any<CancellationToken>()).Returns([AreaUci]);
+        _catalogos.ListarAsync(TiposCatalogo.Proveedores, Arg.Any<CancellationToken>()).Returns([]);
+        return new EquiposViewModel(_servicio, _catalogos, Sesion("AC-02"), new Reloj());
+    }
+
+    private static void Llenar(FormularioEquipoViewModel formulario)
+    {
+        formulario.Placa = "CSR-EQ-0100";
+        formulario.Serie = "SN-100";
+        formulario.Tipo = TipoMonitor;
+        formulario.Marca = "Philips";
+        formulario.Modelo = "MX450";
+        formulario.RegistroInvima = "INVIMA 2019DM-0019830";
+        formulario.VenceRegistro = "31/12/2028";
+        formulario.Ubicacion = AreaUci;
+        formulario.UltimoPreventivo = "01/10/2026";
+    }
+
+    [Theory]
+    [InlineData("AC-02", true)]
+    [InlineData("AC-01", false)]
+    [InlineData("AC-03", false)]
+    public void SoloElIngenieroBiomedico_VeRegistrar(string rol, bool puede)
+    {
+        var pantalla = new EquiposViewModel(_servicio, _catalogos, Sesion(rol), new Reloj());
+
+        Assert.Equal(puede, pantalla.PuedeGestionar);
+    }
+
+    [Fact]
+    public async Task NuevoEquipo_CargaLosCatalogosYAbreElFormulario()
+    {
+        var pantalla = ComoIngeniero();
+
+        await pantalla.NuevoEquipoCommand.ExecuteAsync(null);
+
+        Assert.True(pantalla.Formulario!.EsNuevo);
+        Assert.Equal([TipoMonitor], pantalla.Formulario.Tipos);
+        Assert.Equal([AreaUci], pantalla.Formulario.Ubicaciones);
+    }
+
+    [Fact]
+    public async Task SiNoCarganLosCatalogos_NoAbreElFormulario()
+    {
+        var pantalla = ComoIngeniero();
+        _catalogos.ListarAsync(TiposCatalogo.Ubicaciones, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ErrorApi(null, Mensajes.Msg011, new Dictionary<string, string>(), sinConexion: true));
+
+        await pantalla.NuevoEquipoCommand.ExecuteAsync(null);
+
+        Assert.Null(pantalla.Formulario);
+        Assert.Equal("MSG-011", pantalla.Aviso!.Codigo);
+    }
+
+    [Fact]
+    public async Task Registrar_EnviaLosDatosCierraYConfirma()
+    {
+        var pantalla = ComoIngeniero();
+        _servicio.CrearAsync(Arg.Any<DatosEquipo>(), Arg.Any<CancellationToken>()).Returns(Equipo("CSR-EQ-0100"));
+        await pantalla.NuevoEquipoCommand.ExecuteAsync(null);
+        Llenar(pantalla.Formulario!);
+        _servicio.ClearReceivedCalls();
+
+        await pantalla.GuardarCommand.ExecuteAsync(null);
+
+        await _servicio.Received(1).CrearAsync(
+            Arg.Is<DatosEquipo>(d => d.PlacaInventario == "CSR-EQ-0100" && d.TipoEquipoId == TipoMonitor.Id && d.Preventivo!.PeriodicidadDias == 90),
+            Arg.Any<CancellationToken>());
+        Assert.Null(pantalla.Formulario);
+        Assert.Equal("Equipo CSR-EQ-0100 registrado", pantalla.Confirmacion!.Titulo);
+        await _servicio.Received(1).ListarAsync(Arg.Any<FiltroEquipos>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task FormularioIncompleto_NoLlamaALaApi()
+    {
+        var pantalla = ComoIngeniero();
+        await pantalla.NuevoEquipoCommand.ExecuteAsync(null);
+
+        await pantalla.GuardarCommand.ExecuteAsync(null);
+
+        await _servicio.DidNotReceive().CrearAsync(Arg.Any<DatosEquipo>(), Arg.Any<CancellationToken>());
+        Assert.Equal("MSG-008", pantalla.Formulario!.Aviso!.Codigo);
+    }
+
+    [Fact]
+    public async Task PlacaRepetida_DejaElFormularioAbiertoConElError()
+    {
+        var pantalla = ComoIngeniero();
+        _servicio.CrearAsync(Arg.Any<DatosEquipo>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ErrorApi("RN-001", "Ya existe un equipo con la placa de inventario CSR-EQ-0100 en tu institución.", new Dictionary<string, string>()));
+        await pantalla.NuevoEquipoCommand.ExecuteAsync(null);
+        Llenar(pantalla.Formulario!);
+
+        await pantalla.GuardarCommand.ExecuteAsync(null);
+
+        Assert.NotNull(pantalla.Formulario);
+        Assert.Contains("CSR-EQ-0100", pantalla.Formulario!.ErrorPlaca);
+        Assert.Null(pantalla.Confirmacion);
+    }
+
+    [Fact]
+    public async Task EditarDesdeLaHojaDeVida_ActualizaElDetalle()
+    {
+        var equipo = Equipo() with { TipoEquipoId = TipoMonitor.Id, UbicacionId = AreaUci.Id };
+        var pantalla = ComoIngeniero(Pagina(1, equipo));
+        _servicio.ObtenerAsync(equipo.Id, Arg.Any<CancellationToken>()).Returns(equipo);
+        _servicio.ActualizarAsync(equipo.Id, Arg.Any<DatosEquipo>(), Arg.Any<CancellationToken>()).Returns(equipo with { Modelo = "MX550" });
+        await pantalla.CargarCommand.ExecuteAsync(null);
+        await pantalla.AbrirCommand.ExecuteAsync(pantalla.Filas[0]);
+        Assert.True(pantalla.Detalle!.PuedeEditar);
+
+        await pantalla.EditarCommand.ExecuteAsync(pantalla.Detalle.Equipo);
+        Assert.False(pantalla.Formulario!.EsNuevo);
+        pantalla.Formulario.Modelo = "MX550";
+        pantalla.Formulario.NoSeConoce = true;
+        pantalla.Formulario.ProximoPreventivo = "01/12/2026";
+        await pantalla.GuardarCommand.ExecuteAsync(null);
+
+        await _servicio.Received(1).ActualizarAsync(equipo.Id, Arg.Is<DatosEquipo>(d => d.Modelo == "MX550"), Arg.Any<CancellationToken>());
+        Assert.Null(pantalla.Formulario);
+        Assert.Equal("MX550", pantalla.Detalle.Equipo!.Modelo);
+        Assert.Equal("Cambios guardados", pantalla.Detalle.Confirmacion!.Titulo);
     }
 }

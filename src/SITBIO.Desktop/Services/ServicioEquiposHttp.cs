@@ -1,18 +1,21 @@
 using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text.Json;
-using Sitbio.Desktop.ViewModels;
 
 namespace Sitbio.Desktop.Services;
 
-/// <summary>GET /equipos y GET /equipos/{id} sobre <see cref="ClienteApi"/> (lleva el token).</summary>
+/// <summary>/equipos sobre <see cref="ClienteApi"/> (lleva el token): consulta (API-EQ-LIST, API-EQ), registro y edición.</summary>
 public sealed class ServicioEquiposHttp(ClienteApi cliente) : IServicioEquipos
 {
     public Task<PaginaEquipos> ListarAsync(FiltroEquipos filtro, CancellationToken cancellationToken) =>
-        LeerAsync<PaginaEquipos>(Ruta(filtro), cancellationToken);
+        PeticionApi.EnviarAsync<PaginaEquipos>(cliente, HttpMethod.Get, Ruta(filtro), null, MensajeConsulta, cancellationToken);
 
     public Task<Equipo> ObtenerAsync(Guid id, CancellationToken cancellationToken) =>
-        LeerAsync<Equipo>($"equipos/{id}", cancellationToken);
+        PeticionApi.EnviarAsync<Equipo>(cliente, HttpMethod.Get, $"equipos/{id}", null, MensajeConsulta, cancellationToken);
+
+    public Task<Equipo> CrearAsync(DatosEquipo datos, CancellationToken cancellationToken) =>
+        PeticionApi.EnviarAsync<Equipo>(cliente, HttpMethod.Post, "equipos", datos, MensajeGestion, cancellationToken);
+
+    public Task<Equipo> ActualizarAsync(Guid id, DatosEquipo datos, CancellationToken cancellationToken) =>
+        PeticionApi.EnviarAsync<Equipo>(cliente, HttpMethod.Put, $"equipos/{id}", datos, MensajeGestion, cancellationToken);
 
     /// <summary>Ruta con los filtros presentes; los textos van escapados.</summary>
     public static string Ruta(FiltroEquipos filtro)
@@ -40,68 +43,20 @@ public sealed class ServicioEquiposHttp(ClienteApi cliente) : IServicioEquipos
         return "equipos?" + string.Join("&", partes);
     }
 
-    private async Task<T> LeerAsync<T>(string ruta, CancellationToken cancellationToken)
+    private static string? MensajeConsulta(int estado) => estado switch
     {
-        HttpResponseMessage respuesta;
-        try
-        {
-            respuesta = await cliente.Http.GetAsync(ruta, cancellationToken);
-        }
-        catch (HttpRequestException)
-        {
-            throw SinConexion();
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            // Tiempo de espera agotado
-            throw SinConexion();
-        }
+        403 => "Tu rol no permite consultar el inventario de equipos.",
+        404 => NoEncontrado,
+        >= 500 => "El servidor no pudo completar la consulta. Intenta de nuevo en unos minutos.",
+        _ => null,
+    };
 
-        using (respuesta)
-        {
-            if (respuesta.IsSuccessStatusCode)
-            {
-                return await respuesta.Content.ReadFromJsonAsync<T>(cancellationToken)
-                    ?? throw new ErrorApi(null, "La respuesta del servidor llegó vacía.", new Dictionary<string, string>());
-            }
-
-            throw await LeerErrorAsync(respuesta, cancellationToken);
-        }
-    }
-
-    private static ErrorApi SinConexion() => new(null, Mensajes.Msg011, new Dictionary<string, string>(), sinConexion: true);
-
-    private static async Task<ErrorApi> LeerErrorAsync(HttpResponseMessage respuesta, CancellationToken cancellationToken)
+    private static string? MensajeGestion(int estado) => estado switch
     {
-        string? codigo = null;
-        string? detalle = null;
-        var errores = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        try
-        {
-            using var documento = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync(cancellationToken));
-            var raiz = documento.RootElement;
-            codigo = raiz.TryGetProperty("codigo", out var c) ? c.GetString() : null;
-            detalle = raiz.TryGetProperty("detail", out var d) ? d.GetString() : null;
-            if (raiz.TryGetProperty("errors", out var porCampo) && porCampo.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var campo in porCampo.EnumerateObject())
-                {
-                    errores[campo.Name] = string.Join(" ", campo.Value.EnumerateArray().Select(m => m.GetString()));
-                }
-            }
-        }
-        catch (JsonException)
-        {
-            // Respuesta sin Problem Details: se usa el mensaje genérico.
-        }
+        403 => "Solo el Ingeniero Biomédico registra y edita equipos.",
+        404 => NoEncontrado,
+        _ => null,
+    };
 
-        var mensaje = (int)respuesta.StatusCode switch
-        {
-            403 => "Tu rol no permite consultar el inventario de equipos.",
-            404 => "El equipo no existe o no pertenece a tu institución.",
-            >= 500 => "El servidor no pudo completar la consulta. Intenta de nuevo en unos minutos.",
-            _ => errores.Count > 0 ? string.Join(" ", errores.Values) : detalle ?? "No fue posible consultar el inventario.",
-        };
-        return new ErrorApi(codigo, mensaje, errores);
-    }
+    private const string NoEncontrado = "El equipo no existe o no pertenece a tu institución.";
 }

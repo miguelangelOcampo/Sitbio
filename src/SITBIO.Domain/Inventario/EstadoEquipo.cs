@@ -27,4 +27,10 @@ public static class EstadosEquipo
     public const short EnMantenimiento = 2;
     public const short FueraDeServicio = 3;
     public const short Baja = 4;
+
+    public const string CodigoOperativo = "OPERATIVO";
+    public const string NombreOperativo = "Operativo";
+
+    /// <summary>Códigos de <c>estado_equipo.codigo</c> (script 01), para filtrar por estado.</summary>
+    public static IReadOnlyList<string> Codigos { get; } = [CodigoOperativo, "EN_MANTENIMIENTO", "FUERA_DE_SERVICIO", "BAJA"];
 }

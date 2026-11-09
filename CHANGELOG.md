@@ -26,7 +26,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
   - `/api/v1/usuarios` solo para el Administrador del Sistema (AC-01, RN-002): listar con paginación, consultar, crear, editar, desactivar, reactivar, desbloquear (RN-006) y emitir una contraseña temporal (RF-012). La contraseña temporal se devuelve una sola vez y se guarda solo su hash BCrypt.
   - Límite del plan (RN-009): con el cupo de usuarios de gestión lleno no se crean ni se reactivan cuentas AC-01, AC-02, AC-03, AC-05 ni AC-06, ni se cambia una cuenta AC-04 o AC-07 a un rol de gestión (409 con el texto de MSG-019). El Personal Clínico (AC-04) y el ente regulador (AC-07) no cuentan.
   - Cliente WPF: pantalla UI-004 Usuarios y roles con indicadores, filtros, tabla abierta, menú de acciones por fila, panel lateral para crear o editar, confirmación al desactivar y diálogo que muestra la contraseña temporal una sola vez; pestaña «Roles y permisos» con la guía de cada rol y la matriz de permisos. El marco de la sesión ya muestra la pantalla de cada opción del menú.
-  - Pruebas de los criterios CA-HU-011-01 a CA-HU-011-03 (CP-004 a CP-006) contra la API y PostgreSQL reales, incluido el desbloqueo que cierra el pendiente de CP-003.
+  - Pruebas de los criterios CA-HU-011-01 a CA-HU-011-03 (CP-015) contra la API y PostgreSQL reales, incluido el desbloqueo que cierra el pendiente de CP-003.
 - HU-012 Control de sesión y cierre por inactividad:
   - `POST /api/v1/auth/refresh` entrega un token nuevo (otro `jti`) y revoca el anterior; `POST /api/v1/auth/logout` revoca el token con el motivo `voluntario` o `inactividad`, que queda en `sesion_token`.
   - Todo token revocado se rechaza con 401 en cualquier ruta: la API comprueba el `jti` contra `sesion_token` en cada solicitud. Si la cuenta se desactiva o se bloquea durante la sesión, la renovación se rechaza y la sesión se cierra.
@@ -38,16 +38,27 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
   - Si MongoDB no responde, la operación auditada no se interrumpe: el fallo queda en el log del servidor.
   - Cliente WPF: pantalla UI-024 Bitácora de auditoría, de solo lectura, con indicadores de eventos, accesos denegados e inicios fallidos, filtros por usuario, acción y fechas, y paginación de 50 eventos.
   - Pruebas de los criterios CA-HU-010-01 a CA-HU-010-03 (CP-014) contra la API, PostgreSQL y MongoDB reales, con el validador de la colección.
+- HU-002 Registro de hoja de vida biomédica y placa única:
+  - `/api/v1/equipos` (API-EQ-LIST, API-EQ): listar con filtros por placa, serie, estado, clase de riesgo y calibración, y paginado; consultar la hoja de vida; registrar y editar solo para el Ingeniero Biomédico (AC-02). Consultan AC-01, AC-02, AC-03, AC-04, AC-05 y AC-07; la Directiva Institucional (AC-06) no.
+  - Placa de inventario y número de serie únicos por institución (RN-001): un duplicado responde 409 `RN-001` indicando el campo.
+  - Límite de equipos activos del plan (RN-009): con el cupo lleno no se registran equipos (409 con el consumo del plan, MSG-019); la consulta y la edición siguen funcionando y los equipos dados de baja no cuentan.
+  - Información regulatoria (RF-030, RN-010): autorización INVIMA (registro sanitario o permiso de comercialización) con número y vigencia, clase de riesgo (I, IIa, IIb, III) y si requiere calibración, con periodicidad de 1 a 60 meses. El tipo de equipo propone los valores; si el equipo difiere, queda en la bitácora. Aviso, sin bloqueo, cuando la autorización está vencida o le faltan 180 días o menos.
+  - Plan preventivo (RF-019, CA-HU-002-06): al registrar se crea con la periodicidad y el último preventivo; el próximo es último + periodicidad, ajustable. Si ya pasó, el plan nace vencido (RF-020); si no se conoce el último, se indica el próximo, que no puede haber pasado. Al editar se reprograma el mismo plan. No se pide técnico responsable.
+  - `GET /api/v1/catalogos/{tipo}` (API-CAT) de solo consulta para AC-01 y AC-02: `tipos-equipo` (con sus valores regulatorios por defecto), `ubicaciones` y `proveedores`. La gestión de los catálogos llega con HU-025.
+  - Cliente WPF: UI-005 Equipos biomédicos (indicadores, búsqueda por serie, filtros por estado, clase y calibración, tabla abierta con los avisos de mantenimiento y de registro, paginación); UI-006 hoja de vida (resumen, información técnica y aviso de la autorización); UI-007 formulario de registro y edición en panel lateral, con la clase y la calibración propuestas por el tipo, el próximo preventivo calculado y los avisos de diferencia con el tipo, de vencimiento y de preventivo atrasado.
+  - Pruebas de los criterios CA-HU-002-01 a CA-HU-002-06 (CP-004 y CP-005) contra la API y PostgreSQL reales.
 
 ### Cambiado
 - DOC-01 actualizado con el plan Consultorio y el nuevo almacenamiento de los planes (Tabla 4: Consultorio 3/300/5 GB, Clínica 7/1.000/25 GB, Hospital 14/3.000/100 GB, Red de Salud a la medida).
 - DOC-01 a DOC-06, el diagrama de casos de uso y el mapa de navegación (DIA-IA-01) sincronizados con el ajuste de roles del 01/11/2026: AC-05 pasa a ser «Gerente de Tecnología Biomédica»; los campos dinámicos y los catálogos técnicos los gestiona AC-02, y las ubicaciones, AC-01 y AC-02.
+- DOC-01 y DOC-03 a DOC-06 sincronizados con el ajuste del 04/11/2026: información regulatoria del equipo (RF-030, RN-010: autorización INVIMA con número y vigencia, clase de riesgo y calibración independiente de la clase) y fotografía opcional del equipo (RF-031, con HU-015). El DOC-02 no cambia.
 - Base de datos (cada base local debe aplicar las migraciones nuevas; ver `database/README.md`):
   - V003: plan Consultorio y nuevo almacenamiento de los planes Clínica (25 GB) y Hospital (100 GB) (RN-009).
   - V004: columna `rol.codigo` (AC-01 a AC-07), nombres de roles según el DOC-01 y rol AC-07; la aplicación identifica los roles por código.
   - V005: correo único en todo el sistema, sin distinguir mayúsculas (ADR-011).
   - V006: el AC-05 se llama «Gerente de Tecnología Biomédica»; descripciones de AC-01 (ubicaciones) y AC-02 (campos dinámicos y catálogos técnicos) según el ajuste de roles del 01/11/2026.
   - V007 (MongoDB): el validador de `bitacora_auditoria` acepta las acciones `ACCESO_DENEGADO` y `CIERRE_SESION`. Docker la aplica al crear el contenedor; en una base ya creada se ejecuta con `mongosh` (comando en `database/README.md`).
+  - V008: información regulatoria del equipo (RF-030, RN-010) en `equipo_biomedico`, valores por defecto en `tipo_equipo`, `plan_preventivo.ultima_ejecucion` y `equipo_biomedico.foto_documento_id` (RF-031, para HU-015).
 - `CodigosRol.DirectorBiomedico` pasa a llamarse `CodigosRol.GerenteBiomedico` (el código AC-05 no cambia).
 
 ### Seguridad
@@ -56,3 +67,4 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 - Gestión de usuarios: un correo usado en otra institución responde 409 `USR-001` sin revelar a cuál pertenece; un usuario de otra institución responde 404 (SEC-003); el Administrador no puede desactivar su propia cuenta ni quitarse el rol (409 `USR-002`).
 - Sesiones (HU-012): un token revocado por cierre de sesión, inactividad o renovación no vuelve a servir aunque su firma y su vigencia sean válidas; un `jti` de otra institución o sin sesión registrada responde 401.
 - Bitácora (HU-010): el detalle de cada evento nunca lleva correo, contraseña ni token (Ley 1581 de 2012); cada institución solo consulta sus propios eventos (RN-008) y la API no ofrece forma de modificarlos ni borrarlos.
+- Equipos (HU-002): un equipo de otra institución responde 404 al consultarlo o editarlo (SEC-003); la placa y la serie solo se comparan dentro de la institución; registrar y editar se validan en la API (403 para cualquier rol distinto de AC-02), no solo ocultando el botón en WPF.

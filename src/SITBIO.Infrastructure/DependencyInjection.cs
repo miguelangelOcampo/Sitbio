@@ -4,9 +4,13 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using Sitbio.Application.Auditoria;
+using Sitbio.Application.Catalogos;
+using Sitbio.Application.Equipos;
 using Sitbio.Application.Seguridad;
 using Sitbio.Application.Usuarios;
 using Sitbio.Infrastructure.Auditoria;
+using Sitbio.Infrastructure.Catalogos;
+using Sitbio.Infrastructure.Inventario;
 using Sitbio.Infrastructure.Persistencia;
 using Sitbio.Infrastructure.Persistencia.Mongo;
 using Sitbio.Infrastructure.Seguridad;
@@ -54,6 +58,10 @@ public static class DependencyInjection
         services.AddScoped<IDirectorioUsuarios, DirectorioUsuarios>();
         services.AddScoped<IRepositorioUsuarios, RepositorioUsuarios>();
         services.AddSingleton<IGeneradorClaves, GeneradorClaves>();
+
+        // Inventario (HU-002).
+        services.AddScoped<IRepositorioEquipos, RepositorioEquipos>();
+        services.AddScoped<IRepositorioCatalogos, RepositorioCatalogos>();
 
         return services;
     }

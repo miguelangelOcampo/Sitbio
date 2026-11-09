@@ -13,6 +13,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Application.Seguridad;
+using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Persistencia;
 using Sitbio.Infrastructure.Seguridad;
@@ -20,7 +21,7 @@ using Sitbio.Infrastructure.Seguridad;
 namespace Sitbio.Api.Tests.Integracion;
 
 /// <summary>
-/// API completa contra PostgreSQL real (script 01 + V002..V006). Crea dos tenants (y los
+/// API completa contra PostgreSQL real (script 01 + V002..V008). Crea dos tenants (y los
 /// que pidan las pruebas) con usuarios de clave conocida y borra todo al terminar. Si hay
 /// MongoDB de pruebas, la bitácora va a una base temporal con el validador real (02 + V007). Sin la variable de entorno no
 /// toca la base (las pruebas se omiten).
@@ -172,6 +173,64 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         return campo(usuario);
     }
 
+    /// <summary>Ubicación activa del tenant (el catálogo se gestiona con HU-025).</summary>
+    public async Task<Guid> CrearUbicacionAsync(Guid tenant, string nombre)
+    {
+        var id = Guid.NewGuid();
+        await EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.ubicacion (id_ubicacion, tenant_id, nombre) VALUES ({id}, {tenant}, {nombre})"));
+        return id;
+    }
+
+    /// <summary>Tipo de equipo con sus valores regulatorios por defecto (V008).</summary>
+    public async Task<Guid> CrearTipoEquipoAsync(Guid tenant, string nombre, string? clase, bool requiereCalibracion, int? meses)
+    {
+        var id = Guid.NewGuid();
+        await EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.tipo_equipo (id_tipo_equipo, tenant_id, nombre, clase_riesgo_defecto, requiere_calibracion, periodicidad_calibracion_meses) VALUES ({id}, {tenant}, {nombre}, {clase}, {requiereCalibracion}, {(short?)meses})"));
+        return id;
+    }
+
+    /// <summary>Inserta <paramref name="cantidad"/> equipos operativos de una vez (para llenar el cupo del plan, RN-009).</summary>
+    public Task LlenarEquiposAsync(Guid tenant, Guid tipo, Guid ubicacion, int cantidad, string prefijo) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO sitbio.equipo_biomedico (tenant_id, tipo_equipo_id, ubicacion_id, estado_equipo_id, numero_serie, placa_inventario, marca, modelo,
+                tipo_autorizacion, registro_invima, vence_registro, clase_riesgo, requiere_calibracion, periodicidad_calibracion_meses)
+            SELECT {tenant}, {tipo}, {ubicacion}, 1, {prefijo} || '-S' || g, {prefijo} || '-P' || g, 'Mindray', 'T5',
+                'registro_sanitario', 'R-' || g, current_date + 365, 'I', false, NULL
+            FROM generate_series(1, {cantidad}) AS g
+            """));
+
+    /// <summary>Da de baja un equipo directamente en la base (el flujo de baja llega con HU-014).</summary>
+    public Task DarDeBajaAsync(Guid equipoId) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"UPDATE sitbio.equipo_biomedico SET estado_equipo_id = {EstadosEquipo.Baja}, fecha_baja = now() WHERE id_equipo = {equipoId}"));
+
+    /// <summary>Equipos del tenant, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<int> ContarEquiposAsync(Guid tenant)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Equipos.IgnoreQueryFilters().CountAsync(e => e.TenantId == tenant);
+    }
+
+    /// <summary>Equipo tal como quedó en la base, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<EquipoBiomedico> LeerEquipoAsync(Guid equipoId)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Equipos.IgnoreQueryFilters().AsNoTracking().SingleAsync(e => e.Id == equipoId);
+    }
+
+    /// <summary>Planes preventivos del equipo, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<List<PlanPreventivo>> LeerPlanesAsync(Guid equipoId)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.PlanesPreventivos.IgnoreQueryFilters().AsNoTracking().Where(p => p.EquipoId == equipoId).ToListAsync();
+    }
+
     public async Task<bool> ExisteSesionAsync(string jti)
     {
         using var alcance = Services.CreateScope();
@@ -212,6 +271,10 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             Guid[] tenants = [TenantA, TenantB, .. _tenantsAdicionales];
             await EjecutarSqlAsync(async contexto =>
             {
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.equipo_biomedico WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tipo_equipo WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.ubicacion WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.sesion_token WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.usuario WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tenant WHERE id_tenant = ANY({tenants})");

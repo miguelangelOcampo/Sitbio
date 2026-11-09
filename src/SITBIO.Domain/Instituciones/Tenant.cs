@@ -25,4 +25,7 @@ public sealed class Tenant
 
     /// <summary>Máximo de usuarios de gestión activos del plan (V002; lo fija el aprovisionamiento, ST-10).</summary>
     public int MaxUsuariosGestion { get; private set; }
+
+    /// <summary>Máximo de equipos activos del plan; los dados de baja no cuentan (V002, RN-009).</summary>
+    public int MaxEquipos { get; private set; }
 }

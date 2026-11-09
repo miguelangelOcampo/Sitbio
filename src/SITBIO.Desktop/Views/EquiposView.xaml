@@ -1,0 +1,763 @@
+<!-- UI-005 Equipos biomédicos y UI-006 Hoja de vida (HU-002; prototipo v0.21, Equipos.tsx). La hoja de
+     vida se abre encima de la lista y, al volver por las migas, la lista conserva filtros y página
+     (NAV-006). Diseño clínico editorial: tabla abierta, estado como punto + texto, sin tarjetas. -->
+<UserControl x:Class="Sitbio.Desktop.Views.EquiposView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+
+    <!-- Campo con error: Tag = mensaje; borde rojo mientras haya error -->
+    <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}, Converter={StaticResource TextoVisible}}" Value="Visible">
+          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- Aviso en línea: rojo si es error; verde si confirma una acción -->
+    <DataTemplate x:Key="PlantillaAviso" DataType="{x:Type vm:Aviso}">
+      <Border x:Name="Barra" Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+              AutomationProperties.LiveSetting="Assertive">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <ContentControl x:Name="Icono" Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                          Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <TextBlock x:Name="Titulo" Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+            </DockPanel>
+            <TextBlock Text="{Binding Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                       Visibility="{Binding Mensaje, Converter={StaticResource TextoVisible}}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding EsError}" Value="False">
+          <Setter TargetName="Barra" Property="Background" Value="{DynamicResource Brush.SuccessSoft}" />
+          <Setter TargetName="Barra" Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
+          <Setter TargetName="Icono" Property="Content" Value="{StaticResource Icono.Check}" />
+          <Setter TargetName="Icono" Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+          <Setter TargetName="Titulo" Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- Punto de estado según el tono -->
+    <Style x:Key="PuntoEstado" TargetType="Ellipse" BasedOn="{StaticResource StatusDot}">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Text3}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoEstado.Exito}">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Success}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoEstado.Advertencia}">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoEstado.Critico}">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- Pares etiqueta–valor de la hoja de vida -->
+    <DataTemplate x:Key="PlantillaDato" DataType="{x:Type vm:Dato}">
+      <StackPanel Margin="0,0,24,18">
+        <TextBlock Text="{Binding Etiqueta}" Style="{StaticResource Muted}" FontSize="13" />
+        <TextBlock x:Name="Valor" Text="{Binding Valor}" Foreground="{DynamicResource Brush.Text}" FontSize="15"
+                   TextWrapping="Wrap" Margin="0,3,0,0" />
+      </StackPanel>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Codigo}" Value="True">
+          <Setter TargetName="Valor" Property="FontFamily" Value="Consolas" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+
+    <!-- UI-006 Hoja de vida -->
+    <DataTemplate DataType="{x:Type vm:DetalleEquipoViewModel}">
+      <StackPanel>
+        <!-- Migas de pan -->
+        <StackPanel Orientation="Horizontal">
+          <Button Content="Equipos biomédicos" Style="{StaticResource LinkButton}" Command="{Binding VolverCommand}"
+                  AutomationProperties.Name="Volver a Equipos biomédicos" />
+          <TextBlock Text=" / " Style="{StaticResource Muted}" />
+          <TextBlock Text="{Binding Placa}" FontFamily="Consolas" Foreground="{DynamicResource Brush.Text2}" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Encabezado: el recuadro del ícono es el lugar de la miniatura de la fotografía (HU-015, RF-031) -->
+        <Grid Margin="0,18,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <!-- Editar (solo AC-02): abre el formulario UI-007 -->
+          <Button Grid.Column="2" Content="Editar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" AutomationProperties.Name="Editar equipo"
+                  Command="{Binding DataContext.EditarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Equipo}"
+                  Visibility="{Binding PuedeEditar, Converter={StaticResource Visible}}" />
+          <Border Width="56" Height="56" CornerRadius="12" Background="{DynamicResource Brush.PrimarySoft}" VerticalAlignment="Top"
+                  AutomationProperties.Name="Ícono del tipo de equipo">
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Width="28" Height="28"
+                            Foreground="{DynamicResource Brush.Primary}" />
+          </Border>
+          <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="{Binding Titulo}" Style="{StaticResource PageTitle}" />
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="16,4,0,0"
+                          Visibility="{Binding HayEquipo, Converter={StaticResource Visible}}">
+                <Ellipse Style="{StaticResource PuntoEstado}" />
+                <TextBlock Text="{Binding Estado}" Foreground="{DynamicResource Brush.Text}" />
+              </StackPanel>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+              <TextBlock Text="{Binding Placa}" FontFamily="Consolas" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+              <TextBlock Text="  ·  " Style="{StaticResource Muted}" Visibility="{Binding HayEquipo, Converter={StaticResource Visible}}" />
+              <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Muted}" />
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+
+        <TextBlock Text="Abriendo la hoja de vida…" Style="{StaticResource Muted}" Margin="0,18,0,0"
+                   Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+
+        <!-- Confirmación tras guardar cambios -->
+        <Grid Margin="0,18,0,0" Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
+          <ContentControl Content="{Binding Confirmacion}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+          <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarConfirmacionCommand}"
+                  HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" />
+        </Grid>
+
+        <!-- Error al consultar -->
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+                Margin="0,18,0,0" AutomationProperties.LiveSetting="Assertive"
+                Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
+              <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0" />
+              <Button Content="Volver" Style="{StaticResource LinkButton}" Command="{Binding VolverCommand}" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+              <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+        <!-- Equipo dado de baja (RF-014) -->
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}"
+                Margin="0,18,0,0" Visibility="{Binding AvisoBaja, Converter={StaticResource NuloVisible}}">
+          <StackPanel>
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding AvisoBaja.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <TextBlock Text="{Binding AvisoBaja.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+            </DockPanel>
+            <TextBlock Text="{Binding AvisoBaja.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </Border>
+
+        <!-- RN-010: autorización vencida, por vencer o faltante (aviso, no bloqueo) -->
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
+                Margin="0,18,0,0" Visibility="{Binding AvisoRegulatorio, Converter={StaticResource NuloVisible}}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                            Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+            <StackPanel Grid.Column="1">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding AvisoRegulatorio.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+                <TextBlock Text="{Binding AvisoRegulatorio.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+              </DockPanel>
+              <TextBlock Text="{Binding AvisoRegulatorio.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <StackPanel Visibility="{Binding HayEquipo, Converter={StaticResource Visible}}">
+          <!-- Pestañas -->
+          <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
+            <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Resumen" IsChecked="{Binding EnResumen}" />
+            <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Información técnica" IsChecked="{Binding EnTecnica}" />
+          </StackPanel>
+          <Border Height="1" Background="{DynamicResource Brush.Border}" />
+
+          <!-- Resumen -->
+          <StackPanel Visibility="{Binding EnResumen, Converter={StaticResource Visible}}" Margin="0,22,0,0">
+            <Border Style="{StaticResource KpiStrip}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition />
+                  <ColumnDefinition />
+                  <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Border Style="{StaticResource KpiItem}" BorderThickness="0" Padding="0,14,20,14">
+                  <StackPanel>
+                    <TextBlock Text="PRÓXIMO MANTENIMIENTO" Style="{StaticResource Overline}" />
+                    <TextBlock Text="{Binding ProximoMantenimiento}">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource KpiValue}">
+                          <Setter Property="FontSize" Value="24" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding MantenimientoVencido}" Value="True">
+                              <Setter Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding DetalleMantenimiento}" Style="{StaticResource Muted}" FontSize="13" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource KpiItem}">
+                  <StackPanel>
+                    <TextBlock Text="CALIBRACIÓN" Style="{StaticResource Overline}" />
+                    <TextBlock Text="{Binding Calibracion}" Style="{StaticResource KpiValue}" FontSize="24" />
+                    <TextBlock Text="{Binding DetalleCalibracion}" Style="{StaticResource Muted}" FontSize="13" />
+                  </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource KpiItem}">
+                  <StackPanel>
+                    <TextBlock Text="AUTORIZACIÓN INVIMA" Style="{StaticResource Overline}" />
+                    <TextBlock Text="{Binding Autorizacion}">
+                      <TextBlock.Style>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource KpiValue}">
+                          <Setter Property="FontSize" Value="24" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding AutorizacionEnAlerta}" Value="True">
+                              <Setter Property="Foreground" Value="{DynamicResource Brush.WarningText}" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Text="{Binding DetalleAutorizacion}" Style="{StaticResource Muted}" FontSize="13" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Section}" Margin="0,28,0,0">
+              <StackPanel>
+                <TextBlock Text="Datos del activo" Style="{StaticResource SectionTitle}" Margin="0,0,0,14" />
+                <ItemsControl ItemsSource="{Binding DatosActivo}" ItemTemplate="{StaticResource PlantillaDato}" Focusable="False">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <UniformGrid Columns="3" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Información técnica -->
+          <StackPanel Visibility="{Binding EnTecnica, Converter={StaticResource Visible}}" Margin="0,22,0,0">
+            <Border Style="{StaticResource Section}">
+              <StackPanel>
+                <TextBlock Text="Información técnica" Style="{StaticResource SectionTitle}" Margin="0,0,0,14" />
+                <ItemsControl ItemsSource="{Binding InformacionTecnica}" ItemTemplate="{StaticResource PlantillaDato}" Focusable="False">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <UniformGrid Columns="2" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Section}" Margin="0,14,0,0">
+              <StackPanel>
+                <DockPanel Margin="0,0,0,14">
+                  <TextBlock DockPanel.Dock="Right" Text="RF-030 · RN-010" Style="{StaticResource Overline}" VerticalAlignment="Center" />
+                  <TextBlock Text="Información regulatoria" Style="{StaticResource SectionTitle}" />
+                </DockPanel>
+                <ItemsControl ItemsSource="{Binding InformacionRegulatoria}" ItemTemplate="{StaticResource PlantillaDato}" Focusable="False">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <UniformGrid Columns="2" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <Grid>
+  <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+    <Grid Margin="40,32,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+      <ContentControl Content="{Binding Detalle}" Focusable="False" IsTabStop="False"
+                      Visibility="{Binding Detalle, Converter={StaticResource NuloVisible}}" />
+
+      <!-- UI-005 Lista -->
+      <StackPanel Visibility="{Binding EnLista, Converter={StaticResource Visible}}">
+        <TextBlock Text="GESTIÓN BIOMÉDICA" Style="{StaticResource Overline}" />
+        <DockPanel Margin="0,6,0,24">
+          <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Command="{Binding NuevoEquipoCommand}" VerticalAlignment="Top"
+                  AutomationProperties.Name="Registrar equipo" Visibility="{Binding PuedeGestionar, Converter={StaticResource Visible}}">
+            <StackPanel Orientation="Horizontal">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Agregar}" Foreground="{DynamicResource Brush.OnPrimary}" Margin="0,0,8,0" />
+              <TextBlock Text="Registrar equipo" />
+            </StackPanel>
+          </Button>
+          <StackPanel Margin="0,0,24,0">
+            <TextBlock Text="Equipos biomédicos" Style="{StaticResource PageTitle}" />
+            <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" TextWrapping="Wrap"
+                       Text="Inventario de la institución con estado operativo, ubicación, clase de riesgo y próximo mantenimiento de cada activo." />
+          </StackPanel>
+        </DockPanel>
+
+        <!-- Confirmación tras registrar -->
+        <Grid Margin="0,0,0,18" Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
+          <ContentControl Content="{Binding Confirmacion}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+          <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarConfirmacionCommand}"
+                  HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" />
+        </Grid>
+
+        <!-- Aviso de error -->
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+                Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
+                Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                            Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+            <StackPanel Grid.Column="1">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+                <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+              </DockPanel>
+              <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
+              <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0" />
+              <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarAvisoCommand}" />
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- Filtros -->
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="0.9*" />
+            <ColumnDefinition Width="8" />
+            <ColumnDefinition Width="1.5*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="1.2*" />
+          </Grid.ColumnDefinitions>
+          <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:EquiposViewModel.OpcionesBuscarPor}"
+                    SelectedItem="{Binding BuscarPor}" DisplayMemberPath="Texto" AutomationProperties.Name="Buscar por" />
+          <Border Grid.Column="2" Style="{StaticResource FieldBox}" MinHeight="42">
+            <DockPanel>
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Buscar}" Width="16" Height="16" Margin="0,0,10,0" />
+              <TextBox Style="{StaticResource FieldInput}" FontSize="14" Text="{Binding Busqueda, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                       AutomationProperties.Name="{Binding TextoBusqueda}" />
+            </DockPanel>
+          </Border>
+          <!-- Texto de ayuda mientras la búsqueda está vacía -->
+          <TextBlock Grid.Column="2" Text="{Binding TextoBusqueda}" VerticalAlignment="Center" Margin="40,0,0,0" IsHitTestVisible="False">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Text3}" />
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Busqueda.Length}" Value="0">
+                    <Setter Property="Visibility" Value="Visible" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+          <ComboBox Grid.Column="4" Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:EquiposViewModel.OpcionesEstado}"
+                    SelectedItem="{Binding FiltroEstado}" DisplayMemberPath="Texto" AutomationProperties.Name="Estado operativo" />
+          <ComboBox Grid.Column="6" Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:EquiposViewModel.OpcionesRiesgo}"
+                    SelectedItem="{Binding FiltroRiesgo}" DisplayMemberPath="Texto" AutomationProperties.Name="Riesgo y calibración" />
+        </Grid>
+
+        <DockPanel Margin="0,18,0,0">
+          <Button DockPanel.Dock="Right" Content="Limpiar filtros" Style="{StaticResource LinkButton}" Command="{Binding LimpiarCommand}"
+                  Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" />
+          <TextBlock Text="{Binding ResumenTotal}" Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center"
+                     AutomationProperties.LiveSetting="Polite" />
+        </DockPanel>
+
+        <!-- Tabla abierta: doble clic o Enter abre la hoja de vida (NAV-006) -->
+        <DataGrid x:Name="TablaEquipos" Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filas}" RowHeight="60" Margin="0,8,0,0"
+                  AutomationProperties.Name="Equipos biomédicos" ScrollViewer.CanContentScroll="False"
+                  MouseDoubleClick="TablaEquipos_MouseDoubleClick" PreviewKeyDown="TablaEquipos_PreviewKeyDown">
+          <DataGrid.Columns>
+            <DataGridTemplateColumn Header="CÓDIGO DE ACTIVO" Width="1.1*">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaEquipo}">
+                  <TextBlock Text="{Binding Placa}" FontFamily="Consolas" FontWeight="SemiBold" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="EQUIPO" Width="1.8*">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaEquipo}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Tipo}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Tipo}" />
+                    <TextBlock Text="{Binding Serie}" FontFamily="Consolas" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="RIESGO" Width="0.6*">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaEquipo}">
+                  <TextBlock Text="{Binding Clase}" FontWeight="SemiBold" ToolTip="{Binding DescripcionClase}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="FABRICANTE" Width="*">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaEquipo}">
+                  <TextBlock Text="{Binding Fabricante}" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="UBICACIÓN" Width="1.1*">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaEquipo}">
+                  <TextBlock Text="{Binding Ubicacion}" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Ubicacion}" />
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="ESTADO" Width="1.3*">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaEquipo}">
+                  <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                      <Ellipse Style="{StaticResource PuntoEstado}" />
+                      <TextBlock Text="{Binding Estado}" />
+                    </StackPanel>
+                    <TextBlock x:Name="AvisoRegistro" Text="{Binding AvisoRegistro}" FontSize="12" Margin="16,1,0,0"
+                               Foreground="{DynamicResource Brush.WarningText}"
+                               Visibility="{Binding AvisoRegistro, Converter={StaticResource TextoVisible}}" />
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+            <DataGridTemplateColumn Header="PRÓX. MANTENIMIENTO" Width="1.2*">
+              <DataGridTemplateColumn.CellTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaEquipo}">
+                  <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding ProximoMantenimiento}" />
+                    <TextBlock Text="{Binding DetalleMantenimiento}" FontSize="12" Margin="6,1,0,0" VerticalAlignment="Center"
+                               Foreground="{DynamicResource Brush.WarningText}"
+                               Visibility="{Binding DetalleMantenimiento, Converter={StaticResource TextoVisible}}" />
+                  </StackPanel>
+                </DataTemplate>
+              </DataGridTemplateColumn.CellTemplate>
+            </DataGridTemplateColumn>
+          </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Margin="0,24,0,0" Visibility="{Binding SinEquipos, Converter={StaticResource Visible}}">
+          <TextBlock Text="No encontramos equipos con esos criterios" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+          <TextBlock Text="Prueba con otro código o quita algún filtro." Style="{StaticResource Muted}" Margin="0,4,0,0" />
+        </StackPanel>
+
+        <!-- Pie: resumen y paginación -->
+        <DockPanel Margin="0,14,0,0">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <Button Content="‹ Anterior" Style="{StaticResource LinkButton}" Command="{Binding PaginaAnteriorCommand}" Margin="0,0,20,0"
+                    AutomationProperties.Name="Página anterior" />
+            <Button Content="Siguiente ›" Style="{StaticResource LinkButton}" Command="{Binding PaginaSiguienteCommand}"
+                    AutomationProperties.Name="Página siguiente" />
+          </StackPanel>
+          <TextBlock Text="{Binding ResumenPagina}" Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center" />
+        </DockPanel>
+      </StackPanel>
+    </Grid>
+  </ScrollViewer>
+
+    <!-- ================= UI-007 Registrar o editar equipo (panel lateral, solo AC-02) ================= -->
+    <Grid Visibility="{Binding Formulario, Converter={StaticResource NuloVisible}}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CerrarFormularioCommand}" />
+      <Border Width="640" HorizontalAlignment="Right" Background="{DynamicResource Brush.Elevated}"
+              BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0" DataContext="{Binding Formulario}"
+              AutomationProperties.Name="{Binding Titulo}">
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="28,20,16,8">
+            <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" AutomationProperties.Name="Cerrar"
+                    Command="{Binding DataContext.CerrarFormularioCommand, RelativeSource={RelativeSource AncestorType=UserControl}}">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Cerrar}" />
+            </Button>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Foreground="{DynamicResource Brush.Primary}"
+                            Width="22" Height="22" Margin="0,0,10,0" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="20" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          </DockPanel>
+          <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="28,14">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+              <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0"
+                      Command="{Binding DataContext.CerrarFormularioCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+              <Button Content="{Binding TextoGuardar}" Style="{StaticResource PrimaryButton}"
+                      Command="{Binding DataContext.GuardarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+            </StackPanel>
+          </Border>
+          <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+            <StackPanel Margin="28,8,28,28">
+              <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,0,0,16"
+                              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" />
+              <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
+                      Margin="0,0,0,16" Visibility="{Binding FaltanCatalogos, Converter={StaticResource Visible}}">
+                <StackPanel>
+                  <TextBlock Text="Faltan catálogos" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                  <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                             Text="Para registrar equipos, la institución necesita al menos un tipo de equipo y un área activos (Admin › Catálogos, HU-025)." />
+                </StackPanel>
+              </Border>
+
+              <!-- Identificación -->
+              <TextBlock Text="IDENTIFICACIÓN" Style="{StaticResource Overline}" Margin="0,0,0,12" />
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition />
+                  <ColumnDefinition Width="16" />
+                  <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Text="Código de activo (placa)" Style="{StaticResource FieldLabel}" />
+                  <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorPlaca}">
+                    <TextBox Style="{StaticResource FieldInput}" FontFamily="Consolas" Text="{Binding Placa, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Código de activo" />
+                  </Border>
+                  <TextBlock Text="{Binding ErrorPlaca}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorPlaca, Converter={StaticResource TextoVisible}}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Text="Número de serie" Style="{StaticResource FieldLabel}" />
+                  <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorSerie}">
+                    <TextBox Style="{StaticResource FieldInput}" FontFamily="Consolas" Text="{Binding Serie, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Número de serie" />
+                  </Border>
+                  <TextBlock Text="{Binding ErrorSerie}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorSerie, Converter={StaticResource TextoVisible}}" />
+                </StackPanel>
+              </Grid>
+
+              <TextBlock Text="Tipo de equipo" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+              <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{Binding Tipos}" SelectedItem="{Binding Tipo}" DisplayMemberPath="Nombre"
+                        AutomationProperties.Name="Tipo de equipo" />
+              <TextBlock Text="{Binding ErrorTipo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorTipo, Converter={StaticResource TextoVisible}}" />
+              <TextBlock Text="Al elegirlo se proponen su clase de riesgo y su calibración." Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0" />
+
+              <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition />
+                  <ColumnDefinition Width="16" />
+                  <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Text="Marca (fabricante)" Style="{StaticResource FieldLabel}" />
+                  <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorMarca}">
+                    <TextBox Style="{StaticResource FieldInput}" Text="{Binding Marca, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Marca" />
+                  </Border>
+                  <TextBlock Text="{Binding ErrorMarca}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorMarca, Converter={StaticResource TextoVisible}}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Text="Modelo" Style="{StaticResource FieldLabel}" />
+                  <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorModelo}">
+                    <TextBox Style="{StaticResource FieldInput}" Text="{Binding Modelo, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Modelo" />
+                  </Border>
+                  <TextBlock Text="{Binding ErrorModelo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorModelo, Converter={StaticResource TextoVisible}}" />
+                </StackPanel>
+              </Grid>
+
+              <!-- Información regulatoria (RF-030) -->
+              <Border Style="{StaticResource Section}" Margin="0,24,0,0">
+                <StackPanel>
+                  <DockPanel Margin="0,0,0,12">
+                    <TextBlock DockPanel.Dock="Right" Text="RF-030 · RN-010" Style="{StaticResource Overline}" />
+                    <TextBlock Text="INFORMACIÓN REGULATORIA" Style="{StaticResource Overline}" />
+                  </DockPanel>
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition />
+                      <ColumnDefinition Width="16" />
+                      <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Autorización INVIMA" Style="{StaticResource FieldLabel}" />
+                      <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:FormularioEquipoViewModel.OpcionesAutorizacion}"
+                                SelectedItem="{Binding TipoAutorizacion}" DisplayMemberPath="Texto" AutomationProperties.Name="Autorización INVIMA" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="Número" Style="{StaticResource FieldLabel}" />
+                      <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorRegistro}">
+                        <TextBox Style="{StaticResource FieldInput}" FontFamily="Consolas" Text="{Binding RegistroInvima, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Número de la autorización INVIMA" />
+                      </Border>
+                      <TextBlock Text="{Binding ErrorRegistro}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorRegistro, Converter={StaticResource TextoVisible}}" />
+                    </StackPanel>
+                  </Grid>
+                  <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition />
+                      <ColumnDefinition Width="16" />
+                      <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Vigente hasta" Style="{StaticResource FieldLabel}" />
+                      <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorVence}">
+                        <TextBox Style="{StaticResource FieldInput}" Text="{Binding VenceRegistro, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Vigente hasta (dd/mm/aaaa)" />
+                      </Border>
+                      <TextBlock Text="{Binding ErrorVence}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorVence, Converter={StaticResource TextoVisible}}" />
+                      <TextBlock Text="dd/mm/aaaa" Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="Clase de riesgo" Style="{StaticResource FieldLabel}" />
+                      <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:FormularioEquipoViewModel.OpcionesClase}"
+                                SelectedItem="{Binding Clase}" DisplayMemberPath="Texto" AutomationProperties.Name="Clase de riesgo" />
+                      <TextBlock Text="{Binding ErrorClase}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorClase, Converter={StaticResource TextoVisible}}" />
+                      <TextBlock Text="{Binding AyudaClase}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0" />
+                    </StackPanel>
+                  </Grid>
+                  <TextBlock Text="{Binding AvisoVencimiento}" FontSize="13" Foreground="{DynamicResource Brush.WarningText}" TextWrapping="Wrap" Margin="0,8,0,0"
+                             Visibility="{Binding AvisoVencimiento, Converter={StaticResource TextoVisible}}" />
+                  <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition />
+                      <ColumnDefinition Width="16" />
+                      <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="¿Requiere calibración?" Style="{StaticResource FieldLabel}" />
+                      <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:FormularioEquipoViewModel.OpcionesCalibracion}"
+                                SelectedItem="{Binding Calibracion}" DisplayMemberPath="Texto" AutomationProperties.Name="Requiere calibración" />
+                      <TextBlock Text="{Binding AyudaCalibracion}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" IsEnabled="{Binding RequiereCalibracion}">
+                      <TextBlock Text="Periodicidad (meses)" Style="{StaticResource FieldLabel}" />
+                      <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorMeses}">
+                        <TextBox Style="{StaticResource FieldInput}" Text="{Binding MesesCalibracion, UpdateSourceTrigger=PropertyChanged}"
+                                 AutomationProperties.Name="Periodicidad de calibración en meses" />
+                      </Border>
+                      <TextBlock Text="{Binding ErrorMeses}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorMeses, Converter={StaticResource TextoVisible}}" />
+                    </StackPanel>
+                  </Grid>
+                  <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}" Margin="0,16,0,0"
+                          Visibility="{Binding Difiere, Converter={StaticResource Visible}}">
+                    <StackPanel>
+                      <TextBlock Text="Distinto del valor sugerido para el tipo" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+                      <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                                 Text="Quedará registrado en la bitácora. Usa el dato del registro sanitario del modelo o la indicación del fabricante." />
+                    </StackPanel>
+                  </Border>
+                </StackPanel>
+              </Border>
+
+              <!-- Ubicación y adquisición -->
+              <Border Style="{StaticResource Section}" Margin="0,24,0,0">
+                <StackPanel>
+                  <TextBlock Text="UBICACIÓN Y ADQUISICIÓN" Style="{StaticResource Overline}" Margin="0,0,0,12" />
+                  <Grid>
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition />
+                      <ColumnDefinition Width="16" />
+                      <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Área" Style="{StaticResource FieldLabel}" />
+                      <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{Binding Ubicaciones}" SelectedItem="{Binding Ubicacion}"
+                                DisplayMemberPath="Nombre" AutomationProperties.Name="Área" />
+                      <TextBlock Text="{Binding ErrorUbicacion}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorUbicacion, Converter={StaticResource TextoVisible}}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Style="{StaticResource FieldLabel}">
+                        <Run Text="Proveedor" /><Run Text=" (opcional)" FontWeight="Normal" Foreground="{DynamicResource Brush.Text3}" />
+                      </TextBlock>
+                      <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{Binding Proveedores}" SelectedItem="{Binding Proveedor}"
+                                DisplayMemberPath="Nombre" AutomationProperties.Name="Proveedor (opcional)" />
+                    </StackPanel>
+                  </Grid>
+                  <TextBlock Style="{StaticResource FieldLabel}" Margin="0,16,0,6">
+                    <Run Text="Fecha de adquisición" /><Run Text=" (opcional)" FontWeight="Normal" Foreground="{DynamicResource Brush.Text3}" />
+                  </TextBlock>
+                  <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorAdquisicion}" Width="284" HorizontalAlignment="Left">
+                    <TextBox Style="{StaticResource FieldInput}" Text="{Binding FechaAdquisicion, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Fecha de adquisición (dd/mm/aaaa)" />
+                  </Border>
+                  <TextBlock Text="{Binding ErrorAdquisicion}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorAdquisicion, Converter={StaticResource TextoVisible}}" />
+                </StackPanel>
+              </Border>
+
+              <!-- Mantenimiento preventivo (CA-HU-002-06) -->
+              <Border Style="{StaticResource Section}" Margin="0,24,0,0">
+                <StackPanel>
+                  <DockPanel Margin="0,0,0,12">
+                    <TextBlock DockPanel.Dock="Right" Text="RF-019" Style="{StaticResource Overline}" />
+                    <TextBlock Text="MANTENIMIENTO PREVENTIVO" Style="{StaticResource Overline}" />
+                  </DockPanel>
+                  <TextBlock Text="Periodicidad del preventivo" Style="{StaticResource FieldLabel}" />
+                  <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:FormularioEquipoViewModel.OpcionesPeriodicidad}"
+                            SelectedItem="{Binding Periodicidad}" DisplayMemberPath="Texto" Width="284" HorizontalAlignment="Left"
+                            AutomationProperties.Name="Periodicidad del preventivo" />
+                  <TextBlock Text="Según el manual del fabricante." Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0" />
+                  <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                      <ColumnDefinition />
+                      <ColumnDefinition Width="16" />
+                      <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                      <TextBlock Text="Último mantenimiento preventivo" Style="{StaticResource FieldLabel}" />
+                      <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorUltimo}" IsEnabled="{Binding PideUltimo}">
+                        <TextBox Style="{StaticResource FieldInput}" Text="{Binding UltimoPreventivo, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                 AutomationProperties.Name="Último mantenimiento preventivo (dd/mm/aaaa)" />
+                      </Border>
+                      <TextBlock Text="{Binding ErrorUltimo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorUltimo, Converter={StaticResource TextoVisible}}" />
+                      <CheckBox Style="{StaticResource Casilla}" Content="No se conoce" IsChecked="{Binding NoSeConoce}" Margin="0,10,0,0" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                      <TextBlock Text="Próximo preventivo" Style="{StaticResource FieldLabel}" />
+                      <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorProximo}">
+                        <TextBox Style="{StaticResource FieldInput}" Text="{Binding ProximoPreventivo, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                 AutomationProperties.Name="Próximo preventivo (dd/mm/aaaa)" />
+                      </Border>
+                      <TextBlock Text="{Binding ErrorProximo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorProximo, Converter={StaticResource TextoVisible}}" />
+                      <TextBlock Text="{Binding AyudaProximo}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0" />
+                    </StackPanel>
+                  </Grid>
+                  <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0"
+                          Visibility="{Binding PreventivoAtrasado, Converter={StaticResource Visible}}">
+                    <StackPanel>
+                      <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="RF-020" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+                        <TextBlock Text="Preventivo atrasado" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                      </DockPanel>
+                      <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                                 Text="Según el último mantenimiento, el preventivo ya debía hacerse. El plan quedará vencido desde hoy y aparecerá en las alertas para programarlo." />
+                    </StackPanel>
+                  </Border>
+                  <TextBlock Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0"
+                             Text="SITBIO no asigna técnicos al plan: la asignación del personal la decide la institución." />
+                </StackPanel>
+              </Border>
+            </StackPanel>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

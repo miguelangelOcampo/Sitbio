@@ -33,7 +33,7 @@ public class EquiposEndpointTests(WebApplicationFactory<Program> fabrica) : ICla
         _repositorio.ListarAsync(default!, default).ReturnsForAnyArgs((Array.Empty<EquipoLeido>(), 0));
         _repositorio.CapacidadEquiposAsync(Arg.Any<CancellationToken>()).Returns(new CapacidadEquipos("Clínica", 1000, 0));
         _repositorio.DuplicadosAsync(default!, default!, default, default).ReturnsForAnyArgs(new Duplicados(false, false));
-        _sesiones.EstaActivaAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
+        _sesiones.ConsultarEstadoAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(EstadoSesion.Activa);
         var cliente = fabrica.WithWebHostBuilder(b => b
                 .UseSetting("Jwt:Clave", ClaveJwt)
                 .ConfigureTestServices(s => s.AddScoped(_ => _repositorio).AddScoped(_ => _sesiones).AddScoped(_ => _bitacora)))

@@ -132,4 +132,17 @@ public class UsuarioTests
     {
         Assert.Throws<ArgumentException>(() => new Usuario(Guid.Empty, 3, "Ana", "Pérez", "ana@clinica.co", "hash"));
     }
+
+    [Fact]
+    public void CambiarContrasena_GuardaElHashYDejaDeSerTemporal()
+    {
+        var usuario = new Usuario(Guid.NewGuid(), 3, "Ana", "Pérez", "ana@clinica.co", "hash");
+        usuario.AsignarClaveTemporal("hash-temporal");
+
+        usuario.CambiarContrasena("hash-nuevo");
+
+        Assert.Equal("hash-nuevo", usuario.ContrasenaHash);
+        Assert.False(usuario.CambioContrasenaObligatorio);
+        Assert.Throws<ArgumentException>(() => usuario.CambiarContrasena(" "));
+    }
 }

@@ -88,4 +88,6 @@ public static class MotivosRevocacion
     public const string Inactividad = "Cierre por 30 minutos de inactividad (RF-011)";
     public const string Renovacion = "Renovada con un token nuevo";
     public const string AccesoNoDisponible = "Cuenta o institución no disponible";
+    public const string CambioContrasena = "Contraseña cambiada desde otra sesión (HU-013)";
+    public const string ClaveTemporal = "Clave temporal emitida por el Administrador (RF-012)";
 }

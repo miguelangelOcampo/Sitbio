@@ -44,7 +44,7 @@ public class SesionEndpointTests(WebApplicationFactory<Program> fabrica) : IClas
     private SesionToken Registrar(TokenEmitido token)
     {
         var sesion = new SesionToken(_usuario.TenantId, _usuario.Id, token.Jti, token.Emision, token.Expiracion);
-        _sesiones.EstaActivaAsync(_usuario.TenantId, token.Jti, Arg.Any<CancellationToken>()).Returns(_ => !sesion.EstaRevocada);
+        _sesiones.ConsultarEstadoAsync(_usuario.TenantId, token.Jti, Arg.Any<CancellationToken>()).Returns(_ => sesion.EstaRevocada ? EstadoSesion.Cerrada : EstadoSesion.Activa);
         _sesiones.ObtenerAsync(token.Jti, Arg.Any<CancellationToken>()).Returns(sesion);
         _sesiones.BuscarUsuarioAsync(_usuario.Id, Arg.Any<CancellationToken>()).Returns(new UsuarioParaAcceso(_usuario, "AC-03", true));
         return sesion;

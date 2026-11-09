@@ -36,6 +36,7 @@ public sealed class ManejadorErrores(IProblemDetailsService problemDetails, ILog
         {
             ErrorConflicto conflicto => conflicto.Codigo,
             ErrorNoAutenticado { Codigo: not null } noAutenticado => noAutenticado.Codigo,
+            ErrorPermiso { Codigo: not null } permiso => permiso.Codigo,
             _ => null,
         };
         if (codigo is not null)

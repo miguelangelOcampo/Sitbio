@@ -27,7 +27,7 @@ public class AuditoriaEndpointTests(WebApplicationFactory<Program> fabrica) : IC
 
     private HttpClient Cliente(string? codigoRol)
     {
-        _sesiones.EstaActivaAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
+        _sesiones.ConsultarEstadoAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(EstadoSesion.Activa);
         var cliente = fabrica.WithWebHostBuilder(b => b
                 .UseSetting("Jwt:Clave", ClaveJwt)
                 .ConfigureTestServices(s => s.AddScoped(_ => _bitacora).AddScoped(_ => _directorio).AddScoped(_ => _sesiones)))

@@ -14,7 +14,9 @@ public sealed class GestionUsuarios(
     IRepositorioUsuarios repositorio,
     IHasherContrasenas hasher,
     IGeneradorClaves generadorClaves,
-    IContextoUsuario contexto)
+    IContextoUsuario contexto,
+    IRepositorioSesiones sesiones,
+    TimeProvider tiempo)
 {
     public const string CodigoCorreoEnUso = "USR-001";
     public const string CodigoPropiaCuenta = "USR-002";
@@ -120,13 +122,25 @@ public sealed class GestionUsuarios(
         return UsuarioDto.Desde(usuario, codigoRol);
     }
 
-    /// <summary>RF-012: nueva clave temporal; se devuelve una sola vez y el usuario debe cambiarla al entrar.</summary>
+    /// <summary>
+    /// RF-012, CA-HU-013-01: nueva clave temporal; se devuelve una sola vez y el usuario debe
+    /// cambiarla al entrar. Las sesiones abiertas del usuario se revocan: quien siguiera dentro
+    /// con la clave anterior pierde el acceso.
+    /// </summary>
     public async Task<string> AsignarClaveTemporalAsync(Guid id, CancellationToken cancellationToken)
     {
         var (usuario, _) = await Buscar(id, cancellationToken);
         var clave = generadorClaves.Generar();
         usuario.AsignarClaveTemporal(hasher.Hash(clave));
         await repositorio.GuardarAsync(cancellationToken);
+
+        var ahora = tiempo.GetUtcNow();
+        foreach (var sesion in await sesiones.VigentesDelUsuarioAsync(usuario.Id, ahora, cancellationToken))
+        {
+            sesion.Revocar(ahora, MotivosRevocacion.ClaveTemporal);
+        }
+
+        await sesiones.GuardarAsync(cancellationToken);
         return clave;
     }
 

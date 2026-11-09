@@ -14,11 +14,13 @@ public partial class ShellViewModel : ObservableObject
 {
     private readonly string _codigoRol;
     private readonly IFabricaPantallas? _pantallas;
+    private readonly Func<CambioClaveViewModel>? _crearCambioClave;
 
-    public ShellViewModel(string codigoRol, IFabricaPantallas? pantallas = null)
+    public ShellViewModel(string codigoRol, IFabricaPantallas? pantallas = null, Func<CambioClaveViewModel>? crearCambioClave = null)
     {
         _codigoRol = codigoRol;
         _pantallas = pantallas;
+        _crearCambioClave = crearCambioClave;
         Modulos = MenuPorRol.Para(codigoRol).Select(m => new ModuloViewModel(m)).ToList();
 
         var inicio = MenuPorRol.Inicio(codigoRol);
@@ -41,6 +43,38 @@ public partial class ShellViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _confirmandoCierre;
+
+    /// <summary>UI-002 en modo voluntario, abierta como diálogo sobre el marco (HU-013).</summary>
+    [ObservableProperty]
+    private CambioClaveViewModel? _cambioClave;
+
+    /// <summary>Confirmación breve sobre el área principal (por ejemplo, «Contraseña actualizada»).</summary>
+    [ObservableProperty]
+    private string? _confirmacion;
+
+    public bool PuedeCambiarClave => _crearCambioClave is not null;
+
+    [RelayCommand]
+    private void AbrirCambioClave()
+    {
+        if (_crearCambioClave is null)
+        {
+            return;
+        }
+
+        var cambio = _crearCambioClave();
+        cambio.Guardada += (_, _) =>
+        {
+            CambioClave = null;
+            Confirmacion = "Contraseña actualizada. Las demás sesiones abiertas con tu cuenta se cerraron.";
+        };
+        cambio.Cancelada += (_, _) => CambioClave = null;
+        Confirmacion = null;
+        CambioClave = cambio;
+    }
+
+    [RelayCommand]
+    private void CerrarConfirmacion() => Confirmacion = null;
 
     public IReadOnlyList<ModuloViewModel> Modulos { get; }
 

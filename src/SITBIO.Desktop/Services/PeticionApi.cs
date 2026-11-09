@@ -19,6 +19,32 @@ internal static class PeticionApi
         Func<int, string?> mensajePorEstado,
         CancellationToken cancellationToken)
     {
+        using var respuesta = await SolicitarAsync(cliente, metodo, ruta, cuerpo, mensajePorEstado, cancellationToken);
+        return await respuesta.Content.ReadFromJsonAsync<T>(cancellationToken)
+            ?? throw new ErrorApi(null, "La respuesta del servidor llegó vacía.", new Dictionary<string, string>());
+    }
+
+    /// <summary>Para las operaciones que responden 204 sin cuerpo.</summary>
+    public static async Task EnviarAsync(
+        ClienteApi cliente,
+        HttpMethod metodo,
+        string ruta,
+        object? cuerpo,
+        Func<int, string?> mensajePorEstado,
+        CancellationToken cancellationToken)
+    {
+        using var respuesta = await SolicitarAsync(cliente, metodo, ruta, cuerpo, mensajePorEstado, cancellationToken);
+    }
+
+    /// <summary>Respuesta exitosa (que el llamador libera) o <see cref="ErrorApi"/>.</summary>
+    private static async Task<HttpResponseMessage> SolicitarAsync(
+        ClienteApi cliente,
+        HttpMethod metodo,
+        string ruta,
+        object? cuerpo,
+        Func<int, string?> mensajePorEstado,
+        CancellationToken cancellationToken)
+    {
         HttpResponseMessage respuesta;
         try
         {
@@ -35,14 +61,13 @@ internal static class PeticionApi
             throw SinConexion();
         }
 
+        if (respuesta.IsSuccessStatusCode)
+        {
+            return respuesta;
+        }
+
         using (respuesta)
         {
-            if (respuesta.IsSuccessStatusCode)
-            {
-                return await respuesta.Content.ReadFromJsonAsync<T>(cancellationToken)
-                    ?? throw new ErrorApi(null, "La respuesta del servidor llegó vacía.", new Dictionary<string, string>());
-            }
-
             throw await LeerErrorAsync(respuesta, mensajePorEstado, cancellationToken);
         }
     }

@@ -1,0 +1,182 @@
+<!-- UI-002 Cambio de contraseña (RF-012, HU-013). Caja de diálogo: la usan la ventana principal
+     (cambio obligatorio de la clave temporal) y el marco de la sesión (cambio voluntario). -->
+<UserControl x:Class="Sitbio.Desktop.Views.CambioClaveView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views"
+             AutomationProperties.Name="{Binding Titulo}">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+
+    <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}, Converter={StaticResource TextoVisible}}" Value="Visible">
+          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- MSG-008 o error de la API -->
+    <DataTemplate x:Key="PlantillaAviso" DataType="{x:Type vm:Aviso}">
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+              Margin="0,0,0,14" AutomationProperties.LiveSetting="Assertive">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                          Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+            </DockPanel>
+            <TextBlock Text="{Binding Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                       Visibility="{Binding Mensaje, Converter={StaticResource TextoVisible}}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
+    <!-- Regla: punto + texto. Verde si cumple, rojo si no cumple tras intentar guardar, gris si está pendiente -->
+    <DataTemplate x:Key="PlantillaRegla" DataType="{x:Type vm:ReglaClave}">
+      <StackPanel Orientation="Horizontal" Margin="0,3,12,3" AutomationProperties.Name="{Binding Texto}"
+                  AutomationProperties.ItemStatus="{Binding Estado}">
+        <Ellipse x:Name="Punto" Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.BorderStrong}" />
+        <TextBlock x:Name="Texto" Text="{Binding Texto}" FontSize="13" Foreground="{DynamicResource Brush.Text3}" TextWrapping="Wrap" MaxWidth="190" />
+      </StackPanel>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Estado}" Value="Cumple">
+          <Setter TargetName="Punto" Property="Fill" Value="{DynamicResource Brush.Success}" />
+          <Setter TargetName="Texto" Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Estado}" Value="Incumple">
+          <Setter TargetName="Punto" Property="Fill" Value="{DynamicResource Brush.Danger}" />
+          <Setter TargetName="Texto" Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <Border Style="{StaticResource Dialog}" Width="500" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <StackPanel>
+      <DockPanel Margin="0,0,0,18">
+        <TextBlock DockPanel.Dock="Right" Text="RF-012" Style="{StaticResource Overline}" VerticalAlignment="Center" />
+        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Llave}" Width="20" Height="20"
+                        Foreground="{DynamicResource Brush.Primary}" Margin="0,0,10,0" />
+        <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="18" />
+      </DockPanel>
+
+      <!-- Clave temporal (MSG-004) -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
+              Margin="0,0,0,14" Visibility="{Binding Obligatorio, Converter={StaticResource Visible}}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+          </Grid.ColumnDefinitions>
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Candado}"
+                          Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="MSG-004" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <TextBlock Text="Estás usando una contraseña temporal" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+            </DockPanel>
+            <TextBlock Text="Por seguridad, cambia tu contraseña temporal antes de continuar." Foreground="{DynamicResource Brush.Text}"
+                       TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False"
+                      Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" />
+
+      <!-- Contraseña actual o temporal -->
+      <TextBlock Text="{Binding EtiquetaActual}" Style="{StaticResource FieldLabel}" />
+      <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorActual}">
+        <Grid>
+          <PasswordBox x:Name="CampoActual" Style="{StaticResource FieldPassword}" PasswordChanged="Clave_PasswordChanged"
+                       AutomationProperties.Name="{Binding EtiquetaActual}" />
+          <TextBox x:Name="CampoActualVisible" Style="{StaticResource FieldInput}" Visibility="Collapsed"
+                   Text="{Binding Actual, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="{Binding EtiquetaActual}" />
+        </Grid>
+      </Border>
+      <TextBlock Text="{Binding ErrorActual}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorActual, Converter={StaticResource TextoVisible}}" />
+
+      <!-- Nueva contraseña con «Mostrar» -->
+      <TextBlock Text="Nueva contraseña" Style="{StaticResource FieldLabel}" Margin="0,14,0,0" />
+      <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorNueva}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Command="{Binding AlternarMostrarCommand}" Margin="0,0,4,0">
+            <Button.Style>
+              <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                <Setter Property="AutomationProperties.Name" Value="Mostrar contraseñas" />
+                <Setter Property="ToolTip" Value="Mostrar contraseñas" />
+                <Setter Property="Content">
+                  <Setter.Value>
+                    <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Ojo}" />
+                  </Setter.Value>
+                </Setter>
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Mostrar}" Value="True">
+                    <Setter Property="AutomationProperties.Name" Value="Ocultar contraseñas" />
+                    <Setter Property="ToolTip" Value="Ocultar contraseñas" />
+                    <Setter Property="Content">
+                      <Setter.Value>
+                        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.OjoTachado}" />
+                      </Setter.Value>
+                    </Setter>
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Button.Style>
+          </Button>
+          <Grid>
+            <PasswordBox x:Name="CampoNueva" Style="{StaticResource FieldPassword}" PasswordChanged="Clave_PasswordChanged"
+                         AutomationProperties.Name="Nueva contraseña" />
+            <TextBox x:Name="CampoNuevaVisible" Style="{StaticResource FieldInput}" Visibility="Collapsed"
+                     Text="{Binding Nueva, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Nueva contraseña" />
+          </Grid>
+        </DockPanel>
+      </Border>
+      <TextBlock Text="{Binding ErrorNueva}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorNueva, Converter={StaticResource TextoVisible}}" />
+
+      <ItemsControl ItemsSource="{Binding Reglas}" ItemTemplate="{StaticResource PlantillaRegla}" Margin="0,8,0,0" Focusable="False"
+                    AutomationProperties.Name="Reglas de la contraseña">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Columns="2" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+
+      <!-- Confirmación -->
+      <TextBlock Text="Confirmar nueva contraseña" Style="{StaticResource FieldLabel}" Margin="0,14,0,0" />
+      <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorConfirmacion}">
+        <Grid>
+          <PasswordBox x:Name="CampoConfirmacion" Style="{StaticResource FieldPassword}" PasswordChanged="Clave_PasswordChanged"
+                       AutomationProperties.Name="Confirmar nueva contraseña" />
+          <TextBox x:Name="CampoConfirmacionVisible" Style="{StaticResource FieldInput}" Visibility="Collapsed"
+                   Text="{Binding Confirmacion, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Confirmar nueva contraseña" />
+        </Grid>
+      </Border>
+      <TextBlock Text="{Binding ErrorConfirmacion}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorConfirmacion, Converter={StaticResource TextoVisible}}" />
+
+      <!-- Pie: obligatorio → «Cerrar sesión»; voluntario → «Cancelar» -->
+      <DockPanel Margin="0,24,0,0">
+        <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{Binding TextoGuardar}"
+                Command="{Binding GuardarCommand}" IsDefault="True" />
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <Button Style="{StaticResource LinkButton}" Content="Cerrar sesión" Command="{Binding CancelarCommand}"
+                  Visibility="{Binding Obligatorio, Converter={StaticResource Visible}}" />
+          <Button Style="{StaticResource LinkButton}" Content="Cancelar" Command="{Binding CancelarCommand}" IsCancel="True"
+                  Visibility="{Binding EsVoluntario, Converter={StaticResource Visible}}" />
+        </StackPanel>
+      </DockPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

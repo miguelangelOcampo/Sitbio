@@ -9,6 +9,7 @@
     <BooleanToVisibilityConverter x:Key="Visible" />
     <views:RecursoConverter x:Key="Recurso" />
     <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
     <DataTemplate DataType="{x:Type vm:UsuariosViewModel}">
       <views:UsuariosView />
     </DataTemplate>
@@ -105,6 +106,9 @@
               <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding NombreRol}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Rol}" FontSize="12" Foreground="{DynamicResource Brush.Text3}" />
+                <!-- UI-002 voluntario (HU-013); pasará a «Mi perfil» cuando exista -->
+                <Button Content="Cambiar contraseña" Style="{StaticResource LinkButton}" FontSize="12" HorizontalAlignment="Left" Margin="0,4,0,0"
+                        Command="{Binding AbrirCambioClaveCommand}" Visibility="{Binding PuedeCambiarClave, Converter={StaticResource Visible}}" />
               </StackPanel>
             </DockPanel>
           </Border>
@@ -161,6 +165,19 @@
       <!-- Pantalla de la opción actual (DataTemplate por ViewModel) -->
       <ContentControl Content="{Binding Contenido}" Focusable="False" />
 
+      <!-- Confirmación breve del marco (por ejemplo, «Contraseña actualizada») -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
+              HorizontalAlignment="Right" VerticalAlignment="Bottom" MaxWidth="460" Margin="0,0,32,28"
+              AutomationProperties.LiveSetting="Polite" Visibility="{Binding Confirmacion, Converter={StaticResource TextoVisible}}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarConfirmacionCommand}"
+                  VerticalAlignment="Top" Margin="16,0,0,0" />
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}" Foreground="{DynamicResource Brush.SuccessText}"
+                          VerticalAlignment="Top" Margin="0,1,10,0" />
+          <TextBlock Text="{Binding Confirmacion}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+        </DockPanel>
+      </Border>
+
       <StackPanel Margin="40,36" MaxWidth="760" HorizontalAlignment="Left"
                   Visibility="{Binding EnConstruccion, Converter={StaticResource Visible}}">
         <TextBlock Text="{Binding TituloModuloActual}" Style="{StaticResource Overline}" />
@@ -193,6 +210,14 @@
           </StackPanel>
         </StackPanel>
       </Border>
+    </Grid>
+
+    <!-- UI-002 voluntario (HU-013) -->
+    <Grid Grid.ColumnSpan="3" Visibility="{Binding CambioClave, Converter={StaticResource NuloVisible}}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CambioClave.CancelarCommand}" />
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <views:CambioClaveView DataContext="{Binding CambioClave}" Margin="24" />
+      </ScrollViewer>
     </Grid>
   </Grid>
 </UserControl>

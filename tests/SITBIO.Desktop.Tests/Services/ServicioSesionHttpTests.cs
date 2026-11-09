@@ -82,4 +82,43 @@ public class ServicioSesionHttpTests
 
         await servicio.CerrarAsync(ServicioSesionHttp.MotivoVoluntario, CancellationToken.None);
     }
+
+    // ---------- Cambio de contraseña (API-AUTH-PASSWORD, HU-013) ----------
+
+    [Fact]
+    public async Task CambiarContrasena_EnviaPutConActualYNueva()
+    {
+        var (servicio, manejador) = Crear(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        await servicio.CambiarContrasenaAsync("Tmp#7kPq2xWz9a", "Monitor#2026uci", CancellationToken.None);
+
+        Assert.Equal("PUT /api/v1/auth/password", manejador.Ruta);
+        Assert.Equal("{\"actual\":\"Tmp#7kPq2xWz9a\",\"nueva\":\"Monitor#2026uci\"}", manejador.Cuerpo);
+    }
+
+    [Fact]
+    public async Task CambiarContrasena_400_TraeLasReglasPorCampo()
+    {
+        var (servicio, _) = Crear(_ => new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(
+                """{"status":400,"errors":{"nueva":["Al menos un número.","No contiene tu nombre, tu apellido ni tu correo."]}}""",
+                Encoding.UTF8,
+                "application/json"),
+        });
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.CambiarContrasenaAsync("a", "b", CancellationToken.None));
+
+        Assert.Equal("Al menos un número. No contiene tu nombre, tu apellido ni tu correo.", error.Errores["nueva"]);
+    }
+
+    [Fact]
+    public async Task CambiarContrasena_SinServidor_UsaMsg011()
+    {
+        var (servicio, _) = Crear(_ => throw new HttpRequestException("sin red"));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.CambiarContrasenaAsync("a", "b", CancellationToken.None));
+
+        Assert.True(error.SinConexion);
+    }
 }

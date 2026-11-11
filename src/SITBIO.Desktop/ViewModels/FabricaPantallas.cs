@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Sitbio.Desktop.Services;
 
 namespace Sitbio.Desktop.ViewModels;
 
@@ -23,6 +24,11 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var equipos = servicios.GetRequiredService<EquiposViewModel>();
                 equipos.CargarCommand.Execute(null);
                 return equipos;
+            // UI-019 Configuración: «Mi institución» es exclusiva de AC-01 (HU-024). Para AC-02 llega con Catálogos (HU-025).
+            case "UI-019" when servicios.GetService<SesionActual>()?.Sesion?.Rol == "AC-01":
+                var institucion = servicios.GetRequiredService<MiInstitucionViewModel>();
+                institucion.CargarCommand.Execute(null);
+                return institucion;
             case "UI-024":
                 var bitacora = servicios.GetRequiredService<BitacoraViewModel>();
                 bitacora.CargarCommand.Execute(null);

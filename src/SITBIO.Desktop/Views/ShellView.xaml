@@ -19,6 +19,9 @@
     <DataTemplate DataType="{x:Type vm:BitacoraViewModel}">
       <views:BitacoraView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:MiInstitucionViewModel}">
+      <views:MiInstitucionView />
+    </DataTemplate>
     <Style x:Key="RailButton" TargetType="Button">
       <Setter Property="Foreground" Value="{DynamicResource Brush.OnBrandPanelMuted}" />
       <Setter Property="Height" Value="40" />

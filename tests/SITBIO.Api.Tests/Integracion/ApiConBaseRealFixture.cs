@@ -202,7 +202,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             FROM generate_series(1, {cantidad}) AS g
             """));
 
-    /// <summary>Da de baja un equipo directamente en la base (el flujo de baja llega con HU-014).</summary>
+    /// <summary>Da de baja un equipo directamente en la base, sin pasar por PATCH /estado (para preparar datos).</summary>
     public Task DarDeBajaAsync(Guid equipoId) =>
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"UPDATE sitbio.equipo_biomedico SET estado_equipo_id = {EstadosEquipo.Baja}, fecha_baja = now() WHERE id_equipo = {equipoId}"));
@@ -221,6 +221,17 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         using var alcance = Services.CreateScope();
         var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
         return await contexto.Equipos.IgnoreQueryFilters().AsNoTracking().SingleAsync(e => e.Id == equipoId);
+    }
+
+    /// <summary>Historial de estados del equipo tal como quedó en la base, del más reciente al más antiguo (solo para comprobar).</summary>
+    public async Task<List<HistorialEstadoEquipo>> LeerHistorialAsync(Guid equipoId)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.HistorialEstados.IgnoreQueryFilters().AsNoTracking()
+            .Where(h => h.EquipoId == equipoId)
+            .OrderByDescending(h => h.FechaCambio)
+            .ToListAsync();
     }
 
     /// <summary>Planes preventivos del equipo, sin pasar por el filtro (solo para comprobar).</summary>

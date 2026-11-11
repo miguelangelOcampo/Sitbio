@@ -246,6 +246,56 @@ La base local debe tener aplicada V008 (`database/README.md`). Con `SITBIO_PRUEB
 
 - **Gestión de catálogos:** por ahora solo se consultan; crear y editar tipos de equipo, ubicaciones y proveedores llega con HU-025 (commits 40 y 41), que extienden el mismo módulo `Modules/Catalogos`.
 - **Fotografía del equipo (RF-031):** V008 ya tiene `foto_documento_id` y la API devuelve `tieneFoto`; la subida y API-EQ-FOTO llegan con HU-015.
-- **Cambio de estado y baja:** la API todavía no ofrece `PATCH` de estado; llega con HU-014.
+- **Cambio de estado y baja:** resuelto con HU-014 (`PATCH /equipos/{id}/estado`; ver la sección HU-014).
 - **Alerta del plan vencido (RF-020):** el plan se marca vencido y la interfaz lo avisa; la alerta en el módulo de alertas llega con su historia.
 - **Numeración de CP:** con esta historia se corrigió la tabla de HU-011 a CP-015, como asigna el DOC-04; antes usaba CP-004 a CP-006, que corresponden a HU-002 y HU-003.
+
+## HU-013 · Restablecimiento de contraseña con clave temporal
+
+Caso de uso: no aplica · RF-012 · RN-006 · RNF-003 · SEC-003 · Pantalla UI-002 · Mensajes MSG-002, MSG-004, MSG-008 y MSG-011. Sin migración: usa `usuario.cambio_contrasena_obligatorio` y `sesion_token`.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-017 | CA-HU-013-01: al restablecer la contraseña de un usuario, el sistema genera una clave temporal y exige su cambio en el siguiente inicio de sesión. | RF-012 | Integración (API + PostgreSQL): `CriteriosHu013Tests.CA_HU_013_01_ClaveTemporal_ExigeElCambioYCierraLasSesionesAbiertas`: la marca queda activa, la sesión abierta se revoca con el motivo `ClaveTemporal`, la clave anterior deja de servir y el login con la temporal responde `debeCambiarClave`. Aplicación: `GestionUsuariosTests.ClaveTemporal_SeDevuelveUnaVezYObligaACambiarla`, `CA_HU_013_01_ClaveTemporal_RevocaLasSesionesAbiertasDelUsuario`, `Crear_EnElTenantDelTokenConClaveTemporalCifrada`. | Aprobado |
+| CP-017 | CA-HU-013-02: con la clave temporal, la aplicación exige definir una nueva contraseña antes de continuar. | RF-012, RN-006, MSG-004 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu013Tests.CA_HU_013_02_*` (4): cualquier otro endpoint responde 403 `MSG-004` y queda en la bitácora como `ACCESO_DENEGADO` (renovar el token sí se permite); al definir la nueva responde 204, el mismo token sigue sirviendo y se entra con la nueva; una nueva que no cumple las reglas (incluida la de datos personales) o una temporal incorrecta responden 400 por campo sin quitar la marca. Dominio: `PoliticaContrasenaTests` (6), `UsuarioTests.CambiarContrasena_GuardaElHashYDejaDeSerTemporal`. Aplicación: `CambiarContrasenaTests` (9). API: `CambioClaveEndpointTests` (5). Infraestructura: `RepositorioSesionesPostgresTests.ConsultarEstado_*` (2), `VigentesDelUsuario_*`. Cliente: `CambioClaveViewModelTests` (12), `MainViewModelTests.CA_HU_013_02_*` (3), `ServicioSesionHttpTests.CambiarContrasena_*` (3). | Aprobado |
+
+Pruebas adicionales de la historia:
+
+- **Cambio voluntario (RF-012):** `CriteriosHu013Tests.CambioVoluntario_CierraLasDemasSesionesYConservaLaActual` (las demás sesiones se revocan con el motivo `CambioContrasena`); `CambiarContrasenaTests.RevocaLasDemasSesionesYConservaLaActual`, `CambioVoluntario_SeAnotaComoVoluntario`; en el cliente, `MainViewModelTests.CambioVoluntario_DesdeElMarco_SeAbreYSeCierraConConfirmacion`, `SinServicioDeSesion_NoOfreceElCambioVoluntario`.
+- **Datos personales en la bitácora (Ley 1581 de 2012):** el evento `ACTUALIZAR` sobre `usuario` no lleva la contraseña temporal, la nueva ni el correo (`CriteriosHu013Tests.CA_HU_013_02_AlDefinirUnaNueva_*`, `CambiarContrasenaTests.QuedaEnLaBitacoraSinLaClaveNiElCorreo`).
+
+### Verificación manual
+
+En el cliente WPF contra la API real (09/11/2026), con un usuario AC-04 de prueba creado por el Administrador y borrado al terminar: UI-002 aparece en lugar del menú con el aviso MSG-004; guardar vacío marca cada campo con MSG-008; las reglas se marcan mientras se escribe; «Mostrar contraseñas» descubre los campos; al guardar se abre el marco con «Contraseña actualizada». Desde «Cambiar contraseña» del pie del panel: la clave actual incorrecta y la regla de datos personales se marcan con el error de la API, y un cambio correcto muestra que las demás sesiones se cerraron.
+
+### Contrato implementado: `PUT /api/v1/auth/password`
+
+Cuerpo `{ "actual": "…", "nueva": "…" }`. Responde 204; 400 con `errors.actual` o `errors.nueva` (el texto de cada regla incumplida); 401 `MSG-002` si la cuenta o la institución ya no están disponibles. Mientras el usuario tenga clave temporal, todo endpoint distinto de `/auth/password`, `/auth/refresh` y `/auth/logout` responde 403 con `codigo: MSG-004`.
+
+## HU-014 · Estado operativo y baja lógica de equipos
+
+Caso de uso CU-002 · RF-014 · RN-008 · RN-009 · SEC-003 · DOC-06 Tabla 29 (reversión de la baja por AC-02). Sin migración: usa `historial_estado_equipo` y `equipo_biomedico.fecha_baja` del script 01.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-018 | CA-HU-014-01: el cambio de estado con su motivo queda registrado en el historial del equipo con fecha y usuario. | RF-014 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu014Tests.CA_HU_014_01_CambioConMotivo_QuedaEnElHistorialConFechaYUsuario`: en `historial_estado_equipo` quedan el alta y el cambio con estado anterior y nuevo, motivo, fecha y el usuario del token; `GET /estados` los devuelve con los nombres; la bitácora registra el cambio sin el motivo. Dominio: `EstadoEquipoTests` (15). Aplicación: `CambioEstadoEquipoTests.CA_HU_014_01_*`, `CambioDeEstado_QuedaEnLaBitacoraSinElMotivo`, `MismoEstado_*`, `EstadoVacioOInexistente_*` (3), `MotivoVacioOLargo_*` (3), `Historial_*`; `GestionEquiposTests.Crear_GuardaElAltaComoPrimerRegistroDelHistorial`. API: `EquiposEndpointTests.CambiarEstado_*` (3), `RolesDeConsulta_VenElHistorialDeEstados` (2). Infraestructura: `RepositorioEquiposPostgresTests.Historial_*`, `MapeoInventarioTests.Historial_ColumnasDelScript01`. | Aprobado |
+| CP-018 | CA-HU-014-02: al dar de baja un equipo deja de figurar como activo, pero su hoja de vida y su historial se conservan. | RF-014, RN-009 | Integración: `CriteriosHu014Tests.CA_HU_014_02_*`: el equipo queda «Baja» con fecha de baja, sigue consultable con su historial y solo aparece con el filtro `estado=BAJA`; `Baja_LiberaCupoYLaReversionConElPlanLleno_Responde409Rn009`; `Reversion_ConCupo_VuelveAOperativoYQuedaEnElHistorial` (desde la baja solo se vuelve a «Operativo», 409 `EQ-002`). Aplicación: `CambioEstadoEquipoTests.CA_HU_014_02_*`, `Reversion_*` (2), `Baja_ConElCupoLleno_SiSePermite`, `EquipoDeBaja_*` (2). API: `EquiposEndpointTests.IngenieroBiomedico_DaDeBaja200ConElEquipoActualizado`. | Aprobado |
+
+Pruebas adicionales de la historia:
+
+- **Permisos (RNF-003):** `CriteriosHu014Tests.SoloElIngenieroCambiaElEstado_LosDemasConsultanElHistorial`; `EquiposEndpointTests.SoloElIngenieroBiomedico_CambiaEstadoYDaDeBaja` (5 roles), `CambiarEstado_SinToken_Responde401`.
+- **Aislamiento entre instituciones (RN-008, SEC-003):** `CriteriosHu014Tests.EquipoDeOtraInstitucion_Responde404YNoCambia`; `CambioEstadoEquipoTests.EquipoDeOtroTenant_Responde404`; `RepositorioEquiposPostgresTests.Historial_*` (otro tenant no ve el historial).
+
+Última ejecución: 10/11/2026 (UTC−5), rama `feature/HU-014-estado-baja`, con PostgreSQL y MongoDB de Docker: 637 pruebas aprobadas, 0 fallidas, 0 omitidas (Dominio 82, Aplicación 117, Infraestructura 77, API 155, Cliente 206). En el CI se omiten las de integración porque allí no hay bases de datos.
+
+### Contrato implementado: `/api/v1/equipos/{id}/estado` y `/api/v1/equipos/{id}/estados` (API-EQ)
+
+| Método y ruta | Uso | Respuestas |
+|---|---|---|
+| `PATCH /equipos/{id}/estado` | Solo AC-02. Cuerpo `{ "estado": "FUERA_DE_SERVICIO", "motivo": "…" }` con `OPERATIVO`, `EN_MANTENIMIENTO`, `FUERA_DE_SERVICIO` o `BAJA`. Pedir `OPERATIVO` para un equipo de baja revierte la baja | 200 con el equipo; 400 en `estado` o `motivo` (obligatorio, máximo 300 caracteres); 404; 409 `EQ-001` (ya está en ese estado), `EQ-002` (de baja solo vuelve a «Operativo») o `RN-009` (revertir con el cupo del plan lleno) |
+| `GET /equipos/{id}/estados` | Historial, del más reciente al más antiguo (AC-01 a AC-05 y AC-07) | 200 `[{ id, fecha, estadoAnterior, estadoAnteriorNombre, estado, estadoNombre, motivo, usuario }]` (sin estado anterior en el alta); 404 |
+
+### Pendientes
+
+- **Diálogo de baja en el cliente WPF:** llega con el commit 37 (UI-006).
+- **Historial en la línea de tiempo de la hoja de vida:** se mostrará con HU-023 (API-EQ-HV).

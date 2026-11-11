@@ -2,7 +2,7 @@ using System.Net.Http;
 
 namespace Sitbio.Desktop.Services;
 
-/// <summary>/equipos sobre <see cref="ClienteApi"/> (lleva el token): consulta (API-EQ-LIST, API-EQ), registro y edición.</summary>
+/// <summary>/equipos sobre <see cref="ClienteApi"/> (lleva el token): consulta (API-EQ-LIST, API-EQ), registro, edición y cambio de estado (HU-014).</summary>
 public sealed class ServicioEquiposHttp(ClienteApi cliente) : IServicioEquipos
 {
     public Task<PaginaEquipos> ListarAsync(FiltroEquipos filtro, CancellationToken cancellationToken) =>
@@ -16,6 +16,10 @@ public sealed class ServicioEquiposHttp(ClienteApi cliente) : IServicioEquipos
 
     public Task<Equipo> ActualizarAsync(Guid id, DatosEquipo datos, CancellationToken cancellationToken) =>
         PeticionApi.EnviarAsync<Equipo>(cliente, HttpMethod.Put, $"equipos/{id}", datos, MensajeGestion, cancellationToken);
+
+    /// <summary>Los 409 (EQ-001, EQ-002, RN-009) llegan con el texto de la API.</summary>
+    public Task<Equipo> CambiarEstadoAsync(Guid id, string estado, string motivo, CancellationToken cancellationToken) =>
+        PeticionApi.EnviarAsync<Equipo>(cliente, HttpMethod.Patch, $"equipos/{id}/estado", new { estado, motivo }, MensajeEstado, cancellationToken);
 
     /// <summary>Ruta con los filtros presentes; los textos van escapados.</summary>
     public static string Ruta(FiltroEquipos filtro)
@@ -54,6 +58,13 @@ public sealed class ServicioEquiposHttp(ClienteApi cliente) : IServicioEquipos
     private static string? MensajeGestion(int estado) => estado switch
     {
         403 => "Solo el Ingeniero Biomédico registra y edita equipos.",
+        404 => NoEncontrado,
+        _ => null,
+    };
+
+    private static string? MensajeEstado(int estado) => estado switch
+    {
+        403 => "Solo el Ingeniero Biomédico cambia el estado de los equipos y los da de baja.",
         404 => NoEncontrado,
         _ => null,
     };

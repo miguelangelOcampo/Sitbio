@@ -7,7 +7,7 @@ namespace Sitbio.Desktop.ViewModels;
 /// <summary>
 /// UI-006 Hoja de vida del equipo (HU-002; RF-030, RN-010). Pestañas «Resumen» e «Información
 /// técnica»; mantenimientos, historial y documentos llegan con sus historias (HU-023, HU-015).
-/// Solo lectura en este commit: registrar y editar llegan con el formulario (UI-007).
+/// AC-02 edita (UI-007), da de baja y revierte la baja (HU-014) desde aquí; la API lo valida.
 /// </summary>
 public partial class DetalleEquipoViewModel(
     IServicioEquipos servicio,
@@ -15,12 +15,26 @@ public partial class DetalleEquipoViewModel(
     Guid equipoId,
     string placa,
     Action volver,
-    bool puedeEditar = false) : ObservableObject
+    bool puedeEditar = false,
+    Func<Task>? alCambiarEstado = null) : ObservableObject
 {
     public string Placa { get; } = placa;
 
-    /// <summary>Solo AC-02 ve «Editar» (la API también lo valida, RNF-003).</summary>
-    public bool PuedeEditar => puedeEditar && HayEquipo;
+    /// <summary>Solo AC-02 ve «Editar» (la API también lo valida, RNF-003); un equipo de baja no se edita.</summary>
+    public bool PuedeEditar => puedeEditar && HayEquipo && !EstaDeBaja;
+
+    /// <summary>HU-014: «Dar de baja» en el encabezado (solo AC-02).</summary>
+    public bool PuedeDarDeBaja => PuedeEditar;
+
+    /// <summary>HU-014: «Revertir» en el aviso de baja (solo AC-02; RN-009 lo decide la API).</summary>
+    public bool PuedeRevertir => puedeEditar && EstaDeBaja;
+
+    public bool EstaDeBaja => Equipo?.Estado == EstadosEquipo.Baja;
+
+    /// <summary>Diálogo de baja o de reversión abierto; null = cerrado.</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ConfirmarBajaCommand))]
+    private BajaEquipoViewModel? _baja;
 
     /// <summary>Confirmación tras guardar cambios desde el formulario UI-007.</summary>
     [ObservableProperty]
@@ -37,7 +51,7 @@ public partial class DetalleEquipoViewModel(
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(
-        nameof(HayEquipo), nameof(PuedeEditar), nameof(Titulo), nameof(Subtitulo), nameof(Estado), nameof(Tono), nameof(AvisoRegulatorio), nameof(AvisoBaja),
+        nameof(HayEquipo), nameof(PuedeEditar), nameof(PuedeDarDeBaja), nameof(PuedeRevertir), nameof(EstaDeBaja), nameof(Titulo), nameof(Subtitulo), nameof(Estado), nameof(Tono), nameof(AvisoRegulatorio), nameof(AvisoBaja),
         nameof(ProximoMantenimiento), nameof(DetalleMantenimiento), nameof(MantenimientoVencido), nameof(Calibracion), nameof(DetalleCalibracion),
         nameof(Autorizacion), nameof(DetalleAutorizacion), nameof(AutorizacionEnAlerta), nameof(DatosActivo), nameof(InformacionTecnica),
         nameof(InformacionRegulatoria))]
@@ -193,6 +207,60 @@ public partial class DetalleEquipoViewModel(
         finally
         {
             Cargando = false;
+        }
+    }
+
+    [RelayCommand]
+    private void AbrirBaja() => AbrirDialogo(esReversion: false);
+
+    [RelayCommand]
+    private void AbrirReversion() => AbrirDialogo(esReversion: true);
+
+    [RelayCommand]
+    private void CancelarBaja() => Baja = null;
+
+    /// <summary>
+    /// Envía la baja (BAJA) o la reversión (OPERATIVO, RN-009). Si la API la rechaza, el diálogo
+    /// sigue abierto con el error; si la acepta, se cierra y la hoja de vida muestra el equipo nuevo.
+    /// </summary>
+    [RelayCommand]
+    private async Task ConfirmarBajaAsync()
+    {
+        if (Baja is not { } dialogo || Equipo is not { } equipo || dialogo.Enviando || !dialogo.Validar())
+        {
+            return;
+        }
+
+        dialogo.Enviando = true;
+        try
+        {
+            var estado = dialogo.EsReversion ? EstadosEquipo.Operativo : EstadosEquipo.Baja;
+            Equipo = await servicio.CambiarEstadoAsync(equipo.Id, estado, dialogo.Motivo, CancellationToken.None);
+            Baja = null;
+            Confirmacion = dialogo.EsReversion
+                ? new Aviso($"Baja de {Placa} revertida", "El equipo volvió al inventario activo como «Operativo». El cambio quedó en su historial.", null, EsError: false)
+                : new Aviso($"{Placa} dado de baja", "Salió del inventario activo y de los indicadores. Su hoja de vida y su historial se conservan.", null, EsError: false);
+            if (alCambiarEstado is not null)
+            {
+                await alCambiarEstado();
+            }
+        }
+        catch (ErrorApi error)
+        {
+            dialogo.MostrarError(error);
+        }
+        finally
+        {
+            dialogo.Enviando = false;
+        }
+    }
+
+    private void AbrirDialogo(bool esReversion)
+    {
+        if (Equipo is { } equipo && (esReversion ? PuedeRevertir : PuedeDarDeBaja))
+        {
+            Confirmacion = null;
+            Baja = new BajaEquipoViewModel(Placa, equipo.TipoEquipo, esReversion);
         }
     }
 

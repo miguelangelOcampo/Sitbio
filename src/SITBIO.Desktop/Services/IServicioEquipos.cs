@@ -13,6 +13,21 @@ public interface IServicioEquipos
     Task<Equipo> CrearAsync(DatosEquipo datos, CancellationToken cancellationToken);
 
     Task<Equipo> ActualizarAsync(Guid id, DatosEquipo datos, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// PATCH /equipos/{id}/estado (HU-014, solo AC-02): cambio de estado, baja lógica o, con
+    /// <see cref="EstadosEquipo.Operativo"/> para un equipo de baja, reversión de la baja (RN-009).
+    /// </summary>
+    Task<Equipo> CambiarEstadoAsync(Guid id, string estado, string motivo, CancellationToken cancellationToken);
+}
+
+/// <summary>Códigos de estado que acepta PATCH /equipos/{id}/estado.</summary>
+public static class EstadosEquipo
+{
+    public const string Operativo = "OPERATIVO";
+    public const string EnMantenimiento = "EN_MANTENIMIENTO";
+    public const string FueraDeServicio = "FUERA_DE_SERVICIO";
+    public const string Baja = "BAJA";
 }
 
 /// <summary>Cuerpo de POST y PUT /equipos (RF-030, CA-HU-002-06).</summary>

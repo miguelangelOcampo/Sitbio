@@ -200,4 +200,59 @@ public class ServicioEquiposHttpTests
         var tipo = Assert.Single(tipos);
         Assert.Equal(("Tensiómetro", "I", 12), (tipo.Nombre, tipo.ClaseRiesgo, tipo.PeriodicidadCalibracionMeses));
     }
+
+    // ---------- HU-014: cambio de estado y baja ----------
+
+    [Fact]
+    public async Task CambiarEstado_EnviaPatchConEstadoYMotivo()
+    {
+        var id = Guid.NewGuid();
+        string? cuerpo = null;
+        var (servicio, manejador) = Crear(solicitud =>
+        {
+            cuerpo = solicitud.Content!.ReadAsStringAsync().Result;
+            return Json(HttpStatusCode.OK, EquipoJson(id, "BAJA", "Baja", "\"2026-11-10T15:00:00+00:00\""));
+        });
+
+        var equipo = await servicio.CambiarEstadoAsync(id, EstadosEquipo.Baja, "Daño irreparable · Tarjeta principal quemada", CancellationToken.None);
+
+        Assert.Equal($"PATCH /api/v1/equipos/{id}/estado", manejador.Rutas.Single());
+        var json = System.Text.Json.JsonDocument.Parse(cuerpo!).RootElement;
+        Assert.Equal("BAJA", json.GetProperty("estado").GetString());
+        Assert.Equal("Daño irreparable · Tarjeta principal quemada", json.GetProperty("motivo").GetString());
+        Assert.Equal("BAJA", equipo.Estado);
+        Assert.NotNull(equipo.FechaBaja);
+    }
+
+    [Fact]
+    public async Task CambiarEstado_403_ExplicaQueSoloElIngeniero()
+    {
+        var (servicio, _) = Crear(_ => Json(HttpStatusCode.Forbidden, """{"status":403}"""));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.CambiarEstadoAsync(Guid.NewGuid(), EstadosEquipo.Baja, "Motivo", CancellationToken.None));
+
+        Assert.Equal("Solo el Ingeniero Biomédico cambia el estado de los equipos y los da de baja.", error.Message);
+    }
+
+    [Theory]
+    [InlineData("EQ-002", "Un equipo de baja solo puede volver a «Operativo».")]
+    [InlineData("RN-009", "Se alcanzó el límite de equipos activos del plan.")]
+    public async Task CambiarEstado_409_TraeElCodigoYElTextoDeLaApi(string codigo, string detalle)
+    {
+        var (servicio, _) = Crear(_ => Json(HttpStatusCode.Conflict, $$"""{"status":409,"codigo":"{{codigo}}","detail":"{{detalle}}"}"""));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.CambiarEstadoAsync(Guid.NewGuid(), EstadosEquipo.Operativo, "Se repararon", CancellationToken.None));
+
+        Assert.Equal(codigo, error.Codigo);
+        Assert.Equal(detalle, error.Message);
+    }
+
+    private static string EquipoJson(Guid id, string estado, string nombre, string fechaBaja) => $$"""
+        {"id":"{{id}}","placaInventario":"HSV-EQ-0412","numeroSerie":"MX450-77812","marca":"Philips","modelo":"IntelliVue MX450",
+         "tipoEquipoId":"{{Guid.NewGuid()}}","tipoEquipo":"Monitor de signos vitales","ubicacionId":"{{Guid.NewGuid()}}",
+         "ubicacion":"UCI adultos","proveedorId":null,"proveedor":null,"estado":"{{estado}}","estadoNombre":"{{nombre}}",
+         "fechaAdquisicion":"2022-03-15","fechaBaja":{{fechaBaja}},"tipoAutorizacion":"registro_sanitario","registroInvima":"INVIMA 2019DM-0019830",
+         "venceRegistro":"2027-02-10","avisoRegistro":"Vigente","claseRiesgo":"IIb","requiereCalibracion":true,
+         "periodicidadCalibracionMeses":12,"tieneFoto":false,"preventivo":null}
+        """;
 }

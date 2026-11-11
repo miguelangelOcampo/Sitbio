@@ -297,5 +297,5 @@ Pruebas adicionales de la historia:
 
 ### Pendientes
 
-- **Diálogo de baja en el cliente WPF:** llega con el commit 37 (UI-006).
+- ~~**Diálogo de baja en el cliente WPF**~~ resuelto: en la hoja de vida (UI-006) AC-02 da de baja con el motivo (obsolescencia tecnológica, daño irreparable, fin de vida útil, traslado o donación u otro descrito con al menos 10 caracteres) y revierte la baja desde el aviso «Equipo dado de baja». Pruebas del cliente: `BajaEquipoViewModelTests` (21), `ServicioEquiposHttpTests.CambiarEstado_*` (4). Verificación manual (10/11/2026) contra la API real con un equipo de prueba borrado al terminar: MSG-008 sin motivo, «Otro» exige describirlo, la baja oculta «Editar» y ofrece «Revertir», y la reversión vuelve a «Operativo»; ambos cambios quedan en `historial_estado_equipo` con su motivo.
 - **Historial en la línea de tiempo de la hoja de vida:** se mostrará con HU-023 (API-EQ-HV).

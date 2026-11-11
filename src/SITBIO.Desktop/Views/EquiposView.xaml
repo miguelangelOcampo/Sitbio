@@ -100,10 +100,15 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <!-- Editar (solo AC-02): abre el formulario UI-007 -->
-          <Button Grid.Column="2" Content="Editar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" AutomationProperties.Name="Editar equipo"
-                  Command="{Binding DataContext.EditarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Equipo}"
-                  Visibility="{Binding PuedeEditar, Converter={StaticResource Visible}}" />
+          <!-- Editar (UI-007) y Dar de baja (HU-014): solo AC-02 y con el equipo activo -->
+          <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="Editar" Style="{StaticResource LinkButton}" AutomationProperties.Name="Editar equipo"
+                    Command="{Binding DataContext.EditarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Equipo}"
+                    Visibility="{Binding PuedeEditar, Converter={StaticResource Visible}}" />
+            <Button Content="Dar de baja" Style="{StaticResource LinkButton}" Foreground="{DynamicResource Brush.DangerText}" Margin="24,0,0,0"
+                    AutomationProperties.Name="Dar de baja el equipo" Command="{Binding AbrirBajaCommand}"
+                    Visibility="{Binding PuedeDarDeBaja, Converter={StaticResource Visible}}" />
+          </StackPanel>
           <Border Width="56" Height="56" CornerRadius="12" Background="{DynamicResource Brush.PrimarySoft}" VerticalAlignment="Top"
                   AutomationProperties.Name="Ícono del tipo de equipo">
             <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Width="28" Height="28"
@@ -155,13 +160,18 @@
         <!-- Equipo dado de baja (RF-014) -->
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}"
                 Margin="0,18,0,0" Visibility="{Binding AvisoBaja, Converter={StaticResource NuloVisible}}">
-          <StackPanel>
-            <DockPanel>
-              <TextBlock DockPanel.Dock="Right" Text="{Binding AvisoBaja.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
-              <TextBlock Text="{Binding AvisoBaja.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
-            </DockPanel>
-            <TextBlock Text="{Binding AvisoBaja.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-          </StackPanel>
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="Revertir" Style="{StaticResource LinkButton}" VerticalAlignment="Bottom" Margin="16,0,0,0"
+                    AutomationProperties.Name="Revertir la baja" Command="{Binding AbrirReversionCommand}"
+                    Visibility="{Binding PuedeRevertir, Converter={StaticResource Visible}}" />
+            <StackPanel>
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="{Binding AvisoBaja.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+                <TextBlock Text="{Binding AvisoBaja.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+              </DockPanel>
+              <TextBlock Text="{Binding AvisoBaja.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+            </StackPanel>
+          </DockPanel>
         </Border>
 
         <!-- RN-010: autorización vencida, por vencer o faltante (aviso, no bloqueo) -->
@@ -757,6 +767,80 @@
             </StackPanel>
           </ScrollViewer>
         </DockPanel>
+      </Border>
+    </Grid>
+    <!-- ================= HU-014 Dar de baja o revertir la baja (solo AC-02; prototipo HojaVida.tsx) ================= -->
+    <Grid x:Name="DialogoBaja" DataContext="{Binding Detalle}" Visibility="{Binding Baja, Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CancelarBajaCommand}" />
+      <Border Style="{StaticResource Dialog}" Width="500" HorizontalAlignment="Center" VerticalAlignment="Center" DataContext="{Binding Baja}"
+              AutomationProperties.Name="{Binding Titulo}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <!-- Rojo al dar de baja; verde al revertir (no es destructiva) -->
+            <Border Width="36" Height="36" CornerRadius="10" Margin="0,0,12,0" VerticalAlignment="Top">
+              <Border.Style>
+                <Style TargetType="Border">
+                  <Setter Property="Background" Value="{DynamicResource Brush.DangerSoft}" />
+                  <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.DangerText}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding EsReversion}" Value="True">
+                      <Setter Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+                      <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Primary}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Border.Style>
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" />
+            </Border>
+            <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="18" TextWrapping="Wrap" VerticalAlignment="Center" MaxWidth="400" />
+          </StackPanel>
+
+          <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,16,0,0"
+                          Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" />
+
+          <!-- Motivo de la baja -->
+          <StackPanel Visibility="{Binding EsBaja, Converter={StaticResource Visible}}" Margin="0,16,0,0">
+            <TextBlock Text="Motivo de la baja" Style="{StaticResource FieldLabel}" />
+            <ItemsControl ItemsSource="{Binding Opciones}" Focusable="False" Margin="0,4,0,0" AutomationProperties.Name="Motivo de la baja">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:OpcionMotivo}">
+                  <RadioButton Style="{StaticResource OpcionRadio}" GroupName="MotivoBaja" Content="{Binding Texto}" IsChecked="{Binding Elegida}" Margin="0,4" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="{Binding ErrorMotivo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorMotivo, Converter={StaticResource TextoVisible}}" />
+          </StackPanel>
+
+          <TextBlock Text="{Binding EtiquetaObservacion}" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+          <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorObservacion}">
+            <TextBox Style="{StaticResource FieldInput}" Text="{Binding Observacion, UpdateSourceTrigger=PropertyChanged}" Height="76" TextWrapping="Wrap"
+                     AcceptsReturn="True" VerticalContentAlignment="Top" VerticalScrollBarVisibility="Auto" MaxLength="300"
+                     AutomationProperties.Name="{Binding EtiquetaObservacion}" />
+          </Border>
+          <TextBlock Text="{Binding ErrorObservacion}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorObservacion, Converter={StaticResource TextoVisible}}" />
+
+          <!-- Qué pasará -->
+          <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0">
+            <StackPanel>
+              <TextBlock Text="Qué pasará" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+              <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                         Visibility="{Binding EsBaja, Converter={StaticResource Visible}}"
+                         Text="El equipo sale del inventario activo, de los indicadores y del límite del plan. Su hoja de vida y su historial se conservan, y la baja se puede revertir." />
+              <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                         Visibility="{Binding EsReversion, Converter={StaticResource Visible}}"
+                         Text="El equipo vuelve al inventario activo como «Operativo» y cuenta otra vez en el límite de equipos del plan (RN-009)." />
+            </StackPanel>
+          </Border>
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0" IsCancel="True"
+                    Command="{Binding DataContext.CancelarBajaCommand, ElementName=DialogoBaja}" />
+            <Button Content="Dar de baja" Style="{StaticResource DangerButton}" Visibility="{Binding EsBaja, Converter={StaticResource Visible}}"
+                    Command="{Binding DataContext.ConfirmarBajaCommand, ElementName=DialogoBaja}" />
+            <Button Content="Revertir baja" Style="{StaticResource PrimaryButton}" Visibility="{Binding EsReversion, Converter={StaticResource Visible}}"
+                    Command="{Binding DataContext.ConfirmarBajaCommand, ElementName=DialogoBaja}" />
+          </StackPanel>
+        </StackPanel>
       </Border>
     </Grid>
   </Grid>

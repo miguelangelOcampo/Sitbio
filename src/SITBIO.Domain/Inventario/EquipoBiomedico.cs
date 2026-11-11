@@ -138,6 +138,58 @@ public sealed class EquipoBiomedico : EntidadTenant
     /// <summary>RN-010: aviso (no bloqueo) si la autorización venció o le faltan 180 días o menos.</summary>
     public AvisoRegistro AvisoDelRegistro(DateOnly hoy) => Calibracion.Aviso(VenceRegistro, hoy);
 
+    // ---------- Estado operativo y baja lógica (RF-014, HU-014) ----------
+
+    /// <summary>
+    /// Cambia el estado con su motivo y devuelve el registro para el historial (CA-HU-014-01).
+    /// Pasar a «Baja» fija la fecha de baja; la hoja de vida y el historial se conservan
+    /// (CA-HU-014-02). Un equipo dado de baja solo sale de ese estado con <see cref="RevertirBaja"/>.
+    /// </summary>
+    public HistorialEstadoEquipo CambiarEstado(short nuevoEstadoId, string? motivo, Guid usuarioId, DateTimeOffset momento)
+    {
+        if (!EstadosEquipo.EsValido(nuevoEstadoId))
+        {
+            throw new ArgumentException("El estado indicado no existe.", nameof(nuevoEstadoId));
+        }
+
+        if (DadoDeBaja)
+        {
+            throw new InvalidOperationException("El equipo está dado de baja: primero revierte la baja.");
+        }
+
+        if (nuevoEstadoId == EstadoEquipoId)
+        {
+            throw new InvalidOperationException("El equipo ya está en ese estado.");
+        }
+
+        return Registrar(nuevoEstadoId, motivo, usuarioId, momento, nuevoEstadoId == EstadosEquipo.Baja ? momento : null);
+    }
+
+    /// <summary>Baja lógica: deja de figurar como activo y no consume capacidad del plan (RN-009).</summary>
+    public HistorialEstadoEquipo DarDeBaja(string? motivo, Guid usuarioId, DateTimeOffset momento) =>
+        CambiarEstado(EstadosEquipo.Baja, motivo, usuarioId, momento);
+
+    /// <summary>Reversión de la baja por AC-02 (DOC-06, Tabla 29): el equipo vuelve a «Operativo».</summary>
+    public HistorialEstadoEquipo RevertirBaja(string? motivo, Guid usuarioId, DateTimeOffset momento)
+    {
+        if (!DadoDeBaja)
+        {
+            throw new InvalidOperationException("El equipo no está dado de baja.");
+        }
+
+        return Registrar(EstadosEquipo.Operativo, motivo, usuarioId, momento, null);
+    }
+
+    private HistorialEstadoEquipo Registrar(short nuevoEstadoId, string? motivo, Guid usuarioId, DateTimeOffset momento, DateTimeOffset? fechaBaja)
+    {
+        // Se valida todo antes de cambiar el estado: si algo falla, el equipo queda como estaba.
+        var motivoLimpio = Texto.Requerido(motivo, nameof(motivo), HistorialEstadoEquipo.LongitudMaximaMotivo);
+        var registro = new HistorialEstadoEquipo(TenantId, Id, EstadoEquipoId, nuevoEstadoId, usuarioId, motivoLimpio, momento);
+        EstadoEquipoId = nuevoEstadoId;
+        FechaBaja = fechaBaja;
+        return registro;
+    }
+
     private static Guid Requerido(Guid id, string campo) =>
         id != Guid.Empty ? id : throw new ArgumentException($"El campo {campo} es obligatorio.", campo);
 }

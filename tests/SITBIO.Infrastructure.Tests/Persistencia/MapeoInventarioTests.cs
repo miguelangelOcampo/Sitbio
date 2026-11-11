@@ -28,6 +28,7 @@ public class MapeoInventarioTests
     [InlineData(typeof(Proveedor), "proveedor")]
     [InlineData(typeof(EquipoBiomedico), "equipo_biomedico")]
     [InlineData(typeof(PlanPreventivo), "plan_preventivo")]
+    [InlineData(typeof(HistorialEstadoEquipo), "historial_estado_equipo")]
     public void Entidad_SeMapeaASuTablaEnElEsquemaSitbio(Type entidad, string tabla)
     {
         var tipo = Modelo().FindEntityType(entidad)!;
@@ -53,6 +54,21 @@ public class MapeoInventarioTests
         Assert.Equal("periodicidad_calibracion_meses", Columna(equipo, nameof(EquipoBiomedico.PeriodicidadCalibracionMeses)));
         Assert.Equal("foto_documento_id", Columna(equipo, nameof(EquipoBiomedico.FotoDocumentoId)));
         Assert.Null(equipo.FindProperty(nameof(EquipoBiomedico.DadoDeBaja)));
+    }
+
+    [Fact]
+    public void Historial_ColumnasDelScript01()
+    {
+        var historial = Modelo().FindEntityType(typeof(HistorialEstadoEquipo))!;
+
+        Assert.Equal("id_historial", Columna(historial, nameof(HistorialEstadoEquipo.Id)));
+        Assert.Equal("tenant_id", Columna(historial, nameof(HistorialEstadoEquipo.TenantId)));
+        Assert.Equal("equipo_id", Columna(historial, nameof(HistorialEstadoEquipo.EquipoId)));
+        Assert.Equal("estado_anterior_id", Columna(historial, nameof(HistorialEstadoEquipo.EstadoAnteriorId)));
+        Assert.Equal("nuevo_estado_id", Columna(historial, nameof(HistorialEstadoEquipo.NuevoEstadoId)));
+        Assert.Equal("usuario_id", Columna(historial, nameof(HistorialEstadoEquipo.UsuarioId)));
+        Assert.Equal("motivo", Columna(historial, nameof(HistorialEstadoEquipo.Motivo)));
+        Assert.Equal("fecha_cambio", Columna(historial, nameof(HistorialEstadoEquipo.FechaCambio)));
     }
 
     [Fact]
@@ -88,7 +104,7 @@ public class MapeoInventarioTests
     {
         var modelo = Modelo();
 
-        foreach (var entidad in new[] { typeof(TipoEquipo), typeof(Ubicacion), typeof(Proveedor), typeof(EquipoBiomedico), typeof(PlanPreventivo) })
+        foreach (var entidad in new[] { typeof(TipoEquipo), typeof(Ubicacion), typeof(Proveedor), typeof(EquipoBiomedico), typeof(PlanPreventivo), typeof(HistorialEstadoEquipo) })
         {
             Assert.NotEmpty(modelo.FindEntityType(entidad)!.GetDeclaredQueryFilters());
         }

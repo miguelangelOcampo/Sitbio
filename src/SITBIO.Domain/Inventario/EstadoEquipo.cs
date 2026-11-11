@@ -33,4 +33,6 @@ public static class EstadosEquipo
 
     /// <summary>Códigos de <c>estado_equipo.codigo</c> (script 01), para filtrar por estado.</summary>
     public static IReadOnlyList<string> Codigos { get; } = [CodigoOperativo, "EN_MANTENIMIENTO", "FUERA_DE_SERVICIO", "BAJA"];
+
+    public static bool EsValido(short id) => id is >= Operativo and <= Baja;
 }

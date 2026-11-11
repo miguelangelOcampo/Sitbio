@@ -98,6 +98,14 @@ public sealed class RepositorioEquipos(SitbioDbContext contexto, IContextoUsuari
 
     public void Agregar(PlanPreventivo plan) => contexto.PlanesPreventivos.Add(plan);
 
+    public void Agregar(HistorialEstadoEquipo registro) => contexto.HistorialEstados.Add(registro);
+
+    public async Task<IReadOnlyList<HistorialEstadoEquipo>> HistorialAsync(Guid equipoId, CancellationToken cancellationToken) =>
+        await contexto.HistorialEstados.AsNoTracking()
+            .Where(h => h.EquipoId == equipoId)
+            .OrderByDescending(h => h.FechaCambio).ThenByDescending(h => h.Id)
+            .ToListAsync(cancellationToken);
+
     public async Task GuardarAsync(CancellationToken cancellationToken)
     {
         try

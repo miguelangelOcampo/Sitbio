@@ -5,6 +5,7 @@ using Sitbio.Application.Comun;
 using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.Equipos;
 using Sitbio.Domain.Inventario;
+using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Inventario;
 using Sitbio.Infrastructure.Persistencia;
 
@@ -90,7 +91,7 @@ public class RepositorioEquiposPostgresTests : IAsyncLifetime
         var (contexto, _) = Crear(_tenantA);
         await using (contexto)
         {
-            foreach (var tabla in new[] { "plan_preventivo", "equipo_biomedico", "tipo_equipo", "ubicacion" })
+            foreach (var tabla in new[] { "historial_estado_equipo", "plan_preventivo", "equipo_biomedico", "tipo_equipo", "ubicacion", "usuario" })
             {
                 await contexto.Database.ExecuteSqlRawAsync(
                     $"DELETE FROM sitbio.{tabla} WHERE tenant_id IN (@a, @b)",
@@ -206,6 +207,49 @@ public class RepositorioEquiposPostgresTests : IAsyncLifetime
         await using (contextoB)
         {
             Assert.Equal(new Duplicados(false, false), await repositorioB.DuplicadosAsync("SN-XY_03", "XY_03", null, CancellationToken.None));
+        }
+    }
+
+    [FactIntegracion(Variable)]
+    public async Task Historial_GuardaCadaCambioDelMasRecienteAlMasAntiguoYOtroTenantNoLoVe()
+    {
+        var (contexto, repositorio) = Crear(_tenantA);
+        Guid equipoId;
+        await using (contexto)
+        {
+            var ingeniero = new Usuario(_tenantA, 2, "Ingeniero", "De Prueba", $"historial.{Guid.NewGuid():N}@demo-a.co", "hash-de-prueba");
+            contexto.Usuarios.Add(ingeniero);
+            var equipo = (await repositorio.ListarAsync(new FiltroEquipos { Placa = "XY_03" }, CancellationToken.None)).Items.Single().Equipo;
+            equipoId = equipo.Id;
+            var editable = (await repositorio.ObtenerAsync(equipoId, paraEditar: true, CancellationToken.None))!.Equipo;
+            var momento = DateTimeOffset.UtcNow;
+
+            repositorio.Agregar(HistorialEstadoEquipo.Alta(editable, ingeniero.Id));
+            repositorio.Agregar(editable.DarDeBaja("Obsoleto, sin repuestos del fabricante.", ingeniero.Id, momento.AddMinutes(1)));
+            repositorio.Agregar(editable.RevertirBaja("Se consiguieron los repuestos.", ingeniero.Id, momento.AddMinutes(2)));
+            await repositorio.GuardarAsync(CancellationToken.None);
+        }
+
+        var (lectura, repositorioLectura) = Crear(_tenantA);
+        await using (lectura)
+        {
+            var historial = await repositorioLectura.HistorialAsync(equipoId, CancellationToken.None);
+
+            Assert.Equal(
+                [(EstadosEquipo.Baja, EstadosEquipo.Operativo), (EstadosEquipo.Operativo, EstadosEquipo.Baja), ((short?)null, EstadosEquipo.Operativo)],
+                historial.Select(h => (h.EstadoAnteriorId, h.NuevoEstadoId)).ToArray());
+            Assert.Equal("Se consiguieron los repuestos.", historial[0].Motivo);
+            Assert.Null(historial[2].Motivo);
+
+            var equipo = (await repositorioLectura.ObtenerAsync(equipoId, paraEditar: false, CancellationToken.None))!.Equipo;
+            Assert.False(equipo.DadoDeBaja);
+            Assert.Equal(EstadosEquipo.Operativo, equipo.EstadoEquipoId);
+        }
+
+        var (contextoB, repositorioB) = Crear(_tenantB);
+        await using (contextoB)
+        {
+            Assert.Empty(await repositorioB.HistorialAsync(equipoId, CancellationToken.None));
         }
     }
 }

@@ -1,10 +1,12 @@
+using Sitbio.Domain.Inventario;
+
 namespace Sitbio.Application.Catalogos;
 
 /// <summary>
 /// Elemento de un catálogo maestro (API-CAT, DOC-06). En los tipos de equipo lleva los valores
 /// regulatorios que se proponen al registrar un equipo (RF-030, CA-HU-002-04); en los proveedores,
 /// su NIT y tipo; en los demás catálogos esos campos van nulos. Los datos de contacto del proveedor
-/// no se listan.
+/// no se listan: solo vienen en el detalle (GET /catalogos/proveedores/{id}).
 /// </summary>
 public sealed record CatalogoDto(
     Guid Id,
@@ -15,7 +17,21 @@ public sealed record CatalogoDto(
     int? PeriodicidadCalibracionMeses = null,
     string? Descripcion = null,
     string? Nit = null,
-    string? TipoProveedor = null);
+    string? TipoProveedor = null,
+    string? NombreContacto = null,
+    string? Correo = null,
+    string? Telefono = null)
+{
+    /// <summary>Detalle de un elemento, con el contacto si es un proveedor.</summary>
+    public static CatalogoDto Desde(IElementoCatalogo elemento) => elemento switch
+    {
+        TipoEquipo t => new(t.Id, t.Nombre, t.EstadoActivo, t.ClaseRiesgoDefecto, t.RequiereCalibracion, t.PeriodicidadCalibracionMeses, t.Descripcion),
+        Ubicacion u => new(u.Id, u.Nombre, u.EstadoActivo, Descripcion: u.Descripcion),
+        Proveedor p => new(
+            p.Id, p.Nombre, p.EstadoActivo, Nit: p.Nit, TipoProveedor: p.TipoProveedor, NombreContacto: p.NombreContacto, Correo: p.Correo, Telefono: p.Telefono),
+        _ => new(elemento.Id, elemento.Nombre, elemento.EstadoActivo),
+    };
+}
 
 /// <summary>Valores de <c>{tipo}</c> en /catalogos/{tipo}.</summary>
 public static class TiposCatalogo

@@ -222,8 +222,24 @@ El tenant sale del token. Consultan AC-01, AC-02, AC-03, AC-04, AC-05 y AC-07; r
 | `POST /equipos` | Registrar | 201 con `Location`; 400 por campo; 409 `RN-001` (placa o serie repetida) o `RN-009` (cupo del plan) |
 | `PUT /equipos/{id}` | Editar (el cupo del plan no la impide) | 200; 400; 404; 409 `RN-001` |
 | `GET /catalogos/{tipo}` | `tipos-equipo`, `ubicaciones`, `proveedores` o `tipos-falla` (este último desde HU-025, V009), con los inactivos, ordenados por nombre (solo AC-01 y AC-02) | 200 `[{ id, nombre, activo, claseRiesgo, requiereCalibracion, periodicidadCalibracionMeses, descripcion, nit, tipoProveedor }]` (clase y calibración solo en tipos de equipo; `descripcion` en tipos de equipo y ubicaciones; `nit` y `tipoProveedor` en proveedores); 404 si el catálogo no existe |
+| `GET /catalogos/{tipo}/{id}` | Detalle de un elemento (AC-01 y AC-02); en proveedores trae además `nombreContacto`, `correo` y `telefono` (HU-025) | 200; 404 si el catálogo o el elemento no existe o es de otra institución |
+| `POST /catalogos/{tipo}` | Crear (HU-025): AC-02 en los cuatro catálogos; AC-01 solo en `ubicaciones`. Nace activo | 201 con `Location`; 400 por campo; 403 (queda `ACCESO_DENEGADO` en la bitácora); 404; 409 `CAT-001` (nombre repetido sin distinguir mayúsculas o NIT de proveedor repetido) |
+| `PUT /catalogos/{tipo}/{id}` | Editar, activar o inactivar (`activo`; vacío conserva el estado). No hay `DELETE`: los elementos se inactivan (CA-HU-025-02) | 200; 400; 403; 404; 409 `CAT-001` |
 
-Cuerpo de `POST` y `PUT` (fechas ISO 8601):
+Cuerpo de `POST` y `PUT /catalogos/{tipo}` (cada catálogo usa sus campos; los demás se ignoran):
+
+```json
+{
+  "nombre": "Monitor multiparámetro", "descripcion": null,
+  "claseRiesgo": "IIb", "requiereCalibracion": true, "periodicidadCalibracionMeses": 12,
+  "nit": null, "tipoProveedor": null, "nombreContacto": null, "correo": null, "telefono": null,
+  "activo": null
+}
+```
+
+En tipos de equipo, sin clase queda «Por definir»; sin `requiereCalibracion` se calibra cada 12 meses al crear y conserva lo que tenía al editar; si no requiere calibración, la periodicidad queda vacía (RN-010).
+
+Cuerpo de `POST` y `PUT /equipos` (fechas ISO 8601):
 
 ```json
 {
@@ -244,7 +260,7 @@ La base local debe tener aplicada V008 (`database/README.md`). Con `SITBIO_PRUEB
 
 ### Pendientes
 
-- **Gestión de catálogos (HU-025):** el commit 40 dejó listos el dominio y el repositorio (crear, editar, activar e inactivar; nombres únicos sin distinguir mayúsculas; NIT único por proveedor; 409 `CAT-001`) y agregó el catálogo de tipos de falla (V009). Los endpoints `POST`/`PUT` con permisos y bitácora llegan con el commit 41, en el mismo módulo `Modules/Catalogos`.
+- **Gestión de catálogos (HU-025):** resuelto en los commits 40 y 41: dominio, repositorio, catálogo de tipos de falla (V009) y `POST`/`PUT`/`GET` por id con permisos por rol y bitácora (`CREAR`/`ACTUALIZAR` sobre `tipo_equipo`, `ubicacion`, `proveedor` o `tipo_falla`; el detalle lleva el nombre y los campos que cambiaron, nunca el contacto del proveedor). La pantalla UI-020 llega con el commit 43.
 - **DOC-06 (DAT-CATALOGOS):** debe incluir la tabla `tipo_falla` de la V009 (hoy lista `ubicacion`, `tipo_equipo` y `proveedor`). El .docx lo actualiza el responsable de documentación.
 - **Fotografía del equipo (RF-031):** V008 ya tiene `foto_documento_id` y la API devuelve `tieneFoto`; la subida y API-EQ-FOTO llegan con HU-015.
 - **Cambio de estado y baja:** la API todavía no ofrece `PATCH` de estado; llega con HU-014.

@@ -22,6 +22,20 @@
     <DataTemplate DataType="{x:Type vm:ShellViewModel}">
       <views:ShellView />
     </DataTemplate>
+    <!-- UI-002 obligatorio (clave temporal): ocupa la ventana, sin menú ni datos (FLU-001 A1) -->
+    <DataTemplate DataType="{x:Type vm:CambioClaveViewModel}">
+      <Grid ClipToBounds="True">
+        <Ellipse Width="620" Height="620" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-280,-240,0"
+                 Stroke="{DynamicResource Brush.Primary}" StrokeThickness="1" Opacity="0.13" IsHitTestVisible="False" />
+        <Ellipse Width="380" Height="380" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-160,-130,0"
+                 Stroke="{DynamicResource Brush.Action}" StrokeThickness="1" Opacity="0.32" IsHitTestVisible="False" />
+        <Ellipse Width="680" Height="680" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-300,-460"
+                 Stroke="{DynamicResource Brush.Primary}" StrokeThickness="1" Opacity="0.13" IsHitTestVisible="False" />
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <views:CambioClaveView Margin="24" />
+        </ScrollViewer>
+      </Grid>
+    </DataTemplate>
   </Window.Resources>
   <Grid>
     <!-- Mientras se muestra el aviso de cierre, los datos de la pantalla se ocultan (DOC-05) -->

@@ -15,6 +15,7 @@ public class GestionUsuariosTests
     private readonly IHasherContrasenas _hasher = Substitute.For<IHasherContrasenas>();
     private readonly IGeneradorClaves _claves = Substitute.For<IGeneradorClaves>();
     private readonly IContextoUsuario _contexto = Substitute.For<IContextoUsuario>();
+    private readonly IRepositorioSesiones _sesiones = Substitute.For<IRepositorioSesiones>();
     private readonly GestionUsuarios _caso;
 
     public GestionUsuariosTests()
@@ -30,7 +31,7 @@ public class GestionUsuariosTests
         _repositorio.RolPorCodigoAsync("AC-04", Arg.Any<CancellationToken>()).Returns(new RolAsignable(4, "AC-04"));
         _repositorio.RolPorCodigoAsync("AC-07", Arg.Any<CancellationToken>()).Returns(new RolAsignable(7, "AC-07"));
         CupoDeGestion(activos: 2);
-        _caso = new GestionUsuarios(_repositorio, _hasher, _claves, _contexto);
+        _caso = new GestionUsuarios(_repositorio, _hasher, _claves, _contexto, _sesiones, TimeProvider.System);
     }
 
     // Plan Consultorio: 3 usuarios de gestión (DOC-01 Tabla 4).
@@ -180,6 +181,24 @@ public class GestionUsuariosTests
         Assert.Equal("Temporal-2026#", clave);
         Assert.Equal("hash-temporal", usuario.ContrasenaHash);
         Assert.True(usuario.CambioContrasenaObligatorio);
+    }
+
+    [Fact]
+    public async Task CA_HU_013_01_ClaveTemporal_RevocaLasSesionesAbiertasDelUsuario()
+    {
+        var usuario = Existente();
+        var ahora = DateTimeOffset.UtcNow;
+        var abiertas = new[]
+        {
+            new SesionToken(Tenant, usuario.Id, "jti-oficina", ahora.AddMinutes(-5), ahora.AddMinutes(25)),
+            new SesionToken(Tenant, usuario.Id, "jti-casa", ahora.AddMinutes(-1), ahora.AddMinutes(29)),
+        };
+        _sesiones.VigentesDelUsuarioAsync(usuario.Id, Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>()).Returns(abiertas);
+
+        await _caso.AsignarClaveTemporalAsync(usuario.Id, CancellationToken.None);
+
+        Assert.All(abiertas, s => Assert.Equal(MotivosRevocacion.ClaveTemporal, s.MotivoRevocacion));
+        await _sesiones.Received(1).GuardarAsync(Arg.Any<CancellationToken>());
     }
 
     [Theory]

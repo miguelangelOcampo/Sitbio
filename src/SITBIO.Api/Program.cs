@@ -35,6 +35,7 @@ var app = builder.Build();
 
 app.UseManejoErrores();
 app.UseAuthentication();
+app.UseCambioClaveObligatorio();
 app.UseAuthorization();
 app.UseRateLimiter();
 

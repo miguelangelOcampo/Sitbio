@@ -31,7 +31,7 @@ public class CatalogosEndpointTests(WebApplicationFactory<Program> fabrica) : IC
         _repositorio.TiposEquipoAsync(Arg.Any<CancellationToken>())
             .Returns([new CatalogoDto(Guid.NewGuid(), "Tensiómetro", true, "I", true, 12)]);
         _repositorio.UbicacionesAsync(Arg.Any<CancellationToken>()).Returns([new CatalogoDto(Guid.NewGuid(), "Urgencias", true)]);
-        _sesiones.EstaActivaAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
+        _sesiones.ConsultarEstadoAsync(Arg.Any<Guid>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(EstadoSesion.Activa);
         var cliente = fabrica.WithWebHostBuilder(b => b
                 .UseSetting("Jwt:Clave", ClaveJwt)
                 .ConfigureTestServices(s => s.AddScoped(_ => _repositorio).AddScoped(_ => _sesiones).AddScoped(_ => _bitacora)))

@@ -124,6 +124,13 @@ public sealed class Usuario : EntidadTenant
         CambioContrasenaObligatorio = true;
     }
 
+    /// <summary>HU-013: contraseña definida por el propio usuario; deja de ser temporal.</summary>
+    public void CambiarContrasena(string contrasenaHash)
+    {
+        ContrasenaHash = Requerido(contrasenaHash, nameof(contrasenaHash));
+        CambioContrasenaObligatorio = false;
+    }
+
     /// <summary>Correo sin espacios y en minúsculas: es único en todo el sistema (V005) sin distinguir mayúsculas.</summary>
     public static string NormalizarCorreo(string correo)
     {

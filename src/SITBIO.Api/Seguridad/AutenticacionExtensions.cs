@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -44,7 +45,8 @@ public static class AutenticacionExtensions
 
     /// <summary>
     /// Un token firmado y sin expirar se rechaza (401) si su jti no está registrado o ya fue
-    /// revocado: cierre de sesión, renovación o inactividad (HU-012, SEC-002).
+    /// revocado: cierre de sesión, renovación, inactividad o cambio de clave (HU-012, HU-013,
+    /// SEC-002). Si el usuario tiene clave temporal, se marca para exigir el cambio (HU-013).
     /// </summary>
     public static async Task RechazarSesionRevocadaAsync(TokenValidatedContext contexto)
     {
@@ -57,9 +59,14 @@ public static class AutenticacionExtensions
         }
 
         var sesiones = contexto.HttpContext.RequestServices.GetRequiredService<IRepositorioSesiones>();
-        if (!await sesiones.EstaActivaAsync(tenantId, jti, contexto.HttpContext.RequestAborted))
+        switch (await sesiones.ConsultarEstadoAsync(tenantId, jti, contexto.HttpContext.RequestAborted))
         {
-            contexto.Fail("La sesión fue cerrada.");
+            case EstadoSesion.Cerrada:
+                contexto.Fail("La sesión fue cerrada.");
+                break;
+            case EstadoSesion.ClaveTemporal:
+                contexto.Principal!.Identities.First().AddClaim(new Claim(ClaveTemporal.Claim, "true"));
+                break;
         }
     }
 }

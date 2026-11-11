@@ -35,4 +35,11 @@ public static class EstadosEquipo
     public static IReadOnlyList<string> Codigos { get; } = [CodigoOperativo, "EN_MANTENIMIENTO", "FUERA_DE_SERVICIO", "BAJA"];
 
     public static bool EsValido(short id) => id is >= Operativo and <= Baja;
+
+    /// <summary>Id del estado a partir de su código (OPERATIVO → 1, …, BAJA → 4); null si no existe.</summary>
+    public static short? IdDe(string codigo)
+    {
+        var indice = Codigos.ToList().IndexOf(codigo);
+        return indice < 0 ? null : (short)(indice + 1);
+    }
 }

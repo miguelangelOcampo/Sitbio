@@ -158,4 +158,98 @@ public class EquiposEndpointTests(WebApplicationFactory<Program> fabrica) : ICla
 
         Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
     }
+
+    // ---------- HU-014: estado, baja lógica, reversión e historial ----------
+
+    private EquipoBiomedico EquipoGuardado()
+    {
+        var equipo = new EquipoBiomedico(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "SN-9", "PL-9", "Mindray", "T5", DateTimeOffset.UtcNow);
+        _repositorio.ObtenerAsync(equipo.Id, Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(_ => new EquipoLeido(equipo, "Monitor", "UCI", null, EstadosEquipo.Codigos[equipo.EstadoEquipoId - 1], "Estado", null));
+        return equipo;
+    }
+
+    [Fact]
+    public async Task CambiarEstado_SinToken_Responde401()
+    {
+        var respuesta = await Cliente(null).PatchAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/estado", new { estado = "BAJA", motivo = "Obsoleto" });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("AC-01")]
+    [InlineData("AC-03")]
+    [InlineData("AC-04")]
+    [InlineData("AC-05")]
+    [InlineData("AC-07")]
+    public async Task SoloElIngenieroBiomedico_CambiaEstadoYDaDeBaja(string rol)
+    {
+        var respuesta = await Cliente(rol).PatchAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/estado", new { estado = "BAJA", motivo = "Obsoleto" });
+
+        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+        await _repositorio.DidNotReceiveWithAnyArgs().GuardarAsync(default);
+    }
+
+    [Fact]
+    public async Task IngenieroBiomedico_DaDeBaja200ConElEquipoActualizado()
+    {
+        var cliente = Cliente("AC-02");
+        var equipo = EquipoGuardado();
+
+        var respuesta = await cliente.PatchAsJsonAsync($"{Ruta}/{equipo.Id}/estado", new { estado = "BAJA", motivo = "Obsoleto, sin repuestos." });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        using var cuerpo = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        Assert.Equal("BAJA", cuerpo.RootElement.GetProperty("estado").GetString());
+        Assert.Equal(JsonValueKind.String, cuerpo.RootElement.GetProperty("fechaBaja").ValueKind);
+        _repositorio.Received(1).Agregar(Arg.Is<HistorialEstadoEquipo>(h => h.NuevoEstadoId == EstadosEquipo.Baja));
+    }
+
+    [Fact]
+    public async Task CambiarEstado_SinMotivo_Responde400EnMotivo()
+    {
+        var cliente = Cliente("AC-02");
+        var equipo = EquipoGuardado();
+
+        var respuesta = await cliente.PatchAsJsonAsync($"{Ruta}/{equipo.Id}/estado", new { estado = "FUERA_DE_SERVICIO", motivo = " " });
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        using var cuerpo = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        Assert.True(cuerpo.RootElement.GetProperty("errors").TryGetProperty("motivo", out _));
+    }
+
+    [Fact]
+    public async Task CambiarEstado_AlMismoEstado_Responde409Eq001()
+    {
+        var cliente = Cliente("AC-02");
+        var equipo = EquipoGuardado();
+
+        var respuesta = await cliente.PatchAsJsonAsync($"{Ruta}/{equipo.Id}/estado", new { estado = "OPERATIVO", motivo = "Revisión" });
+
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        using var cuerpo = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        Assert.Equal(GestionEquipos.CodigoMismoEstado, cuerpo.RootElement.GetProperty("codigo").GetString());
+    }
+
+    [Theory]
+    [InlineData("AC-01")]
+    [InlineData("AC-07")]
+    public async Task RolesDeConsulta_VenElHistorialDeEstados(string rol)
+    {
+        var cliente = Cliente(rol);
+        var equipo = EquipoGuardado();
+        var baja = equipo.DarDeBaja("Obsoleto", Guid.NewGuid(), DateTimeOffset.UtcNow);
+        _repositorio.HistorialAsync(equipo.Id, Arg.Any<CancellationToken>())
+            .Returns([new CambioEstadoLeido(baja, "OPERATIVO", "Operativo", "BAJA", "Baja", "Ana Gómez")]);
+
+        var respuesta = await cliente.GetAsync($"{Ruta}/{equipo.Id}/estados");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        using var cuerpo = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        var fila = Assert.Single(cuerpo.RootElement.EnumerateArray());
+        Assert.Equal("BAJA", fila.GetProperty("estado").GetString());
+        Assert.Equal("Obsoleto", fila.GetProperty("motivo").GetString());
+        Assert.Equal("Ana Gómez", fila.GetProperty("usuario").GetString());
+    }
 }

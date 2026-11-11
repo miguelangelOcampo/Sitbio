@@ -271,6 +271,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             Guid[] tenants = [TenantA, TenantB, .. _tenantsAdicionales];
             await EjecutarSqlAsync(async contexto =>
             {
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_estado_equipo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.equipo_biomedico WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tipo_equipo WHERE tenant_id = ANY({tenants})");

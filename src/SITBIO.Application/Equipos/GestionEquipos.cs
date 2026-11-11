@@ -18,6 +18,8 @@ public sealed class GestionEquipos(
 {
     public const string CodigoDuplicado = "RN-001";
     public const string CodigoLimitePlan = "RN-009";
+    public const string CodigoMismoEstado = "EQ-001";
+    public const string CodigoBajaSoloOperativo = "EQ-002";
     public const string Entidad = "equipo_biomedico";
     public const string DescripcionPreventivo = "Mantenimiento preventivo";
 
@@ -75,6 +77,7 @@ public sealed class GestionEquipos(
             : null;
 
         repositorio.Agregar(equipo);
+        repositorio.Agregar(HistorialEstadoEquipo.Alta(equipo, contexto.UsuarioId));
         if (plan is not null)
         {
             repositorio.Agregar(plan);
@@ -127,6 +130,73 @@ public sealed class GestionEquipos(
 
         var actualizado = leido with { TipoEquipo = v.Tipo.Nombre, Ubicacion = v.Ubicacion.Nombre, Proveedor = v.Proveedor?.Nombre, Plan = plan };
         return EquipoDto.Desde(actualizado, hoy);
+    }
+
+    /// <summary>
+    /// Cambia el estado operativo con su motivo (RF-014, CA-HU-014-01), da de baja de forma lógica
+    /// (CA-HU-014-02) o revierte la baja cuando se pide «OPERATIVO» para un equipo dado de baja.
+    /// Revertir vuelve a consumir capacidad, por eso exige cupo en el plan (RN-009).
+    /// </summary>
+    public async Task<EquipoDto> CambiarEstadoAsync(Guid id, DatosCambioEstado datos, CancellationToken cancellationToken)
+    {
+        var codigo = Limpio(datos.Estado)?.ToUpperInvariant();
+        var nuevoEstado = codigo is null ? null : EstadosEquipo.IdDe(codigo);
+        if (nuevoEstado is not { } estado)
+        {
+            throw ErrorValidacion.DeCampo("estado", $"El estado debe ser {string.Join(", ", EstadosEquipo.Codigos)}.");
+        }
+
+        var leido = await repositorio.ObtenerAsync(id, paraEditar: true, cancellationToken) ?? throw new ErrorNoEncontrado("El equipo");
+        var equipo = leido.Equipo;
+        var anterior = leido.EstadoCodigo;
+        var ahora = tiempo.GetUtcNow();
+        string cambio;
+        HistorialEstadoEquipo registro;
+
+        if (equipo.DadoDeBaja)
+        {
+            if (estado != EstadosEquipo.Operativo)
+            {
+                throw new ErrorConflicto(CodigoBajaSoloOperativo, "El equipo está dado de baja: solo puede volver a «Operativo» (reversión de la baja).");
+            }
+
+            await ExigirCupoDeEquipos(cancellationToken);
+            registro = Construir(() => equipo.RevertirBaja(datos.Motivo, contexto.UsuarioId, ahora));
+            cambio = "reversion_baja";
+        }
+        else
+        {
+            if (estado == equipo.EstadoEquipoId)
+            {
+                throw new ErrorConflicto(CodigoMismoEstado, $"El equipo ya está en estado «{leido.EstadoNombre}».");
+            }
+
+            registro = Construir(() => equipo.CambiarEstado(estado, datos.Motivo, contexto.UsuarioId, ahora));
+            cambio = estado == EstadosEquipo.Baja ? "baja" : "estado";
+        }
+
+        repositorio.Agregar(registro);
+        await repositorio.GuardarAsync(cancellationToken);
+
+        // El motivo es texto libre: queda en el historial, no en la bitácora (sin datos personales).
+        var detalle = new Dictionary<string, string>
+        {
+            ["placa"] = equipo.PlacaInventario,
+            ["cambio"] = cambio,
+            ["estado_anterior"] = anterior,
+            ["estado_nuevo"] = codigo!,
+        };
+        await auditoria.RegistrarAsync(contexto.UsuarioId, AccionesAuditoria.Actualizar, Entidad, equipo.Id.ToString(), detalle, cancellationToken);
+
+        return await ObtenerAsync(id, cancellationToken);
+    }
+
+    /// <summary>Historial de estados del equipo, del más reciente al más antiguo (404 si no es del tenant).</summary>
+    public async Task<IReadOnlyList<CambioEstadoDto>> HistorialAsync(Guid id, CancellationToken cancellationToken)
+    {
+        _ = await repositorio.ObtenerAsync(id, paraEditar: false, cancellationToken) ?? throw new ErrorNoEncontrado("El equipo");
+        var historial = await repositorio.HistorialAsync(id, cancellationToken);
+        return historial.Select(CambioEstadoDto.Desde).ToList();
     }
 
     /// <summary>

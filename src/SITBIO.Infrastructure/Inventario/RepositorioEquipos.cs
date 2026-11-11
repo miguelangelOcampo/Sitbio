@@ -100,10 +100,20 @@ public sealed class RepositorioEquipos(SitbioDbContext contexto, IContextoUsuari
 
     public void Agregar(HistorialEstadoEquipo registro) => contexto.HistorialEstados.Add(registro);
 
-    public async Task<IReadOnlyList<HistorialEstadoEquipo>> HistorialAsync(Guid equipoId, CancellationToken cancellationToken) =>
-        await contexto.HistorialEstados.AsNoTracking()
-            .Where(h => h.EquipoId == equipoId)
-            .OrderByDescending(h => h.FechaCambio).ThenByDescending(h => h.Id)
+    public async Task<IReadOnlyList<CambioEstadoLeido>> HistorialAsync(Guid equipoId, CancellationToken cancellationToken) =>
+        await (
+            from h in contexto.HistorialEstados.AsNoTracking()
+            join nuevo in contexto.EstadosEquipo on h.NuevoEstadoId equals nuevo.Id
+            join u in contexto.Usuarios on h.UsuarioId equals u.Id
+            where h.EquipoId == equipoId
+            orderby h.FechaCambio descending, h.Id descending
+            select new CambioEstadoLeido(
+                h,
+                contexto.EstadosEquipo.Where(a => a.Id == h.EstadoAnteriorId).Select(a => a.Codigo).FirstOrDefault(),
+                contexto.EstadosEquipo.Where(a => a.Id == h.EstadoAnteriorId).Select(a => a.Nombre).FirstOrDefault(),
+                nuevo.Codigo,
+                nuevo.Nombre,
+                u.Nombres + " " + u.Apellidos))
             .ToListAsync(cancellationToken);
 
     public async Task GuardarAsync(CancellationToken cancellationToken)

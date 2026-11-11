@@ -236,10 +236,12 @@ public class RepositorioEquiposPostgresTests : IAsyncLifetime
             var historial = await repositorioLectura.HistorialAsync(equipoId, CancellationToken.None);
 
             Assert.Equal(
-                [(EstadosEquipo.Baja, EstadosEquipo.Operativo), (EstadosEquipo.Operativo, EstadosEquipo.Baja), ((short?)null, EstadosEquipo.Operativo)],
-                historial.Select(h => (h.EstadoAnteriorId, h.NuevoEstadoId)).ToArray());
-            Assert.Equal("Se consiguieron los repuestos.", historial[0].Motivo);
-            Assert.Null(historial[2].Motivo);
+                [("BAJA", "OPERATIVO"), ("OPERATIVO", "BAJA"), ((string?)null, "OPERATIVO")],
+                historial.Select(h => (h.EstadoAnteriorCodigo, h.NuevoEstadoCodigo)).ToArray());
+            Assert.Equal(("Baja", "Operativo"), (historial[0].EstadoAnteriorNombre, historial[0].NuevoEstadoNombre));
+            Assert.Equal("Se consiguieron los repuestos.", historial[0].Registro.Motivo);
+            Assert.Null(historial[2].Registro.Motivo);
+            Assert.All(historial, h => Assert.Equal("Ingeniero De Prueba", h.Usuario));
 
             var equipo = (await repositorioLectura.ObtenerAsync(equipoId, paraEditar: false, CancellationToken.None))!.Equipo;
             Assert.False(equipo.DadoDeBaja);

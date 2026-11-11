@@ -128,3 +128,37 @@ public sealed record CapacidadEquipos(string Plan, int Maximo, int Activos)
 
 /// <summary>Qué dato choca con otro equipo de la institución (RN-001).</summary>
 public sealed record Duplicados(bool Serie, bool Placa);
+
+/// <summary>Cambio de estado que pide AC-02 (PATCH /equipos/{id}/estado; RF-014). El motivo es obligatorio.</summary>
+public sealed record DatosCambioEstado(string? Estado, string? Motivo);
+
+/// <summary>Un registro del historial con los nombres de sus estados y de quien hizo el cambio.</summary>
+public sealed record CambioEstadoLeido(
+    HistorialEstadoEquipo Registro,
+    string? EstadoAnteriorCodigo,
+    string? EstadoAnteriorNombre,
+    string NuevoEstadoCodigo,
+    string NuevoEstadoNombre,
+    string Usuario);
+
+/// <summary>Fila del historial de estados (GET /equipos/{id}/estados). Sin estado anterior en el alta.</summary>
+public sealed record CambioEstadoDto(
+    Guid Id,
+    DateTimeOffset Fecha,
+    string? EstadoAnterior,
+    string? EstadoAnteriorNombre,
+    string Estado,
+    string EstadoNombre,
+    string? Motivo,
+    string Usuario)
+{
+    public static CambioEstadoDto Desde(CambioEstadoLeido leido) => new(
+        leido.Registro.Id,
+        leido.Registro.FechaCambio,
+        leido.EstadoAnteriorCodigo,
+        leido.EstadoAnteriorNombre,
+        leido.NuevoEstadoCodigo,
+        leido.NuevoEstadoNombre,
+        leido.Registro.Motivo,
+        leido.Usuario);
+}

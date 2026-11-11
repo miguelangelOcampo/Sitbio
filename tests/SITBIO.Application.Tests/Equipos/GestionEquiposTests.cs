@@ -70,6 +70,19 @@ public class GestionEquiposTests
     }
 
     [Fact]
+    public async Task Crear_GuardaElAltaComoPrimerRegistroDelHistorial()
+    {
+        var dto = await _caso.CrearAsync(Datos(), CancellationToken.None);
+
+        _repositorio.Received(1).Agregar(Arg.Is<HistorialEstadoEquipo>(h =>
+            h.EquipoId == dto.Id
+            && h.EstadoAnteriorId == null
+            && h.NuevoEstadoId == EstadosEquipo.Operativo
+            && h.UsuarioId == _contexto.UsuarioId
+            && h.Motivo == null));
+    }
+
+    [Fact]
     public async Task Crear_FaltanDatosRegulatorios_Responde400ConCadaCampo()
     {
         var datos = Datos() with { TipoAutorizacion = null, RegistroInvima = " ", VenceRegistro = null, ClaseRiesgo = "IV", RequiereCalibracion = null };

@@ -33,8 +33,11 @@ public interface IRepositorioEquipos
     /// <summary>Un cambio de estado del equipo (RF-014). El historial solo admite inserciones.</summary>
     void Agregar(HistorialEstadoEquipo registro);
 
-    /// <summary>Historial de estados del equipo, del más reciente al más antiguo; vacío si es de otro tenant.</summary>
-    Task<IReadOnlyList<HistorialEstadoEquipo>> HistorialAsync(Guid equipoId, CancellationToken cancellationToken);
+    /// <summary>
+    /// Historial de estados del equipo con los nombres de los estados y del usuario, del más
+    /// reciente al más antiguo; vacío si el equipo es de otro tenant.
+    /// </summary>
+    Task<IReadOnlyList<CambioEstadoLeido>> HistorialAsync(Guid equipoId, CancellationToken cancellationToken);
 
     /// <summary>Guarda los cambios. Una violación de placa o serie única se responde como RN-001 (409).</summary>
     Task GuardarAsync(CancellationToken cancellationToken);

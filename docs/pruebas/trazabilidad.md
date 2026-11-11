@@ -221,7 +221,7 @@ El tenant sale del token. Consultan AC-01, AC-02, AC-03, AC-04, AC-05 y AC-07; r
 | `GET /equipos/{id}` | Hoja de vida | 200; 404 |
 | `POST /equipos` | Registrar | 201 con `Location`; 400 por campo; 409 `RN-001` (placa o serie repetida) o `RN-009` (cupo del plan) |
 | `PUT /equipos/{id}` | Editar (el cupo del plan no la impide) | 200; 400; 404; 409 `RN-001` |
-| `GET /catalogos/{tipo}` | `tipos-equipo`, `ubicaciones` o `proveedores`, con los inactivos, ordenados por nombre (solo AC-01 y AC-02) | 200 `[{ id, nombre, activo, claseRiesgo, requiereCalibracion, periodicidadCalibracionMeses }]` (los tres últimos solo en tipos de equipo); 404 si el catálogo no existe |
+| `GET /catalogos/{tipo}` | `tipos-equipo`, `ubicaciones`, `proveedores` o `tipos-falla` (este último desde HU-025, V009), con los inactivos, ordenados por nombre (solo AC-01 y AC-02) | 200 `[{ id, nombre, activo, claseRiesgo, requiereCalibracion, periodicidadCalibracionMeses, descripcion, nit, tipoProveedor }]` (clase y calibración solo en tipos de equipo; `descripcion` en tipos de equipo y ubicaciones; `nit` y `tipoProveedor` en proveedores); 404 si el catálogo no existe |
 
 Cuerpo de `POST` y `PUT` (fechas ISO 8601):
 
@@ -244,7 +244,8 @@ La base local debe tener aplicada V008 (`database/README.md`). Con `SITBIO_PRUEB
 
 ### Pendientes
 
-- **Gestión de catálogos:** por ahora solo se consultan; crear y editar tipos de equipo, ubicaciones y proveedores llega con HU-025 (commits 40 y 41), que extienden el mismo módulo `Modules/Catalogos`.
+- **Gestión de catálogos (HU-025):** el commit 40 dejó listos el dominio y el repositorio (crear, editar, activar e inactivar; nombres únicos sin distinguir mayúsculas; NIT único por proveedor; 409 `CAT-001`) y agregó el catálogo de tipos de falla (V009). Los endpoints `POST`/`PUT` con permisos y bitácora llegan con el commit 41, en el mismo módulo `Modules/Catalogos`.
+- **DOC-06 (DAT-CATALOGOS):** debe incluir la tabla `tipo_falla` de la V009 (hoy lista `ubicacion`, `tipo_equipo` y `proveedor`). El .docx lo actualiza el responsable de documentación.
 - **Fotografía del equipo (RF-031):** V008 ya tiene `foto_documento_id` y la API devuelve `tieneFoto`; la subida y API-EQ-FOTO llegan con HU-015.
 - **Cambio de estado y baja:** la API todavía no ofrece `PATCH` de estado; llega con HU-014.
 - **Alerta del plan vencido (RF-020):** el plan se marca vencido y la interfaz lo avisa; la alerta en el módulo de alertas llega con su historia.

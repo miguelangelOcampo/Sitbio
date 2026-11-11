@@ -5,11 +5,12 @@ namespace Sitbio.Domain.Inventario;
 /// <summary>
 /// Tipo de equipo del catálogo técnico (tabla <c>tipo_equipo</c>, script 01 + V008). Guarda los
 /// valores regulatorios que se proponen al registrar un equipo de este tipo (CA-HU-002-04);
-/// el equipo puede diferir.
+/// el equipo puede diferir. Lo gestiona solo AC-02 (HU-025); no se borra, se inactiva.
 /// </summary>
-public sealed class TipoEquipo : EntidadTenant
+public sealed class TipoEquipo : EntidadTenant, IElementoCatalogo
 {
     public const int LongitudMaximaNombre = 80;
+    public const int LongitudMaximaDescripcion = 200;
 
     // Constructor para EF Core.
     private TipoEquipo(Guid tenantId)
@@ -20,8 +21,7 @@ public sealed class TipoEquipo : EntidadTenant
     public TipoEquipo(Guid tenantId, string nombre, string? descripcion = null)
         : base(tenantId)
     {
-        Nombre = Texto.Requerido(nombre, nameof(nombre), LongitudMaximaNombre);
-        Descripcion = Texto.Opcional(descripcion, 200, nameof(descripcion));
+        Actualizar(nombre, descripcion);
         EstadoActivo = true;
         RequiereCalibracion = true;
         PeriodicidadCalibracionMeses = 12;
@@ -38,6 +38,16 @@ public sealed class TipoEquipo : EntidadTenant
     public bool RequiereCalibracion { get; private set; }
 
     public short? PeriodicidadCalibracionMeses { get; private set; }
+
+    public void Actualizar(string nombre, string? descripcion)
+    {
+        Nombre = Texto.Requerido(nombre, nameof(nombre), LongitudMaximaNombre);
+        Descripcion = Texto.Opcional(descripcion, LongitudMaximaDescripcion, nameof(descripcion));
+    }
+
+    public void Activar() => EstadoActivo = true;
+
+    public void Inactivar() => EstadoActivo = false;
 
     /// <summary>Valores por defecto (RN-010): la clase no decide la calibración.</summary>
     public void DefinirValoresRegulatorios(string? claseRiesgo, bool requiereCalibracion, int? periodicidadMeses)

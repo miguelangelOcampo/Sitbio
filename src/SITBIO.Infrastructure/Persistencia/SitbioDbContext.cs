@@ -50,6 +50,8 @@ public class SitbioDbContext : DbContext
 
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
 
+    public DbSet<TipoFalla> TiposFalla => Set<TipoFalla>();
+
     public DbSet<EquipoBiomedico> Equipos => Set<EquipoBiomedico>();
 
     public DbSet<PlanPreventivo> PlanesPreventivos => Set<PlanPreventivo>();

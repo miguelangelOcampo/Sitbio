@@ -8,7 +8,7 @@ using Sitbio.Infrastructure.Persistencia.Configuraciones;
 
 namespace Sitbio.Infrastructure.Tests.Persistencia;
 
-/// <summary>Nombres de tablas, columnas e índices del inventario según el script 01 y la V008; no abre conexión.</summary>
+/// <summary>Nombres de tablas, columnas e índices del inventario según el script 01, la V008 y la V009; no abre conexión.</summary>
 public class MapeoInventarioTests
 {
     private static IModel Modelo()
@@ -26,6 +26,7 @@ public class MapeoInventarioTests
     [InlineData(typeof(TipoEquipo), "tipo_equipo")]
     [InlineData(typeof(Ubicacion), "ubicacion")]
     [InlineData(typeof(Proveedor), "proveedor")]
+    [InlineData(typeof(TipoFalla), "tipo_falla")]
     [InlineData(typeof(EquipoBiomedico), "equipo_biomedico")]
     [InlineData(typeof(PlanPreventivo), "plan_preventivo")]
     public void Entidad_SeMapeaASuTablaEnElEsquemaSitbio(Type entidad, string tabla)
@@ -88,11 +89,47 @@ public class MapeoInventarioTests
     {
         var modelo = Modelo();
 
-        foreach (var entidad in new[] { typeof(TipoEquipo), typeof(Ubicacion), typeof(Proveedor), typeof(EquipoBiomedico), typeof(PlanPreventivo) })
+        foreach (var entidad in new[] { typeof(TipoEquipo), typeof(Ubicacion), typeof(Proveedor), typeof(TipoFalla), typeof(EquipoBiomedico), typeof(PlanPreventivo) })
         {
             Assert.NotEmpty(modelo.FindEntityType(entidad)!.GetDeclaredQueryFilters());
         }
 
         Assert.Empty(modelo.FindEntityType(typeof(EstadoEquipo))!.GetDeclaredQueryFilters());
+    }
+
+    [Fact]
+    public void Proveedor_DatosDeContactoDelScript01()
+    {
+        var proveedor = Modelo().FindEntityType(typeof(Proveedor))!;
+
+        Assert.Equal("nombre_contacto", Columna(proveedor, nameof(Proveedor.NombreContacto)));
+        Assert.Equal("correo", Columna(proveedor, nameof(Proveedor.Correo)));
+        Assert.Equal("telefono", Columna(proveedor, nameof(Proveedor.Telefono)));
+    }
+
+    [Fact]
+    public void TipoFalla_ColumnasDeLaV009()
+    {
+        var tipo = Modelo().FindEntityType(typeof(TipoFalla))!;
+
+        Assert.Equal("id_tipo_falla", Columna(tipo, nameof(TipoFalla.Id)));
+        Assert.Equal("tenant_id", Columna(tipo, nameof(TipoFalla.TenantId)));
+        Assert.Equal("nombre", Columna(tipo, nameof(TipoFalla.Nombre)));
+        Assert.Equal("estado_activo", Columna(tipo, nameof(TipoFalla.EstadoActivo)));
+        Assert.Equal(TipoFalla.LongitudMaximaNombre, tipo.FindProperty(nameof(TipoFalla.Nombre))!.GetMaxLength());
+    }
+
+    [Theory]
+    [InlineData(typeof(TipoEquipo), TipoEquipoConfiguracion.IndiceNombre, nameof(TipoEquipo.Nombre))]
+    [InlineData(typeof(Ubicacion), UbicacionConfiguracion.IndiceNombre, nameof(Ubicacion.Nombre))]
+    [InlineData(typeof(Proveedor), ProveedorConfiguracion.IndiceNit, nameof(Proveedor.Nit))]
+    public void Catalogos_IndicesUnicosDelScript01(Type entidad, string indice, string propiedad)
+    {
+        var tipo = Modelo().FindEntityType(entidad)!;
+
+        var unico = Assert.Single(tipo.GetIndexes(), i => i.GetDatabaseName() == indice);
+
+        Assert.True(unico.IsUnique);
+        Assert.Equal(["TenantId", propiedad], unico.Properties.Select(p => p.Name));
     }
 }

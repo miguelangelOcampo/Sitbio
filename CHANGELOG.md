@@ -4,6 +4,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [Sin publicar]
 
+## [0.2.0] - 2026-11-12
+
+Cierre del Sprint 3. Incluye todo lo anterior a esta versión.
+
 ### Agregado
 - Estructura del repositorio según el DOC-06 (Anexo A).
 - Solución `SITBIO.sln` con los proyectos Desktop, Api, Application, Domain e Infrastructure y sus pruebas.
@@ -47,6 +51,23 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
   - `GET /api/v1/catalogos/{tipo}` (API-CAT) de solo consulta para AC-01 y AC-02: `tipos-equipo` (con sus valores regulatorios por defecto), `ubicaciones` y `proveedores`. La gestión de los catálogos llega con HU-025.
   - Cliente WPF: UI-005 Equipos biomédicos (indicadores, búsqueda por serie, filtros por estado, clase y calibración, tabla abierta con los avisos de mantenimiento y de registro, paginación); UI-006 hoja de vida (resumen, información técnica y aviso de la autorización); UI-007 formulario de registro y edición en panel lateral, con la clase y la calibración propuestas por el tipo, el próximo preventivo calculado y los avisos de diferencia con el tipo, de vencimiento y de preventivo atrasado.
   - Pruebas de los criterios CA-HU-002-01 a CA-HU-002-06 (CP-004 y CP-005) contra la API y PostgreSQL reales.
+- HU-013 Restablecimiento de contraseña con clave temporal:
+  - El Administrador del Sistema (AC-01) emite una clave temporal; quien inicia sesión con ella debe cambiarla antes de continuar (RF-012). Mientras no la cambie, la API solo atiende cambiar la contraseña, renovar y cerrar sesión; cualquier otra ruta responde 403 con MSG-004.
+  - `PUT /api/v1/auth/password`: la nueva contraseña debe tener al menos 10 caracteres, mayúscula y minúscula, un número y un símbolo, y no puede contener el nombre, el apellido ni el correo. La API aplica las mismas reglas que muestra el cliente y responde 400 con las reglas incumplidas.
+  - Al cambiarla se revocan las demás sesiones abiertas del usuario y el cambio queda en la bitácora (obligatorio o voluntario).
+  - Cliente WPF: pantalla UI-002 de cambio de contraseña con las reglas marcadas mientras se escribe; se abre sola al entrar con una clave temporal y también desde el menú de la sesión.
+- HU-024 Configuración de la institución:
+  - `GET`/`PUT /api/v1/tenant/actual` (API-TEN) solo para el Administrador del Sistema (AC-01): nombre, NIT y días de anticipación de las alertas de vencimiento (7 a 90). El plan, su vigencia y sus límites solo se consultan; los fija el proveedor del servicio.
+  - Consumo del plan (RN-009): usuarios de gestión, equipos activos y almacenamiento, con aviso desde el 80 % y aviso de límite alcanzado.
+  - Cliente WPF: UI-019 Configuración › «Mi institución», con los datos editables y el plan con sus medidores.
+  - Pruebas de los criterios CA-HU-024-01 a CA-HU-024-03 (CP-027) contra la API y PostgreSQL reales. El uso de los días de anticipación en el cálculo de las alertas se prueba con HU-020.
+- HU-025 Catálogos maestros:
+  - `/api/v1/catalogos/{tipo}` (API-CAT) para `tipos-equipo`, `ubicaciones`, `proveedores` y `tipos-falla`: listar (con activos e inactivos), consultar por id, crear y editar. El Ingeniero Biomédico (AC-02) gestiona los cuatro; el Administrador del Sistema (AC-01) solo las ubicaciones y consulta los demás.
+  - Los valores no se borran: se inactivan y los registros que ya los usan los conservan. Un nombre repetido (o, en proveedores, un NIT repetido) responde 409 `CAT-001`.
+  - Los tipos de equipo guardan la clase de riesgo y la calibración que se proponen al registrar un equipo (RF-030).
+  - Crear y editar quedan en la bitácora con los campos que cambiaron, sin los datos de contacto del proveedor.
+  - Cliente WPF: UI-019 Configuración pasa a tener pestañas; «Catálogos» (UI-020) muestra los catálogos con sus activos y una tabla abierta para agregar, activar o inactivar valores. En «Tipos de equipo», AC-02 edita la clase de riesgo y la calibración por defecto. El Ingeniero Biomédico entra a Configuración solo a Catálogos.
+  - Pruebas de los criterios CA-HU-025-01 a CA-HU-025-03 (CP-028) contra la API y PostgreSQL reales.
 
 ### Cambiado
 - DOC-01 actualizado con el plan Consultorio y el nuevo almacenamiento de los planes (Tabla 4: Consultorio 3/300/5 GB, Clínica 7/1.000/25 GB, Hospital 14/3.000/100 GB, Red de Salud a la medida).
@@ -59,7 +80,10 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
   - V006: el AC-05 se llama «Gerente de Tecnología Biomédica»; descripciones de AC-01 (ubicaciones) y AC-02 (campos dinámicos y catálogos técnicos) según el ajuste de roles del 01/11/2026.
   - V007 (MongoDB): el validador de `bitacora_auditoria` acepta las acciones `ACCESO_DENEGADO` y `CIERRE_SESION`. Docker la aplica al crear el contenedor; en una base ya creada se ejecuta con `mongosh` (comando en `database/README.md`).
   - V008: información regulatoria del equipo (RF-030, RN-010) en `equipo_biomedico`, valores por defecto en `tipo_equipo`, `plan_preventivo.ultima_ejecucion` y `equipo_biomedico.foto_documento_id` (RF-031, para HU-015).
+  - V009: catálogo `tipo_falla` por institución (HU-025).
 - `CodigosRol.DirectorBiomedico` pasa a llamarse `CodigosRol.GerenteBiomedico` (el código AC-05 no cambia).
+- `GET /api/v1/catalogos/{tipo}` acepta también `tipos-falla`, y en proveedores devuelve el NIT y el tipo.
+- Versión de la solución: 0.2.0 (`Directory.Build.props`).
 
 ### Seguridad
 - La clave JWT se configura solo con User Secrets o con la variable `Jwt__Clave`; sin una clave válida la API arranca y rechaza todo token.
@@ -68,3 +92,6 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 - Sesiones (HU-012): un token revocado por cierre de sesión, inactividad o renovación no vuelve a servir aunque su firma y su vigencia sean válidas; un `jti` de otra institución o sin sesión registrada responde 401.
 - Bitácora (HU-010): el detalle de cada evento nunca lleva correo, contraseña ni token (Ley 1581 de 2012); cada institución solo consulta sus propios eventos (RN-008) y la API no ofrece forma de modificarlos ni borrarlos.
 - Equipos (HU-002): un equipo de otra institución responde 404 al consultarlo o editarlo (SEC-003); la placa y la serie solo se comparan dentro de la institución; registrar y editar se validan en la API (403 para cualquier rol distinto de AC-02), no solo ocultando el botón en WPF.
+- Contraseñas (HU-013): la clave temporal solo sirve para cambiarla (403 MSG-004 en cualquier otra ruta, validado en la API); al cambiar la contraseña se cierran las demás sesiones del usuario, y ni la contraseña ni el correo van a la bitácora.
+- Institución (HU-024): el Administrador solo consulta y edita su propio tenant (no hay ruta por id) y no puede cambiar el plan ni sus límites; otros roles reciben 403.
+- Catálogos (HU-025): cada institución solo ve y edita sus elementos (404 para los de otra); los permisos por rol se validan en la API (403), no solo en la interfaz; no hay `DELETE`.

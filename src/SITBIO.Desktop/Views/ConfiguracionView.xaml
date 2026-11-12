@@ -1,0 +1,36 @@
+<!-- UI-019 Configuración (prototipo Admin.tsx › Configuracion): encabezado y pestañas; cada pestaña
+     muestra su pantalla (Mi institución para AC-01, Catálogos UI-020 para AC-01 y AC-02). -->
+<UserControl x:Class="Sitbio.Desktop.Views.ConfiguracionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <DataTemplate DataType="{x:Type vm:MiInstitucionViewModel}">
+      <views:MiInstitucionView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:CatalogosViewModel}">
+      <views:CatalogosView />
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Margin="40,32,40,0" MaxWidth="1160">
+      <TextBlock Text="ADMINISTRACIÓN" Style="{StaticResource Overline}" />
+      <TextBlock Text="Configuración" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
+      <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,0" TextWrapping="Wrap"
+                 Text="Datos de la institución y listas de valores que usan los formularios del sistema." />
+      <Border BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="0,0,0,1" Margin="0,20,0,0">
+        <StackPanel Orientation="Horizontal">
+          <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasConfiguracion" Content="Mi institución"
+                       IsChecked="{Binding EnInstitucion, Mode=OneWay}" Command="{Binding MostrarInstitucionCommand}"
+                       Visibility="{Binding TieneMiInstitucion, Converter={StaticResource Visible}}" />
+          <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasConfiguracion" Content="Catálogos"
+                       IsChecked="{Binding EnCatalogos, Mode=OneWay}" Command="{Binding MostrarCatalogosCommand}" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+    <ContentControl Content="{Binding Actual}" Focusable="False" />
+  </DockPanel>
+</UserControl>

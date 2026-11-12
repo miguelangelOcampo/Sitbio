@@ -221,9 +221,25 @@ El tenant sale del token. Consultan AC-01, AC-02, AC-03, AC-04, AC-05 y AC-07; r
 | `GET /equipos/{id}` | Hoja de vida | 200; 404 |
 | `POST /equipos` | Registrar | 201 con `Location`; 400 por campo; 409 `RN-001` (placa o serie repetida) o `RN-009` (cupo del plan) |
 | `PUT /equipos/{id}` | Editar (el cupo del plan no la impide) | 200; 400; 404; 409 `RN-001` |
-| `GET /catalogos/{tipo}` | `tipos-equipo`, `ubicaciones` o `proveedores`, con los inactivos, ordenados por nombre (solo AC-01 y AC-02) | 200 `[{ id, nombre, activo, claseRiesgo, requiereCalibracion, periodicidadCalibracionMeses }]` (los tres últimos solo en tipos de equipo); 404 si el catálogo no existe |
+| `GET /catalogos/{tipo}` | `tipos-equipo`, `ubicaciones`, `proveedores` o `tipos-falla` (este último desde HU-025, V009), con los inactivos, ordenados por nombre (solo AC-01 y AC-02) | 200 `[{ id, nombre, activo, claseRiesgo, requiereCalibracion, periodicidadCalibracionMeses, descripcion, nit, tipoProveedor }]` (clase y calibración solo en tipos de equipo; `descripcion` en tipos de equipo y ubicaciones; `nit` y `tipoProveedor` en proveedores); 404 si el catálogo no existe |
+| `GET /catalogos/{tipo}/{id}` | Detalle de un elemento (AC-01 y AC-02); en proveedores trae además `nombreContacto`, `correo` y `telefono` (HU-025) | 200; 404 si el catálogo o el elemento no existe o es de otra institución |
+| `POST /catalogos/{tipo}` | Crear (HU-025): AC-02 en los cuatro catálogos; AC-01 solo en `ubicaciones`. Nace activo | 201 con `Location`; 400 por campo; 403 (queda `ACCESO_DENEGADO` en la bitácora); 404; 409 `CAT-001` (nombre repetido sin distinguir mayúsculas o NIT de proveedor repetido) |
+| `PUT /catalogos/{tipo}/{id}` | Editar, activar o inactivar (`activo`; vacío conserva el estado). No hay `DELETE`: los elementos se inactivan (CA-HU-025-02) | 200; 400; 403; 404; 409 `CAT-001` |
 
-Cuerpo de `POST` y `PUT` (fechas ISO 8601):
+Cuerpo de `POST` y `PUT /catalogos/{tipo}` (cada catálogo usa sus campos; los demás se ignoran):
+
+```json
+{
+  "nombre": "Monitor multiparámetro", "descripcion": null,
+  "claseRiesgo": "IIb", "requiereCalibracion": true, "periodicidadCalibracionMeses": 12,
+  "nit": null, "tipoProveedor": null, "nombreContacto": null, "correo": null, "telefono": null,
+  "activo": null
+}
+```
+
+En tipos de equipo, sin clase queda «Por definir»; sin `requiereCalibracion` se calibra cada 12 meses al crear y conserva lo que tenía al editar; si no requiere calibración, la periodicidad queda vacía (RN-010).
+
+Cuerpo de `POST` y `PUT /equipos` (fechas ISO 8601):
 
 ```json
 {
@@ -244,8 +260,40 @@ La base local debe tener aplicada V008 (`database/README.md`). Con `SITBIO_PRUEB
 
 ### Pendientes
 
-- **Gestión de catálogos:** por ahora solo se consultan; crear y editar tipos de equipo, ubicaciones y proveedores llega con HU-025 (commits 40 y 41), que extienden el mismo módulo `Modules/Catalogos`.
+- **Gestión de catálogos (HU-025):** resuelto en los commits 40 y 41: dominio, repositorio, catálogo de tipos de falla (V009) y `POST`/`PUT`/`GET` por id con permisos por rol y bitácora (`CREAR`/`ACTUALIZAR` sobre `tipo_equipo`, `ubicacion`, `proveedor` o `tipo_falla`; el detalle lleva el nombre y los campos que cambiaron, nunca el contacto del proveedor). La pantalla UI-020 quedó en el commit 43.
+- **DOC-06 (DAT-CATALOGOS):** debe incluir la tabla `tipo_falla` de la V009 (hoy lista `ubicacion`, `tipo_equipo` y `proveedor`). El .docx lo actualiza el responsable de documentación.
 - **Fotografía del equipo (RF-031):** V008 ya tiene `foto_documento_id` y la API devuelve `tieneFoto`; la subida y API-EQ-FOTO llegan con HU-015.
 - **Cambio de estado y baja:** la API todavía no ofrece `PATCH` de estado; llega con HU-014.
 - **Alerta del plan vencido (RF-020):** el plan se marca vencido y la interfaz lo avisa; la alerta en el módulo de alertas llega con su historia.
 - **Numeración de CP:** con esta historia se corrigió la tabla de HU-011 a CP-015, como asigna el DOC-04; antes usaba CP-004 a CP-006, que corresponden a HU-002 y HU-003.
+
+## HU-024 · Configuración de la institución
+
+Caso de uso CU-024 · RF-024 · RN-008 · RN-009 · SEC-003 · Pantalla UI-019 · API-TEN (`GET`/`PUT /api/v1/tenant/actual`).
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-027 | CA-HU-024-01: al guardar los días de anticipación de las alertas, las alertas de vencimiento de la institución usan el nuevo valor. | RF-024, RF-020 | Integración (API + PostgreSQL): `CriteriosHu024Tests.CA_HU_024_01_*` (2): el valor queda en `tenant.dias_anticipacion_alerta` y la consulta lo devuelve; fuera de 7 a 90 días responde 400 en el campo sin cambiar nada. Aplicación: `GestionInstitucionTests`. Dominio: `TenantTests`. Cliente: `MiInstitucionViewModelTests`. El uso del valor en el cálculo de las alertas se prueba con HU-020. | Aprobado (parcial: alertas con HU-020) |
+| CP-027 | CA-HU-024-02: el Administrador solo ve y edita los datos de su propio tenant; el alta, la suspensión y la desactivación las hace el proveedor. | RN-008, SEC-003, RNF-003 | Integración: `CriteriosHu024Tests.CA_HU_024_02_*` (2): el cuerpo no elige la institución ni cambia el plan o sus límites, la otra institución no cambia, no hay ruta `/tenant/{id}`; Ingeniero, Gerente y Técnico reciben 403 y sin token 401. API: `InstitucionEndpointTests`. Infraestructura: `RepositorioInstitucionPostgresTests`. | Aprobado |
+| CP-027 | CA-HU-024-03: se ven el plan, su vigencia y el consumo de usuarios de gestión, equipos activos y almacenamiento, con aviso desde el 80 %. | RN-009, RF-024 | Integración: `CriteriosHu024Tests.CA_HU_024_03_MuestraPlanVigenciaYConsumo_ConAvisoDesdeEl80PorCiento` (plan Consultorio: 3 de 3 usuarios con aviso y límite, AC-04 no cuenta; 239 de 300 equipos = 79 % sin aviso y 240 = 80 % con aviso). Aplicación: `GestionInstitucionTests`. Cliente: `MiInstitucionViewModelTests`, `ServicioInstitucionHttpTests`. | Aprobado |
+
+## HU-025 · Catálogos maestros
+
+Caso de uso CU-025 · RF-025 · RF-030 · RN-008 · SEC-003 · Pantalla UI-020 · API-CAT (`/api/v1/catalogos/{tipo}`) · Migración V009.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-028 | CA-HU-025-01: un elemento agregado a un catálogo aparece como opción en los formularios de la institución. | RF-025, RN-008 | Integración (API + PostgreSQL): `CriteriosHu025Tests.CA_HU_025_01_*` (2): tipo de equipo, ubicación, proveedor y tipo de falla nacen activos, se listan solo en su institución y el tipo, la ubicación y el proveedor se usan al registrar un equipo; un nombre repetido responde 409 `CAT-001`. Aplicación: `GestionCatalogosTests`, `ConsultaCatalogosTests`. Dominio: `CatalogosTests`. Infraestructura: `RepositorioCatalogosPostgresTests`. | Aprobado |
+| CP-028 | CA-HU-025-02: al desactivar un elemento ya utilizado, los registros anteriores conservan su valor. | RF-025 | Integración: `CriteriosHu025Tests.CA_HU_025_02_InactivarUnElementoUsado_LosRegistrosAnterioresConservanSuValor`: la hoja de vida conserva tipo y ubicación con sus nombres, el elemento sigue listado como inactivo, no hay `DELETE` (405), el equipo se sigue editando y un equipo nuevo no puede usarlos (400). Aplicación: `GestionCatalogosTests`. | Aprobado |
+| CP-028 | CA-HU-025-03: el Administrador del Sistema crea, edita y desactiva áreas y ubicaciones y solo consulta los catálogos técnicos. | RF-025, RNF-003 | Integración: `CriteriosHu025Tests.CA_HU_025_03_*`: AC-01 crea, renombra e inactiva una ubicación con nomenclatura de TI; en tipos de equipo, proveedores y tipos de falla consulta (200) pero crear o editar responde 403 sin cambiar nada. API: `CatalogosEndpointTests`. | Aprobado |
+
+- **Permisos y aislamiento:** `CriteriosHu025Tests.Permisos_OtrosRolesReciben403YSinToken401` (Técnico, Gerente y Personal Clínico: 403; sin token: 401) y `Aislamiento_OtraInstitucionNoVeNiEditaElElemento` (404 al consultar o editar un elemento de otra institución).
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` definida y V009 aplicada: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu024Tests|FullyQualifiedName~CriteriosHu025Tests"`. Estas pruebas no necesitan MongoDB.
+
+### Pendientes
+
+- **Alertas con los días de anticipación (CA-HU-024-01):** el cálculo de las alertas de vencimiento llega con HU-020 (Bloque 2); entonces se agrega la prueba de que usa el valor guardado.
+- **Pantalla UI-020:** resuelta en el commit 43 como pestaña «Catálogos» de UI-019 Configuración (AC-01 y AC-02). AC-02 gestiona los cuatro catálogos y edita la clase de riesgo y la calibración por defecto de los tipos de equipo; AC-01 gestiona solo ubicaciones y consulta el resto. Pruebas de cliente en `CatalogosViewModelTests` y `ServicioCatalogosHttpTests`.

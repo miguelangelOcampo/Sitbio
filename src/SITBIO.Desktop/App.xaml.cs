@@ -29,6 +29,8 @@ public partial class App : Application
         servicios.AddTransient<UsuariosViewModel>();
         servicios.AddTransient<IServicioBitacora, ServicioBitacoraHttp>();
         servicios.AddTransient<BitacoraViewModel>();
+        servicios.AddTransient<IServicioInstitucion, ServicioInstitucionHttp>();
+        servicios.AddTransient<MiInstitucionViewModel>();
         servicios.AddTransient<IServicioEquipos, ServicioEquiposHttp>();
         servicios.AddTransient<IServicioCatalogos, ServicioCatalogosHttp>();
         servicios.AddTransient<EquiposViewModel>();

@@ -40,6 +40,12 @@ public static class TiquetesEndpoints
             .WithName("ListarTiquetes")
             .RequireAuthorization(PoliticaConsulta);
 
+        // Catálogo para el formulario UI-009: quien reporta no tiene acceso a /catalogos.
+        grupo.MapGet("/tipos-falla", async (GestionTiquetes caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.TiposFallaAsync(cancellationToken)))
+            .WithName("TiposFallaParaReportar")
+            .RequireAuthorization(PoliticaReporte);
+
         grupo.MapGet("/{codigo}", async (string codigo, GestionTiquetes caso, CancellationToken cancellationToken) =>
                 Results.Ok(await caso.ObtenerAsync(codigo, cancellationToken)))
             .WithName("ObtenerTiquete")

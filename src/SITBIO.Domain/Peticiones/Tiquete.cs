@@ -35,7 +35,8 @@ public static class EstadosTiquete
 public sealed class Tiquete : EntidadTenant
 {
     public const string Prefijo = "TQT-";
-    public const int LongitudMaximaDescripcion = 1000;
+    /// <summary>DOC-05, UI-009: descripción opcional de máximo 500 caracteres.</summary>
+    public const int LongitudMaximaDescripcion = 500;
     public const int ConsecutivoMaximo = 999_999;
 
     // Constructor para EF Core.
@@ -49,7 +50,7 @@ public sealed class Tiquete : EntidadTenant
         Guid equipoId,
         Guid reportanteId,
         string tipoFalla,
-        string descripcion,
+        string? descripcion,
         string criticidad,
         DateTimeOffset fechaReporte)
         : base(tenantId)
@@ -57,7 +58,7 @@ public sealed class Tiquete : EntidadTenant
         EquipoId = equipoId != Guid.Empty ? equipoId : throw new ArgumentException("Selecciona el equipo que presenta la falla.", nameof(equipoId));
         ReportanteId = reportanteId != Guid.Empty ? reportanteId : throw new ArgumentException("El tiquete debe tener quién lo reporta.", nameof(reportanteId));
         TipoFalla = Texto.Requerido(tipoFalla, nameof(tipoFalla), Inventario.TipoFalla.LongitudMaximaNombre);
-        Descripcion = Texto.Requerido(descripcion, nameof(descripcion), LongitudMaximaDescripcion);
+        Descripcion = Texto.Opcional(descripcion, LongitudMaximaDescripcion, nameof(descripcion)) ?? string.Empty;
         Criticidad = Criticidades.EsValida(criticidad)
             ? criticidad
             : throw new ArgumentException("La criticidad debe ser crítica, alta, media o baja.", nameof(criticidad));
@@ -76,6 +77,7 @@ public sealed class Tiquete : EntidadTenant
     /// <summary>Nombre del tipo de falla elegido; es texto para que renombrar el catálogo no cambie tiquetes anteriores (V009).</summary>
     public string TipoFalla { get; private set; } = string.Empty;
 
+    /// <summary>Opcional (DOC-05); vacía si no se escribió, porque la columna es NOT NULL.</summary>
     public string Descripcion { get; private set; } = string.Empty;
 
     public string Criticidad { get; private set; } = string.Empty;

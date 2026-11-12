@@ -1,0 +1,256 @@
+<!-- UI-009 Reportar falla (HU-003, HU-018; FLU-003, DOC-05 Figura 4). Formulario de una columna de máximo
+     720 DIP con cuatro datos: equipo, tipo de falla, criticidad y descripción opcional. Falla crítica:
+     MSG-006 en línea antes de enviar (RN-005). Éxito: MSG-005 con el código del tiquete. Diseño clínico
+     editorial: sin tarjetas ni ventanas modales. -->
+<UserControl x:Class="Sitbio.Desktop.Views.ReportarFallaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:svc="clr-namespace:Sitbio.Desktop.Services"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+
+    <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}, Converter={StaticResource TextoVisible}}" Value="Visible">
+          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- Fila elegible de la búsqueda de equipos: toda la fila es el botón. -->
+    <Style x:Key="FilaEquipo" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Fondo" Background="Transparent" Padding="8,10">
+              <ContentPresenter />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Criticidad como grupo de RadioButton con texto (CMP-UI-008): la selección vive en el ListBox. -->
+    <Style x:Key="OpcionCriticidad" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,24,0" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ListBoxItem">
+            <RadioButton IsChecked="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                         GroupName="Criticidad" Content="{Binding Texto}" Foreground="{DynamicResource Brush.Text}"
+                         AutomationProperties.Name="{Binding Texto, StringFormat='Criticidad {0}'}" />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+    <StackPanel Margin="40,24,40,40" MaxWidth="720" HorizontalAlignment="Left">
+      <TextBlock Text="SOLICITUDES" Style="{StaticResource Overline}" />
+      <TextBlock Text="Reportar falla" Style="{StaticResource PageTitle}" Margin="0,4,0,6" />
+      <TextBlock Text="Cuéntanos qué equipo falla y qué tan grave es. El Ingeniero Biomédico recibe el reporte con su código de seguimiento."
+                 Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,24" />
+
+      <!-- Error -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+              Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
+              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                          Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+            </DockPanel>
+            <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+          <Button Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
+                  VerticalAlignment="Bottom" Margin="16,0,0,0"
+                  Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
+        </Grid>
+      </Border>
+
+      <!-- MSG-005: tiquete creado -->
+      <StackPanel Visibility="{Binding Enviado, Converter={StaticResource Visible}}">
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
+                AutomationProperties.LiveSetting="Polite">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}"
+                            Foreground="{DynamicResource Brush.SuccessText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+            <StackPanel Grid.Column="1">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="MSG-005" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+                <TextBlock Text="Tiquete creado" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
+              </DockPanel>
+              <TextBlock Text="{Binding TextoResultado}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+              <TextBlock Text="{Binding Creado.Codigo}" FontFamily="Consolas" FontSize="28" FontWeight="SemiBold" Margin="0,12,0,0"
+                         Foreground="{DynamicResource Brush.Text}" AutomationProperties.Name="Código del tiquete" />
+              <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding Creado.EquipoFueraDeServicio, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
+                <Ellipse Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.Danger}" />
+                <TextBlock Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap">
+                  <Run Text="El equipo" />
+                  <Run Text="{Binding Creado.PlacaInventario, Mode=OneWay}" FontWeight="SemiBold" />
+                  <Run Text="quedó «Fuera de servicio» hasta que se cierre la orden." />
+                </TextBlock>
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+        </Border>
+        <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
+          <Button Content="Copiar código" Style="{StaticResource PrimaryButton}" Command="{Binding CopiarCodigoCommand}" Margin="0,0,20,0" />
+          <Button Content="Reportar otra falla" Style="{StaticResource LinkButton}" Command="{Binding ReportarOtraCommand}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Text="{Binding TextoCopiado}" Style="{StaticResource Muted}" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"
+                   Visibility="{Binding TextoCopiado, Converter={StaticResource TextoVisible}}" />
+      </StackPanel>
+
+      <!-- Formulario -->
+      <StackPanel Visibility="{Binding Formulario, Converter={StaticResource Visible}}">
+        <TextBlock Text="Cargando el formulario…" Style="{StaticResource Muted}" Margin="0,0,0,18"
+                   Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+
+        <!-- 1. Equipo (CMP-UI-003) -->
+        <TextBlock Text="Equipo *" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+        <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorEquipo}">
+          <TextBox Style="{StaticResource FieldInput}" Text="{Binding Busqueda, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                   AutomationProperties.Name="Buscar equipo por placa o serie" />
+        </Border>
+        <TextBlock Text="{Binding ErrorEquipo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorEquipo, Converter={StaticResource TextoVisible}}" />
+        <TextBlock Text="Escribe al menos 2 caracteres de la placa o la serie." Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0" />
+        <TextBlock Text="Buscando…" Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0"
+                   Visibility="{Binding Buscando, Converter={StaticResource Visible}}" />
+        <TextBlock Text="No hay equipos activos con esa placa o serie." Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0"
+                   Visibility="{Binding SinCoincidencias, Converter={StaticResource Visible}}" />
+        <ItemsControl ItemsSource="{Binding Coincidencias}" Margin="0,6,0,0" Focusable="False"
+                      Visibility="{Binding HayCoincidencias, Converter={StaticResource Visible}}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type svc:Equipo}">
+              <Border Style="{StaticResource ListRow}" Padding="0">
+              <Button Style="{StaticResource FilaEquipo}" Command="{Binding DataContext.ElegirEquipoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                      CommandParameter="{Binding}" AutomationProperties.Name="{Binding PlacaInventario, StringFormat='Elegir equipo {0}'}">
+                <StackPanel>
+                  <TextBlock FontWeight="SemiBold">
+                    <Run Text="{Binding PlacaInventario, Mode=OneWay}" />
+                    <Run Text="·" Foreground="{DynamicResource Brush.Text3}" />
+                    <Run Text="{Binding TipoEquipo, Mode=OneWay}" />
+                  </TextBlock>
+                  <TextBlock Foreground="{DynamicResource Brush.Text2}" FontSize="13">
+                    <Run Text="Serie" />
+                    <Run Text="{Binding NumeroSerie, Mode=OneWay}" />
+                    <Run Text="·" />
+                    <Run Text="{Binding Ubicacion, Mode=OneWay}" />
+                    <Run Text="·" />
+                    <Run Text="{Binding EstadoNombre, Mode=OneWay}" />
+                  </TextBlock>
+                </StackPanel>
+              </Button>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding HayEquipo, Converter={StaticResource Visible}}">
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}" Foreground="{DynamicResource Brush.SuccessText}" Margin="0,0,8,0" />
+          <TextBlock Text="{Binding TextoEquipo}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+        </StackPanel>
+
+        <!-- 2. Tipo de falla -->
+        <TextBlock Text="Tipo de falla *" Style="{StaticResource FieldLabel}" Margin="0,22,0,6" />
+        <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{Binding TiposFalla}" SelectedItem="{Binding TipoFalla}"
+                  AutomationProperties.Name="Tipo de falla" />
+        <TextBlock Text="{Binding ErrorTipoFalla}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorTipoFalla, Converter={StaticResource TextoVisible}}" />
+        <TextBlock Text="Tu institución aún no tiene tipos de falla. Pide al Ingeniero Biomédico que los registre en Configuración › Catálogos."
+                   Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,6,0,0"
+                   Visibility="{Binding SinTiposFalla, Converter={StaticResource Visible}}" />
+
+        <!-- 3. Criticidad (CMP-UI-008) -->
+        <TextBlock Text="Criticidad *" Style="{StaticResource FieldLabel}" Margin="0,22,0,8" />
+        <ListBox ItemsSource="{x:Static vm:ReportarFallaViewModel.OpcionesCriticidad}" SelectedItem="{Binding Criticidad}"
+                 ItemContainerStyle="{StaticResource OpcionCriticidad}" Background="Transparent" BorderThickness="0"
+                 AutomationProperties.Name="Criticidad de la falla">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+        </ListBox>
+        <TextBlock Text="{Binding AyudaCriticidad}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,8,0,0" />
+        <TextBlock Text="{Binding ErrorCriticidad}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorCriticidad, Converter={StaticResource TextoVisible}}" />
+
+        <!-- 4. Descripción (opcional) -->
+        <DockPanel Margin="0,22,0,6">
+          <TextBlock DockPanel.Dock="Right" Text="{Binding ContadorDescripcion}" Style="{StaticResource Muted}" FontSize="13" />
+          <TextBlock Text="Descripción (opcional)" Style="{StaticResource FieldLabel}" />
+        </DockPanel>
+        <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorDescripcion}" Height="Auto">
+          <TextBox Style="{StaticResource FieldInput}" Text="{Binding Descripcion, UpdateSourceTrigger=PropertyChanged}"
+                   AcceptsReturn="True" TextWrapping="Wrap" MinHeight="96" VerticalContentAlignment="Top" Padding="0,8"
+                   MaxLength="{x:Static vm:ReportarFallaViewModel.MaximoDescripcion}"
+                   AutomationProperties.Name="Descripción de la falla, opcional, máximo 500 caracteres" />
+        </Border>
+        <TextBlock Text="{Binding ErrorDescripcion}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorDescripcion, Converter={StaticResource TextoVisible}}" />
+
+        <!-- MSG-006: confirmación de falla crítica (RN-005) -->
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
+                Margin="0,24,0,0" AutomationProperties.LiveSetting="Assertive"
+                Visibility="{Binding ConfirmandoCritica, Converter={StaticResource Visible}}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                            Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+            <StackPanel Grid.Column="1">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Right" Text="MSG-006" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+                <TextBlock Text="Falla crítica" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+              </DockPanel>
+              <TextBlock Text="{Binding TextoConfirmacionCritica}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+              <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                <Button Content="Reportar como crítica" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarCriticaCommand}" Margin="0,0,20,0" />
+                <Button Content="Cambiar criticidad" Style="{StaticResource LinkButton}" Command="{Binding CambiarCriticidadCommand}" VerticalAlignment="Center" />
+              </StackPanel>
+            </StackPanel>
+          </Grid>
+        </Border>
+
+        <!-- Acciones -->
+        <StackPanel Orientation="Horizontal" Margin="0,28,0,0">
+          <Button Content="Enviar reporte" Style="{StaticResource PrimaryButton}" Command="{Binding EnviarCommand}" Margin="0,0,20,0"
+                  AutomationProperties.Name="Enviar reporte" />
+          <Button Content="Cancelar" Style="{StaticResource LinkButton}" Command="{Binding CancelarCommand}" VerticalAlignment="Center" />
+          <TextBlock Text="Enviando…" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="20,0,0,0"
+                     Visibility="{Binding Enviando, Converter={StaticResource Visible}}" />
+        </StackPanel>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -89,8 +89,14 @@ public sealed class GestionTiquetes(
         return TiqueteDto.Desde(leido);
     }
 
-    /// <summary>CA-HU-003-02: sin equipo no hay tiquete; todos los errores llegan juntos y en español.</summary>
-    private async Task<(Guid EquipoId, string TipoFalla, string Descripcion, string Criticidad)> Validar(DatosTiquete datos, CancellationToken cancellationToken)
+    /// <summary>Tipos de falla activos del catálogo de la institución, para el formulario UI-009 (quien reporta no consulta /catalogos).</summary>
+    public Task<IReadOnlyList<string>> TiposFallaAsync(CancellationToken cancellationToken) => repositorio.TiposFallaActivosAsync(cancellationToken);
+
+    /// <summary>
+    /// CA-HU-003-02: sin equipo no hay tiquete; todos los errores llegan juntos y en español. Equipo, tipo
+    /// de falla y criticidad son obligatorios; la descripción es opcional (DOC-05, UI-009).
+    /// </summary>
+    private async Task<(Guid EquipoId, string TipoFalla, string? Descripcion, string Criticidad)> Validar(DatosTiquete datos, CancellationToken cancellationToken)
     {
         var errores = new Dictionary<string, string[]>();
         if (datos.EquipoId is null || datos.EquipoId == Guid.Empty)
@@ -113,11 +119,7 @@ public sealed class GestionTiquetes(
         }
 
         var descripcion = Limpio(datos.Descripcion);
-        if (descripcion is null)
-        {
-            errores["descripcion"] = ["Describe la falla."];
-        }
-        else if (descripcion.Length > Tiquete.LongitudMaximaDescripcion)
+        if (descripcion?.Length > Tiquete.LongitudMaximaDescripcion)
         {
             errores["descripcion"] = [$"La descripción admite máximo {Tiquete.LongitudMaximaDescripcion} caracteres."];
         }
@@ -133,7 +135,7 @@ public sealed class GestionTiquetes(
             throw new ErrorValidacion(errores);
         }
 
-        return (datos.EquipoId!.Value, tipoFalla!, descripcion!, criticidad!);
+        return (datos.EquipoId!.Value, tipoFalla!, descripcion, criticidad!);
     }
 
     private Guid? SoloPropios() => contexto.Rol == CodigosRol.PersonalClinico ? contexto.UsuarioId : null;

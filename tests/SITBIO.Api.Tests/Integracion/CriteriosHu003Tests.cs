@@ -69,14 +69,20 @@ public class CriteriosHu003Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
         Assert.Equal("Selecciona el equipo que presenta la falla.", errores.GetProperty("equipoId")[0].GetString());
         Assert.Empty(await api.LeerTiquetesAsync(i.Tenant));
 
-        // Tampoco con un tipo de falla que no está en el catálogo, ni sin descripción ni criticidad.
+        // Tampoco con un tipo de falla que no está en el catálogo ni sin criticidad; la descripción es opcional (DOC-05).
         var incompleto = await i.Clinico.PostAsJsonAsync(Ruta, new { equipoId = i.Equipo, tipoFalla = "Se cayó" });
         Assert.Equal(HttpStatusCode.BadRequest, incompleto.StatusCode);
         var faltantes = (await Cuerpo(incompleto)).GetProperty("errors");
         Assert.True(faltantes.TryGetProperty("tipoFalla", out _));
-        Assert.True(faltantes.TryGetProperty("descripcion", out _));
         Assert.True(faltantes.TryGetProperty("criticidad", out _));
+        Assert.False(faltantes.TryGetProperty("descripcion", out _));
         Assert.Empty(await api.LeerTiquetesAsync(i.Tenant));
+
+        // El formulario ofrece los tipos de falla activos del catálogo a quien reporta.
+        var tipos = await Cuerpo(await i.Clinico.GetAsync($"{Ruta}/tipos-falla"));
+        Assert.Equal([FallaNoEnciende], tipos.EnumerateArray().Select(t => t.GetString()));
+        var sinDescripcion = await Reportar(i.Clinico, new { equipoId = i.Equipo, tipoFalla = FallaNoEnciende, criticidad = Criticidades.Baja });
+        Assert.Equal(string.Empty, sinDescripcion.GetProperty("descripcion").GetString());
     }
 
     // ---------- CA-HU-018-01 (CP-022) ----------

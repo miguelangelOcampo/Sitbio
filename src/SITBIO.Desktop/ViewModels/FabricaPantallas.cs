@@ -26,6 +26,11 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 return equipos;
             // UI-019 Configuración: «Mi institución» solo para AC-01 (HU-024); «Catálogos» (UI-020, HU-025) y
             // «Campos dinámicos» (UI-018, HU-006) para AC-01 y AC-02. Campos dinámicos carga al abrir su pestaña.
+            // UI-009 Reportar falla (HU-003, HU-018): pantalla de inicio de AC-04; también la usa AC-02.
+            case "UI-009":
+                var reporte = servicios.GetRequiredService<ReportarFallaViewModel>();
+                reporte.CargarCommand.Execute(null);
+                return reporte;
             case "UI-019":
                 var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
                 catalogos.CargarCommand.Execute(null);

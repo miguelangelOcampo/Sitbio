@@ -64,12 +64,17 @@ public class TiqueteTests
         Assert.Throws<ArgumentException>(() => Nuevo(criticidad));
 
     [Fact]
-    public void SinEquipoODescripcion_SeRechaza()
+    public void SinEquipoODescripcionMuyLarga_SeRechaza()
     {
         Assert.Throws<ArgumentException>(() => new Tiquete(Tenant, Guid.Empty, Guid.NewGuid(), "No enciende", "Falla", Criticidades.Baja, Ahora));
-        Assert.Throws<ArgumentException>(() => Nuevo(descripcion: "  "));
         Assert.Throws<ArgumentException>(() => Nuevo(descripcion: new string('x', Tiquete.LongitudMaximaDescripcion + 1)));
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("   ")]
+    public void DescripcionOpcional_QuedaVacia(string? descripcion) =>
+        Assert.Equal(string.Empty, new Tiquete(Tenant, Guid.NewGuid(), Guid.NewGuid(), "No enciende", descripcion, Criticidades.Baja, Ahora).Descripcion);
 
     [Fact]
     public void Recepcion_EsElPrimerRegistroDelHistorial()

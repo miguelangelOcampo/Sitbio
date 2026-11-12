@@ -172,6 +172,25 @@ public class TiquetesEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
         Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync($"{Ruta}/TQT-000001")).StatusCode);
     }
 
+    [Theory]
+    [InlineData(CodigosRol.PersonalClinico, HttpStatusCode.OK)]
+    [InlineData(CodigosRol.IngenieroBiomedico, HttpStatusCode.OK)]
+    [InlineData(CodigosRol.TecnicoMantenimiento, HttpStatusCode.Forbidden)]
+    [InlineData(CodigosRol.AdministradorSistema, HttpStatusCode.Forbidden)]
+    public async Task TiposDeFalla_SoloParaQuienReporta(string rol, HttpStatusCode esperado)
+    {
+        var cliente = Cliente(rol);
+        _repositorio.TiposFallaActivosAsync(Arg.Any<CancellationToken>()).Returns(["Alarma", "No enciende"]);
+
+        var respuesta = await cliente.GetAsync($"{Ruta}/tipos-falla");
+
+        Assert.Equal(esperado, respuesta.StatusCode);
+        if (esperado == HttpStatusCode.OK)
+        {
+            Assert.Equal(["Alarma", "No enciende"], (await respuesta.Content.ReadFromJsonAsync<string[]>(Json))!);
+        }
+    }
+
     [Fact]
     public async Task ObtenerPorCodigo_PersonalClinicoSoloLoSuyo()
     {

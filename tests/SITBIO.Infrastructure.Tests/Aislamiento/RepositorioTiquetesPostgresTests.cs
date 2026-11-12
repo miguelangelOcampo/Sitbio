@@ -182,6 +182,7 @@ public class RepositorioTiquetesPostgresTests : IAsyncLifetime
             Assert.Equal("No enciende", await repositorio.TipoFallaActivoAsync("NO ENCIENDE", CancellationToken.None));
             Assert.Null(await repositorio.TipoFallaActivoAsync("Ruido", CancellationToken.None));
             Assert.Null(await repositorio.TipoFallaActivoAsync("Se cayó", CancellationToken.None));
+            Assert.Equal(["No enciende"], await repositorio.TiposFallaActivosAsync(CancellationToken.None));
         }
     }
 }

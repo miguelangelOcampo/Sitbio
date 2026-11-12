@@ -109,7 +109,7 @@ public class GestionTiquetesTests
         var error = await Assert.ThrowsAsync<ErrorValidacion>(() =>
             _caso.ReportarAsync(new DatosTiquete(Guid.Empty, " ", null, "urgente"), CancellationToken.None));
 
-        Assert.Equal(["equipoId", "tipoFalla", "descripcion", "criticidad"], error.Errores.Keys);
+        Assert.Equal(["equipoId", "tipoFalla", "criticidad"], error.Errores.Keys);
         Assert.Equal(["Elige la criticidad: crítica, alta, media o baja."], error.Errores["criticidad"]);
     }
 
@@ -120,6 +120,22 @@ public class GestionTiquetesTests
             _caso.ReportarAsync(Datos() with { TipoFalla = "Se cayó" }, CancellationToken.None));
 
         Assert.Equal(["Ese tipo de falla no está activo en el catálogo de tu institución."], error.Errores["tipoFalla"]);
+    }
+
+    [Fact]
+    public async Task Reportar_SinDescripcion_SeAcepta()
+    {
+        var creado = await _caso.ReportarAsync(Datos() with { Descripcion = null }, CancellationToken.None);
+
+        Assert.Equal(string.Empty, creado.Descripcion);
+    }
+
+    [Fact]
+    public async Task TiposFalla_SonLosActivosDelCatalogo()
+    {
+        _repositorio.TiposFallaActivosAsync(Arg.Any<CancellationToken>()).Returns(["Alarma", "No enciende"]);
+
+        Assert.Equal(["Alarma", "No enciende"], await _caso.TiposFallaAsync(CancellationToken.None));
     }
 
     [Fact]

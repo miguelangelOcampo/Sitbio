@@ -18,6 +18,9 @@ public interface IRepositorioTiquetes
     /// <summary>Nombre del tipo de falla activo del catálogo que coincide sin distinguir mayúsculas; null si no hay.</summary>
     Task<string?> TipoFallaActivoAsync(string nombre, CancellationToken cancellationToken);
 
+    /// <summary>Nombres de los tipos de falla activos del catálogo, en orden alfabético.</summary>
+    Task<IReadOnlyList<string>> TiposFallaActivosAsync(CancellationToken cancellationToken);
+
     /// <summary>
     /// En una sola transacción: numera el tiquete con el siguiente TQT-###### de la institución, lo
     /// inserta con su historial y, si hay <paramref name="cambioEquipo"/>, guarda el nuevo estado del

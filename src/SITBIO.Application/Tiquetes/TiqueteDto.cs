@@ -53,7 +53,7 @@ public sealed record TiqueteDto(
     }
 }
 
-/// <summary>Cuerpo de POST /tiquetes (UI-009). Quién reporta y la institución salen del token.</summary>
+/// <summary>Cuerpo de POST /tiquetes (UI-009). Quién reporta y la institución salen del token; la descripción es opcional.</summary>
 public sealed record DatosTiquete(Guid? EquipoId, string? TipoFalla, string? Descripcion, string? Criticidad);
 
 /// <summary>Filtros de GET /tiquetes (bandeja UI-011): estado y criticidad, con paginación.</summary>

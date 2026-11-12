@@ -48,6 +48,13 @@ public sealed class RepositorioTiquetes(SitbioDbContext contexto, IContextoUsuar
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<string>> TiposFallaActivosAsync(CancellationToken cancellationToken) =>
+        await contexto.TiposFalla.AsNoTracking()
+            .Where(f => f.EstadoActivo)
+            .OrderBy(f => f.Nombre)
+            .Select(f => f.Nombre)
+            .ToListAsync(cancellationToken);
+
     public async Task RegistrarAsync(Tiquete tiquete, HistorialTiquete recepcion, HistorialEstadoEquipo? cambioEquipo, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(tiquete);

@@ -19,6 +19,9 @@
     <DataTemplate DataType="{x:Type vm:BitacoraViewModel}">
       <views:BitacoraView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReportarFallaViewModel}">
+      <views:ReportarFallaView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ConfiguracionViewModel}">
       <views:ConfiguracionView />
     </DataTemplate>

@@ -13,6 +13,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Application.Seguridad;
+using Sitbio.Domain.Instituciones;
 using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Persistencia;
@@ -231,6 +232,19 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         return await contexto.PlanesPreventivos.IgnoreQueryFilters().AsNoTracking().Where(p => p.EquipoId == equipoId).ToListAsync();
     }
 
+    /// <summary>Institución tal como quedó en la base, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<Tenant> LeerTenantAsync(Guid tenant)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Tenants.IgnoreQueryFilters().AsNoTracking().SingleAsync(t => t.Id == tenant);
+    }
+
+    /// <summary>Fija la vigencia del plan como lo haría el proveedor al aprovisionar (ST-10).</summary>
+    public Task FijarVigenciaAsync(Guid tenant, DateOnly vigenteHasta) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"UPDATE sitbio.tenant SET vigente_hasta = {vigenteHasta} WHERE id_tenant = {tenant}"));
+
     public async Task<bool> ExisteSesionAsync(string jti)
     {
         using var alcance = Services.CreateScope();
@@ -273,6 +287,8 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             {
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.equipo_biomedico WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.proveedor WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tipo_falla WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tipo_equipo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.ubicacion WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.sesion_token WHERE tenant_id = ANY({tenants})");

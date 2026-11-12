@@ -266,3 +266,34 @@ La base local debe tener aplicada V008 (`database/README.md`). Con `SITBIO_PRUEB
 - **Cambio de estado y baja:** la API todavía no ofrece `PATCH` de estado; llega con HU-014.
 - **Alerta del plan vencido (RF-020):** el plan se marca vencido y la interfaz lo avisa; la alerta en el módulo de alertas llega con su historia.
 - **Numeración de CP:** con esta historia se corrigió la tabla de HU-011 a CP-015, como asigna el DOC-04; antes usaba CP-004 a CP-006, que corresponden a HU-002 y HU-003.
+
+## HU-024 · Configuración de la institución
+
+Caso de uso CU-024 · RF-024 · RN-008 · RN-009 · SEC-003 · Pantalla UI-019 · API-TEN (`GET`/`PUT /api/v1/tenant/actual`).
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-027 | CA-HU-024-01: al guardar los días de anticipación de las alertas, las alertas de vencimiento de la institución usan el nuevo valor. | RF-024, RF-020 | Integración (API + PostgreSQL): `CriteriosHu024Tests.CA_HU_024_01_*` (2): el valor queda en `tenant.dias_anticipacion_alerta` y la consulta lo devuelve; fuera de 7 a 90 días responde 400 en el campo sin cambiar nada. Aplicación: `GestionInstitucionTests`. Dominio: `TenantTests`. Cliente: `MiInstitucionViewModelTests`. El uso del valor en el cálculo de las alertas se prueba con HU-020. | Aprobado (parcial: alertas con HU-020) |
+| CP-027 | CA-HU-024-02: el Administrador solo ve y edita los datos de su propio tenant; el alta, la suspensión y la desactivación las hace el proveedor. | RN-008, SEC-003, RNF-003 | Integración: `CriteriosHu024Tests.CA_HU_024_02_*` (2): el cuerpo no elige la institución ni cambia el plan o sus límites, la otra institución no cambia, no hay ruta `/tenant/{id}`; Ingeniero, Gerente y Técnico reciben 403 y sin token 401. API: `InstitucionEndpointTests`. Infraestructura: `RepositorioInstitucionPostgresTests`. | Aprobado |
+| CP-027 | CA-HU-024-03: se ven el plan, su vigencia y el consumo de usuarios de gestión, equipos activos y almacenamiento, con aviso desde el 80 %. | RN-009, RF-024 | Integración: `CriteriosHu024Tests.CA_HU_024_03_MuestraPlanVigenciaYConsumo_ConAvisoDesdeEl80PorCiento` (plan Consultorio: 3 de 3 usuarios con aviso y límite, AC-04 no cuenta; 239 de 300 equipos = 79 % sin aviso y 240 = 80 % con aviso). Aplicación: `GestionInstitucionTests`. Cliente: `MiInstitucionViewModelTests`, `ServicioInstitucionHttpTests`. | Aprobado |
+
+## HU-025 · Catálogos maestros
+
+Caso de uso CU-025 · RF-025 · RF-030 · RN-008 · SEC-003 · Pantalla UI-020 · API-CAT (`/api/v1/catalogos/{tipo}`) · Migración V009.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-028 | CA-HU-025-01: un elemento agregado a un catálogo aparece como opción en los formularios de la institución. | RF-025, RN-008 | Integración (API + PostgreSQL): `CriteriosHu025Tests.CA_HU_025_01_*` (2): tipo de equipo, ubicación, proveedor y tipo de falla nacen activos, se listan solo en su institución y el tipo, la ubicación y el proveedor se usan al registrar un equipo; un nombre repetido responde 409 `CAT-001`. Aplicación: `GestionCatalogosTests`, `ConsultaCatalogosTests`. Dominio: `CatalogosTests`. Infraestructura: `RepositorioCatalogosPostgresTests`. | Aprobado |
+| CP-028 | CA-HU-025-02: al desactivar un elemento ya utilizado, los registros anteriores conservan su valor. | RF-025 | Integración: `CriteriosHu025Tests.CA_HU_025_02_InactivarUnElementoUsado_LosRegistrosAnterioresConservanSuValor`: la hoja de vida conserva tipo y ubicación con sus nombres, el elemento sigue listado como inactivo, no hay `DELETE` (405), el equipo se sigue editando y un equipo nuevo no puede usarlos (400). Aplicación: `GestionCatalogosTests`. | Aprobado |
+| CP-028 | CA-HU-025-03: el Administrador del Sistema crea, edita y desactiva áreas y ubicaciones y solo consulta los catálogos técnicos. | RF-025, RNF-003 | Integración: `CriteriosHu025Tests.CA_HU_025_03_*`: AC-01 crea, renombra e inactiva una ubicación con nomenclatura de TI; en tipos de equipo, proveedores y tipos de falla consulta (200) pero crear o editar responde 403 sin cambiar nada. API: `CatalogosEndpointTests`. | Aprobado |
+
+- **Permisos y aislamiento:** `CriteriosHu025Tests.Permisos_OtrosRolesReciben403YSinToken401` (Técnico, Gerente y Personal Clínico: 403; sin token: 401) y `Aislamiento_OtraInstitucionNoVeNiEditaElElemento` (404 al consultar o editar un elemento de otra institución).
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` definida y V009 aplicada: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu024Tests|FullyQualifiedName~CriteriosHu025Tests"`. Estas pruebas no necesitan MongoDB.
+
+### Pendientes
+
+- **Alertas con los días de anticipación (CA-HU-024-01):** el cálculo de las alertas de vencimiento llega con HU-020 (Bloque 2); entonces se agrega la prueba de que usa el valor guardado.
+- **Pantalla UI-020:** llega con el commit 43.

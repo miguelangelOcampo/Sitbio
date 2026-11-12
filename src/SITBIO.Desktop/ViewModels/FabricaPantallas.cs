@@ -24,7 +24,8 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var equipos = servicios.GetRequiredService<EquiposViewModel>();
                 equipos.CargarCommand.Execute(null);
                 return equipos;
-            // UI-019 Configuración: «Mi institución» solo para AC-01 (HU-024); «Catálogos» (UI-020, HU-025) para AC-01 y AC-02.
+            // UI-019 Configuración: «Mi institución» solo para AC-01 (HU-024); «Catálogos» (UI-020, HU-025) y
+            // «Campos dinámicos» (UI-018, HU-006) para AC-01 y AC-02. Campos dinámicos carga al abrir su pestaña.
             case "UI-019":
                 var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
                 catalogos.CargarCommand.Execute(null);
@@ -35,7 +36,7 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                     institucion.CargarCommand.Execute(null);
                 }
 
-                return new ConfiguracionViewModel(institucion, catalogos);
+                return new ConfiguracionViewModel(institucion, catalogos, servicios.GetRequiredService<CamposDinamicosViewModel>());
             case "UI-024":
                 var bitacora = servicios.GetRequiredService<BitacoraViewModel>();
                 bitacora.CargarCommand.Execute(null);

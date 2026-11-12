@@ -293,7 +293,7 @@ public class CatalogosViewModelTests
     [Theory]
     [InlineData("AC-01", true)]
     [InlineData("AC-02", false)]
-    public void Fabrica_UI019_AbreConfiguracionConCatalogosYMiInstitucionSoloParaAC01(string rol, bool conInstitucion)
+    public void Fabrica_UI019_AbreConfiguracionConCatalogosCamposYMiInstitucionSoloParaAC01(string rol, bool conInstitucion)
     {
         var institucion = Substitute.For<IServicioInstitucion>();
         var medidor = new MedidorPlan(1, 10, 10, false, false);
@@ -304,7 +304,9 @@ public class CatalogosViewModelTests
             .AddSingleton(_servicio)
             .AddSingleton(institucion)
             .AddTransient<MiInstitucionViewModel>()
+            .AddSingleton(Substitute.For<IServicioConfiguracionCampos>())
             .AddTransient<CatalogosViewModel>()
+            .AddTransient<CamposDinamicosViewModel>()
             .BuildServiceProvider();
 
         var pantalla = Assert.IsType<ConfiguracionViewModel>(new FabricaPantallas(servicios).Crear("UI-019"));
@@ -313,5 +315,9 @@ public class CatalogosViewModelTests
         Assert.Same(conInstitucion ? pantalla.MiInstitucion : pantalla.Catalogos, pantalla.Actual);
         pantalla.MostrarCatalogosCommand.Execute(null);
         Assert.Same(pantalla.Catalogos, pantalla.Actual);
+        pantalla.MostrarCamposCommand.Execute(null);
+        Assert.Same(pantalla.CamposDinamicos, pantalla.Actual);
+        Assert.True(pantalla.EnCampos);
+        _servicio.Received().ListarAsync(TiposCatalogo.TiposEquipo, Arg.Any<CancellationToken>());
     }
 }

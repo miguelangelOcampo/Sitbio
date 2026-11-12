@@ -24,7 +24,7 @@ namespace Sitbio.Api.Tests.Integracion;
 /// <summary>
 /// API completa contra PostgreSQL real (script 01 + V002..V008). Crea dos tenants (y los
 /// que pidan las pruebas) con usuarios de clave conocida y borra todo al terminar. Si hay
-/// MongoDB de pruebas, la bitácora va a una base temporal con el validador real (02 + V007). Sin la variable de entorno no
+/// MongoDB de pruebas, la bitácora y los campos dinámicos van a una base temporal con los validadores reales (02 + V007). Sin la variable de entorno no
 /// toca la base (las pruebas se omiten).
 /// </summary>
 public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsyncLifetime
@@ -47,6 +47,13 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
 
     /// <summary>Base temporal de MongoDB de este fixture; se borra al terminar.</summary>
     public string BaseMongo => $"sitbio_pruebas_api_{_sufijo}";
+
+    /// <summary>Versiones de configuracion_campos de un tenant tal como quedaron en MongoDB, de la más reciente a la más antigua.</summary>
+    public Task<List<BsonDocument>> LeerConfiguracionCamposAsync(Guid tenant) =>
+        new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("configuracion_campos")
+            .Find(new BsonDocument("tenant_id", tenant.ToString()))
+            .Sort(new BsonDocument("version", -1))
+            .ToListAsync();
 
     /// <summary>Eventos de la bitácora de un tenant tal como quedaron en MongoDB, del más reciente al más antiguo.</summary>
     public async Task<List<BsonDocument>> LeerBitacoraAsync(Guid tenant)
@@ -264,17 +271,26 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
 
         if (!string.IsNullOrWhiteSpace(_cadenaMongo))
         {
-            // Misma validación que en desarrollo: se copia el validador de sitbio_dev (02 + V007).
+            // Misma validación que en desarrollo: se copian los validadores de sitbio_dev (02 + V007).
             var cliente = new MongoClient(_cadenaMongo);
-            var origen = await (await cliente.GetDatabase("sitbio_dev").ListCollectionsAsync(
-                new ListCollectionsOptions { Filter = new BsonDocument("name", "bitacora_auditoria") })).SingleAsync();
-            await cliente.GetDatabase(BaseMongo).RunCommandAsync<BsonDocument>(new BsonDocument
+            foreach (var coleccion in new[] { "bitacora_auditoria", "configuracion_campos" })
             {
-                { "create", "bitacora_auditoria" },
-                { "validator", origen["options"]["validator"] },
-                { "validationLevel", "strict" },
-                { "validationAction", "error" },
-            });
+                var origen = await (await cliente.GetDatabase("sitbio_dev").ListCollectionsAsync(
+                    new ListCollectionsOptions { Filter = new BsonDocument("name", coleccion) })).SingleAsync();
+                await cliente.GetDatabase(BaseMongo).RunCommandAsync<BsonDocument>(new BsonDocument
+                {
+                    { "create", coleccion },
+                    { "validator", origen["options"]["validator"] },
+                    { "validationLevel", "strict" },
+                    { "validationAction", "error" },
+                });
+            }
+
+            // Una versión por número en cada institución y tipo de equipo (script 02).
+            await cliente.GetDatabase(BaseMongo).GetCollection<BsonDocument>("configuracion_campos").Indexes.CreateOneAsync(
+                new CreateIndexModel<BsonDocument>(
+                    new BsonDocument { { "tenant_id", 1 }, { "tipo_equipo", 1 }, { "version", -1 } },
+                    new CreateIndexOptions { Unique = true, Name = "uq_config_tenant_tipo_version" }));
         }
     }
 

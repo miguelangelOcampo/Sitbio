@@ -34,6 +34,8 @@ public partial class App : Application
         servicios.AddTransient<IServicioEquipos, ServicioEquiposHttp>();
         servicios.AddTransient<IServicioCatalogos, ServicioCatalogosHttp>();
         servicios.AddTransient<CatalogosViewModel>();
+        servicios.AddTransient<IServicioConfiguracionCampos, ServicioConfiguracionCamposHttp>();
+        servicios.AddTransient<CamposDinamicosViewModel>();
         servicios.AddTransient<EquiposViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
         servicios.AddSingleton(TimeProvider.System);

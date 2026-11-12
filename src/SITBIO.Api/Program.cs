@@ -4,6 +4,7 @@ using Sitbio.Api.Errores;
 using Sitbio.Api.Modules.Auditoria;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Api.Modules.Catalogos;
+using Sitbio.Api.Modules.ConfiguracionCampos;
 using Sitbio.Api.Modules.Equipos;
 using Sitbio.Api.Modules.Instituciones;
 using Sitbio.Api.Modules.Salud;
@@ -32,6 +33,7 @@ builder.Services.AddModuloAuditoria();
 builder.Services.AddModuloEquipos();
 builder.Services.AddModuloCatalogos();
 builder.Services.AddModuloInstituciones();
+builder.Services.AddModuloConfiguracionCampos();
 
 var app = builder.Build();
 
@@ -54,6 +56,7 @@ api.MapAuditoria();
 api.MapEquipos();
 api.MapCatalogos();
 api.MapInstitucion();
+api.MapConfiguracionCampos();
 
 app.Run();
 

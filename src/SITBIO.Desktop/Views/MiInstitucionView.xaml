@@ -1,4 +1,4 @@
-<!-- UI-019 Mi institución (HU-024, solo AC-01; prototipo Admin.tsx › MiInstitucion). Datos editables
+<!-- UI-019 › Mi institución (HU-024, solo AC-01; pestaña de ConfiguracionView; prototipo Admin.tsx › MiInstitucion). Datos editables
      a la izquierda y plan contratado con sus medidores a la derecha (RN-009). Diseño clínico
      editorial: secciones con línea fina, sin tarjetas; los medidores son barras abiertas. -->
 <UserControl x:Class="Sitbio.Desktop.Views.MiInstitucionView"
@@ -60,11 +60,9 @@
   </UserControl.Resources>
 
   <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
-    <StackPanel Margin="40,32,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
-      <!-- Encabezado -->
-      <TextBlock Text="ADMINISTRACIÓN" Style="{StaticResource Overline}" />
-      <TextBlock Text="Mi institución" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
-      <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,24" TextWrapping="Wrap"
+    <StackPanel Margin="40,24,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+      <!-- El encabezado y las pestañas los pone UI-019 Configuración -->
+      <TextBlock Style="{StaticResource Muted}" Margin="0,0,0,24" TextWrapping="Wrap"
                  Text="Datos de tu institución y anticipación de las alertas. El plan y su capacidad los administra el proveedor del servicio." />
 
       <TextBlock Text="Cargando los datos de la institución…" Style="{StaticResource Muted}" Margin="0,0,0,18"

@@ -260,7 +260,7 @@ La base local debe tener aplicada V008 (`database/README.md`). Con `SITBIO_PRUEB
 
 ### Pendientes
 
-- **Gestión de catálogos (HU-025):** resuelto en los commits 40 y 41: dominio, repositorio, catálogo de tipos de falla (V009) y `POST`/`PUT`/`GET` por id con permisos por rol y bitácora (`CREAR`/`ACTUALIZAR` sobre `tipo_equipo`, `ubicacion`, `proveedor` o `tipo_falla`; el detalle lleva el nombre y los campos que cambiaron, nunca el contacto del proveedor). La pantalla UI-020 llega con el commit 43.
+- **Gestión de catálogos (HU-025):** resuelto en los commits 40 y 41: dominio, repositorio, catálogo de tipos de falla (V009) y `POST`/`PUT`/`GET` por id con permisos por rol y bitácora (`CREAR`/`ACTUALIZAR` sobre `tipo_equipo`, `ubicacion`, `proveedor` o `tipo_falla`; el detalle lleva el nombre y los campos que cambiaron, nunca el contacto del proveedor). La pantalla UI-020 quedó en el commit 43.
 - **DOC-06 (DAT-CATALOGOS):** debe incluir la tabla `tipo_falla` de la V009 (hoy lista `ubicacion`, `tipo_equipo` y `proveedor`). El .docx lo actualiza el responsable de documentación.
 - **Fotografía del equipo (RF-031):** V008 ya tiene `foto_documento_id` y la API devuelve `tieneFoto`; la subida y API-EQ-FOTO llegan con HU-015.
 - **Cambio de estado y baja:** la API todavía no ofrece `PATCH` de estado; llega con HU-014.
@@ -296,4 +296,4 @@ Con `SITBIO_PRUEBAS_POSTGRES` definida y V009 aplicada: `dotnet test SITBIO.sln 
 ### Pendientes
 
 - **Alertas con los días de anticipación (CA-HU-024-01):** el cálculo de las alertas de vencimiento llega con HU-020 (Bloque 2); entonces se agrega la prueba de que usa el valor guardado.
-- **Pantalla UI-020:** llega con el commit 43.
+- **Pantalla UI-020:** resuelta en el commit 43 como pestaña «Catálogos» de UI-019 Configuración (AC-01 y AC-02). AC-02 gestiona los cuatro catálogos y edita la clase de riesgo y la calibración por defecto de los tipos de equipo; AC-01 gestiona solo ubicaciones y consulta el resto. Pruebas de cliente en `CatalogosViewModelTests` y `ServicioCatalogosHttpTests`.

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sitbio.Desktop.Services;
@@ -166,24 +165,5 @@ public class MiInstitucionViewModelTests
         await vm.GuardarCommand.ExecuteAsync(null);
 
         Assert.Equal("Usa un valor entre 7 y 90 días.", vm.ErrorDias);
-    }
-
-    // ---------- Navegación: UI-019 solo abre Mi institución para AC-01 ----------
-
-    [Theory]
-    [InlineData("AC-01", true)]
-    [InlineData("AC-02", false)]
-    public void Fabrica_UI019_AbreMiInstitucionSoloParaElAdministrador(string rol, bool abre)
-    {
-        _servicio.ObtenerAsync(Arg.Any<CancellationToken>()).Returns(Institucion());
-        var servicios = new ServiceCollection()
-            .AddSingleton(EquiposPrueba.Sesion(rol))
-            .AddSingleton(_servicio)
-            .AddTransient<MiInstitucionViewModel>()
-            .BuildServiceProvider();
-
-        var pantalla = new FabricaPantallas(servicios).Crear("UI-019");
-
-        Assert.Equal(abre, pantalla is MiInstitucionViewModel);
     }
 }

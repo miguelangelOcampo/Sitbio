@@ -24,11 +24,18 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var equipos = servicios.GetRequiredService<EquiposViewModel>();
                 equipos.CargarCommand.Execute(null);
                 return equipos;
-            // UI-019 Configuración: «Mi institución» es exclusiva de AC-01 (HU-024). Para AC-02 llega con Catálogos (HU-025).
-            case "UI-019" when servicios.GetService<SesionActual>()?.Sesion?.Rol == "AC-01":
-                var institucion = servicios.GetRequiredService<MiInstitucionViewModel>();
-                institucion.CargarCommand.Execute(null);
-                return institucion;
+            // UI-019 Configuración: «Mi institución» solo para AC-01 (HU-024); «Catálogos» (UI-020, HU-025) para AC-01 y AC-02.
+            case "UI-019":
+                var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
+                catalogos.CargarCommand.Execute(null);
+                MiInstitucionViewModel? institucion = null;
+                if (servicios.GetService<SesionActual>()?.Sesion?.Rol == "AC-01")
+                {
+                    institucion = servicios.GetRequiredService<MiInstitucionViewModel>();
+                    institucion.CargarCommand.Execute(null);
+                }
+
+                return new ConfiguracionViewModel(institucion, catalogos);
             case "UI-024":
                 var bitacora = servicios.GetRequiredService<BitacoraViewModel>();
                 bitacora.CargarCommand.Execute(null);

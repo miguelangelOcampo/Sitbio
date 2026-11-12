@@ -1,0 +1,286 @@
+<!-- UI-020 Catálogos (HU-025, RF-025; prototipo Admin.tsx › Catalogos), pestaña de UI-019 Configuración.
+     Catálogos a la izquierda (con activos) y sus valores a la derecha en tabla abierta. AC-02 gestiona
+     todos; AC-01 solo Ubicaciones y consulta el resto. Los valores se inactivan, no se borran.
+     En «Tipos de equipo» se ven la clase de riesgo y la calibración por defecto (RF-030). -->
+<UserControl x:Class="Sitbio.Desktop.Views.CatalogosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+    <views:ProxyDatos x:Key="Proxy" Datos="{Binding}" />
+
+    <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}, Converter={StaticResource TextoVisible}}" Value="Visible">
+          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+    <StackPanel Margin="40,24,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+      <TextBlock Text="Cargando los catálogos…" Style="{StaticResource Muted}" Margin="0,0,0,18"
+                 Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+
+      <!-- Error (al cargar o al guardar) -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+              Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
+              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                          Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+            </DockPanel>
+            <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+          <Button Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
+                  VerticalAlignment="Bottom" Margin="16,0,0,0"
+                  Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
+        </Grid>
+      </Border>
+
+      <!-- Confirmación -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
+              Margin="0,0,0,18" AutomationProperties.LiveSetting="Polite"
+              Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}"
+                          Foreground="{DynamicResource Brush.SuccessText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="{Binding Confirmacion.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
+            <TextBlock Text="{Binding Confirmacion.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+          <Button Grid.Column="2" Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarConfirmacionCommand}"
+                  VerticalAlignment="Center" Margin="16,0,0,0" />
+        </Grid>
+      </Border>
+
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="260" />
+          <ColumnDefinition Width="40" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Catálogos: filas con divisor; el elegido con barra -->
+        <ItemsControl ItemsSource="{Binding Catalogos}" Focusable="False" VerticalAlignment="Top"
+                      BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="0,1,0,0" AutomationProperties.Name="Catálogos">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:CatalogoVista}">
+              <Border Style="{StaticResource ListRow}" Padding="0">
+                <RadioButton Style="{StaticResource NavItem}" GroupName="Catalogos" IsChecked="{Binding Elegido, Mode=OneWay}"
+                             Command="{Binding DataContext.ElegirCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                             CommandParameter="{Binding}" AutomationProperties.Name="{Binding Nombre}">
+                  <DockPanel Margin="0,4">
+                    <TextBlock DockPanel.Dock="Right" Text="{Binding TextoActivos}" FontSize="12" FontWeight="Normal"
+                               Foreground="{DynamicResource Brush.Text3}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Nombre}" FontSize="15" />
+                  </DockPanel>
+                </RadioButton>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Valores del catálogo elegido -->
+        <StackPanel Grid.Column="2">
+          <TextBlock Text="{Binding Seleccionado.Nombre}" Style="{StaticResource SectionTitle}" />
+          <TextBlock Text="{Binding Resumen}" Style="{StaticResource Muted}" Margin="0,4,0,16" TextWrapping="Wrap" />
+
+          <!-- Nuevo valor (solo quien gestiona el catálogo) -->
+          <StackPanel Visibility="{Binding PuedeGestionar, Converter={StaticResource Visible}}" Margin="0,0,0,18">
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorNuevo}">
+                <Grid>
+                  <TextBox Style="{StaticResource FieldInput}" Text="{Binding NuevoValor, UpdateSourceTrigger=PropertyChanged}"
+                           MaxLength="150" AutomationProperties.Name="{Binding PlaceholderNuevo}">
+                    <TextBox.InputBindings>
+                      <KeyBinding Key="Enter" Command="{Binding AgregarCommand}" />
+                    </TextBox.InputBindings>
+                  </TextBox>
+                  <TextBlock Text="{Binding PlaceholderNuevo}" Margin="14,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.Text3}" />
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding NuevoValor.Length}" Value="0">
+                            <Setter Property="Visibility" Value="Visible" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </Grid>
+              </Border>
+              <Button Grid.Column="1" Content="Agregar" Style="{StaticResource PrimaryButton}" Command="{Binding AgregarCommand}" Margin="12,0,0,0" />
+            </Grid>
+
+            <!-- Proveedores: NIT y tipo son obligatorios -->
+            <Grid Margin="0,12,0,0" Visibility="{Binding EsProveedores, Converter={StaticResource Visible}}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="NIT" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                <Border Style="{StaticResource FieldBox}">
+                  <TextBox Style="{StaticResource FieldInput}" FontFamily="Consolas" Text="{Binding NuevoNit, UpdateSourceTrigger=PropertyChanged}"
+                           MaxLength="20" AutomationProperties.Name="NIT del proveedor" />
+                </Border>
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="Tipo de proveedor" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                <Border Style="{StaticResource FieldBox}">
+                  <TextBox Style="{StaticResource FieldInput}" Text="{Binding NuevoTipoProveedor, UpdateSourceTrigger=PropertyChanged}"
+                           MaxLength="60" AutomationProperties.Name="Tipo de proveedor (adquisición, servicio técnico, calibración)" />
+                </Border>
+              </StackPanel>
+            </Grid>
+
+            <TextBlock Text="{Binding ErrorNuevo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorNuevo, Converter={StaticResource TextoVisible}}" />
+          </StackPanel>
+
+          <!-- Tabla abierta de valores -->
+          <DataGrid Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filas}" SelectedItem="{Binding FilaSeleccionada}"
+                    AutomationProperties.Name="{Binding Seleccionado.Nombre}" ScrollViewer.CanContentScroll="False">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="VALOR" Width="2*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCatalogo}">
+                    <TextBlock Text="{Binding Valor}" TextTrimming="CharacterEllipsis" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="DETALLE" Width="2*"
+                                      Visibility="{Binding Datos.EsProveedores, Source={StaticResource Proxy}, Converter={StaticResource Visible}}">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCatalogo}">
+                    <TextBlock Text="{Binding Detalle}" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="CLASE DE RIESGO" Width="1.2*"
+                                      Visibility="{Binding Datos.EsTiposEquipo, Source={StaticResource Proxy}, Converter={StaticResource Visible}}">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCatalogo}">
+                    <TextBlock Text="{Binding ClaseRiesgo}" Foreground="{DynamicResource Brush.Text2}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="CALIBRACIÓN" Width="1.4*"
+                                      Visibility="{Binding Datos.EsTiposEquipo, Source={StaticResource Proxy}, Converter={StaticResource Visible}}">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCatalogo}">
+                    <TextBlock Text="{Binding Calibracion}" Foreground="{DynamicResource Brush.Text2}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="ESTADO" Width="*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCatalogo}">
+                    <StackPanel Orientation="Horizontal">
+                      <Ellipse x:Name="Punto" Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.Success}" />
+                      <TextBlock Text="{Binding Estado}" />
+                    </StackPanel>
+                    <DataTemplate.Triggers>
+                      <DataTrigger Binding="{Binding Elemento.Activo}" Value="False">
+                        <Setter TargetName="Punto" Property="Fill" Value="{DynamicResource Brush.Text3}" />
+                      </DataTrigger>
+                    </DataTemplate.Triggers>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="ACCIÓN" Width="110"
+                                      Visibility="{Binding Datos.PuedeGestionar, Source={StaticResource Proxy}, Converter={StaticResource Visible}}">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCatalogo}">
+                    <Button Content="{Binding Accion}" Style="{StaticResource LinkButton}"
+                            Command="{Binding DataContext.CambiarEstadoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}" HorizontalAlignment="Left">
+                      <AutomationProperties.Name>
+                        <MultiBinding StringFormat="{}{0} {1}">
+                          <Binding Path="Accion" />
+                          <Binding Path="Valor" />
+                        </MultiBinding>
+                      </AutomationProperties.Name>
+                    </Button>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+
+          <TextBlock Text="Elige un tipo de equipo para editar su clase de riesgo y su calibración por defecto."
+                     Style="{StaticResource Muted}" FontSize="13" Margin="0,14,0,0" TextWrapping="Wrap"
+                     Visibility="{Binding AyudaValores, Converter={StaticResource Visible}}" />
+
+          <!-- Valores por defecto del tipo de equipo elegido (RF-030, AC-02) -->
+          <Border Style="{StaticResource Section}" Margin="0,24,0,0" Visibility="{Binding EditandoValores, Converter={StaticResource Visible}}">
+            <StackPanel>
+              <TextBlock Style="{StaticResource SectionTitle}" TextWrapping="Wrap">
+                <Run Text="Valores por defecto ·" />
+                <Run Text="{Binding FilaSeleccionada.Valor, Mode=OneWay}" />
+              </TextBlock>
+              <TextBlock Text="Se proponen al registrar un equipo de este tipo; en cada equipo se pueden cambiar."
+                         Style="{StaticResource Muted}" FontSize="13" Margin="0,4,0,0" TextWrapping="Wrap" />
+              <Grid Margin="0,16,0,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="200" />
+                  <ColumnDefinition Width="24" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="24" />
+                  <ColumnDefinition Width="160" />
+                  <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                  <TextBlock Text="Clase de riesgo" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                  <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:CatalogosViewModel.OpcionesClase}"
+                            SelectedItem="{Binding Clase}" DisplayMemberPath="Texto" AutomationProperties.Name="Clase de riesgo por defecto" />
+                </StackPanel>
+                <CheckBox Grid.Column="2" Style="{StaticResource Casilla}" Content="Requiere calibración" VerticalAlignment="Bottom" Margin="0,0,0,11"
+                          IsChecked="{Binding RequiereCalibracion}" />
+                <StackPanel Grid.Column="4" Visibility="{Binding RequiereCalibracion, Converter={StaticResource Visible}}">
+                  <TextBlock Text="Cada" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+                  <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorMeses}">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Text="meses" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,14,0" />
+                      <TextBox Style="{StaticResource FieldInput}" Text="{Binding Meses, UpdateSourceTrigger=PropertyChanged}" MaxLength="2"
+                               AutomationProperties.Name="Periodicidad de calibración en meses" />
+                    </DockPanel>
+                  </Border>
+                </StackPanel>
+                <Button Grid.Column="5" Content="Guardar valores" Style="{StaticResource PrimaryButton}" Command="{Binding GuardarValoresCommand}"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" />
+              </Grid>
+              <TextBlock Text="{Binding ErrorMeses}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorMeses, Converter={StaticResource TextoVisible}}" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

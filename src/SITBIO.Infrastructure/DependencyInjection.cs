@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using Sitbio.Application.Auditoria;
 using Sitbio.Application.Catalogos;
+using Sitbio.Application.ConfiguracionCampos;
 using Sitbio.Application.Equipos;
 using Sitbio.Application.Instituciones;
 using Sitbio.Application.Seguridad;
@@ -67,6 +68,9 @@ public static class DependencyInjection
 
         // Configuración de la institución (HU-024).
         services.AddScoped<IRepositorioInstitucion, RepositorioInstitucion>();
+
+        // Motor de campos dinámicos (HU-006).
+        services.AddScoped<IRepositorioConfiguracionCampos, ConfiguracionCamposMongo>();
 
         return services;
     }

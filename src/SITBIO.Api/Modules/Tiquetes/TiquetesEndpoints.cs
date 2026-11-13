@@ -1,3 +1,4 @@
+using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.Tiquetes;
 using Sitbio.Domain.Seguridad;
 
@@ -13,6 +14,9 @@ public static class TiquetesEndpoints
 {
     public const string PoliticaReporte = "ReporteTiquetes";
     public const string PoliticaConsulta = "ConsultaTiquetes";
+
+    /// <summary>Único valor de <c>orden</c>: la bandeja de UI-011 prioriza por criticidad (HU-004, HU-018).</summary>
+    public const string OrdenCriticidad = "criticidad";
 
     public static IServiceCollection AddModuloTiquetes(this IServiceCollection services)
     {
@@ -39,8 +43,16 @@ public static class TiquetesEndpoints
                 string? criticidad = null,
                 int page = 1,
                 int pageSize = 20,
-                bool mios = false) =>
-                Results.Ok(await caso.ListarAsync(new FiltroTiquetes(estado, criticidad, page, pageSize, mios), cancellationToken)))
+                bool mios = false,
+                string? orden = null) =>
+            {
+                if (orden is not null && !string.Equals(orden.Trim(), OrdenCriticidad, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw ErrorValidacion.DeCampo("orden", "El orden solo admite «criticidad».");
+                }
+
+                return Results.Ok(await caso.ListarAsync(new FiltroTiquetes(estado, criticidad, page, pageSize, mios, orden is not null), cancellationToken));
+            })
             .WithName("ListarTiquetes")
             .RequireAuthorization(PoliticaConsulta);
 

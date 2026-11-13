@@ -4,6 +4,7 @@ using Sitbio.Application.Comun;
 using Sitbio.Domain.Comun;
 using Sitbio.Domain.Instituciones;
 using Sitbio.Domain.Inventario;
+using Sitbio.Domain.Mantenimiento;
 using Sitbio.Domain.Peticiones;
 using Sitbio.Domain.Seguridad;
 
@@ -56,6 +57,8 @@ public class SitbioDbContext : DbContext
     public DbSet<Tiquete> Tiquetes => Set<Tiquete>();
 
     public DbSet<HistorialTiquete> HistorialTiquetes => Set<HistorialTiquete>();
+
+    public DbSet<OrdenTrabajo> Ordenes => Set<OrdenTrabajo>();
 
     public DbSet<EquipoBiomedico> Equipos => Set<EquipoBiomedico>();
 

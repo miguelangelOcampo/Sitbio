@@ -168,6 +168,10 @@ public class RepositorioTiquetesPostgresTests : IAsyncLifetime
             var (criticos, _) = await repositorio.ListarAsync(new FiltroTiquetes(EstadosTiquete.Recibido, Criticidades.Critica), null, CancellationToken.None);
             Assert.Equal([propio], criticos.Select(t => t.Tiquete.Codigo));
 
+            // Bandeja UI-011: lo crítico primero aunque sea más antiguo.
+            var (bandeja, _) = await repositorio.ListarAsync(new FiltroTiquetes(EstadosTiquete.Recibido, null, PorCriticidad: true), null, CancellationToken.None);
+            Assert.Equal([propio, ajeno], bandeja.Select(t => t.Tiquete.Codigo));
+
             Assert.Null(await repositorio.ObtenerAsync(ajeno, _clinicoA, CancellationToken.None));
             Assert.Null(await repositorio.EquipoAsync(_equipoB, CancellationToken.None));
         }

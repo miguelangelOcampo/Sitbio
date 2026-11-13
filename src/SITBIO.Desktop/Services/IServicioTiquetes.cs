@@ -44,8 +44,11 @@ public static class EstadosTiquete
     };
 }
 
-/// <summary>Filtros de GET /tiquetes: estado y «mios» (solo lo que reportó quien consulta).</summary>
-public sealed record FiltroTiquetes(string? Estado = null, bool Mios = false, int Pagina = 1, int Tamano = 20);
+/// <summary>
+/// Filtros de GET /tiquetes: estado, «mios» (solo lo que reportó quien consulta) y, para la bandeja UI-011,
+/// el orden por criticidad (lo más crítico y lo que más lleva esperando primero).
+/// </summary>
+public sealed record FiltroTiquetes(string? Estado = null, bool Mios = false, int Pagina = 1, int Tamano = 20, bool PorCriticidad = false);
 
 public sealed record PaginaTiquetes(IReadOnlyList<Tiquete> Items, int Page, int PageSize, int Total);
 
@@ -105,6 +108,11 @@ public sealed class ServicioTiquetesHttp(ClienteApi cliente) : IServicioTiquetes
         if (filtro.Mios)
         {
             ruta += "&mios=true";
+        }
+
+        if (filtro.PorCriticidad)
+        {
+            ruta += "&orden=criticidad";
         }
 
         return PeticionApi.EnviarAsync<PaginaTiquetes>(cliente, HttpMethod.Get, ruta, null, MensajeConsulta, cancellationToken);

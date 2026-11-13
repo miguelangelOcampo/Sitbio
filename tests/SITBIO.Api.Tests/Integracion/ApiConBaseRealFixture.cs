@@ -80,7 +80,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
 
     /// <summary>
     /// Pasa un tiquete a otro estado directamente en la base y deja el cambio en su historial, como lo
-    /// harán la asignación (HU-004), la ejecución (HU-005) y el cierre (HU-021). Al cerrar fija la fecha de cierre.
+    /// harán la ejecución (HU-005) y el cierre (HU-021); la asignación ya existe (HU-004). Al cerrar fija la fecha de cierre.
     /// </summary>
     public Task CambiarEstadoTiqueteAsync(Guid tenant, string codigo, Guid usuarioId, string nuevoEstado, string comentario, DateTimeOffset fecha) =>
         EjecutarSqlAsync(async contexto =>
@@ -349,6 +349,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             {
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_estado_equipo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.orden_trabajo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_tiquete WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tiquete WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.equipo_biomedico WHERE tenant_id = ANY({tenants})");

@@ -100,12 +100,13 @@ public class ServicioTiquetesHttpTests
     [InlineData(null, false, 1, "GET /api/v1/tiquetes?page=1&pageSize=20")]
     [InlineData("en_ejecucion", false, 2, "GET /api/v1/tiquetes?page=2&pageSize=20&estado=en_ejecucion")]
     [InlineData(null, true, 1, "GET /api/v1/tiquetes?page=1&pageSize=20&mios=true")]
-    public async Task Listar_ArmaLaRutaConLosFiltros(string? estado, bool mios, int pagina, string ruta)
+    [InlineData("recibido", false, 1, "GET /api/v1/tiquetes?page=1&pageSize=20&estado=recibido&orden=criticidad", true)]
+    public async Task Listar_ArmaLaRutaConLosFiltros(string? estado, bool mios, int pagina, string ruta, bool porCriticidad = false)
     {
         var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK,
             $$"""{"items":[{{TiqueteJson("TQT-000002", "asignado")}}],"page":{{pagina}},"pageSize":20,"total":21}"""));
 
-        var resultado = await servicio.ListarAsync(new FiltroTiquetes(estado, mios, pagina), CancellationToken.None);
+        var resultado = await servicio.ListarAsync(new FiltroTiquetes(estado, mios, pagina, PorCriticidad: porCriticidad), CancellationToken.None);
 
         Assert.Equal(ruta, manejador.Rutas.Single());
         Assert.Equal((21, "TQT-000002", "asignado"), (resultado.Total, resultado.Items[0].Codigo, resultado.Items[0].Estado));

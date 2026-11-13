@@ -4,9 +4,10 @@ using Sitbio.Domain.Seguridad;
 namespace Sitbio.Api.Modules.Tiquetes;
 
 /// <summary>
-/// API-TIQ (DOC-06): reportan fallas el Ingeniero Biomédico (AC-02) y el Personal Clínico (AC-04);
-/// consultan AC-02, AC-03 y AC-04, y AC-04 solo ve los tiquetes que reportó. Sin token responde 401;
-/// con otro rol, 403. El permiso se valida aquí, no en WPF (RNF-003).
+/// API-TIQ (DOC-06): reportan fallas el Ingeniero Biomédico (AC-02) y el Personal Clínico (AC-04).
+/// El seguimiento (HU-017) lo consultan AC-01, AC-02, AC-03, AC-04 y el Ente Regulador (AC-07), en solo
+/// lectura, según la matriz de permisos del DOC-03; AC-04 solo ve los tiquetes que reportó. Sin token
+/// responde 401; con otro rol, 403. El permiso se valida aquí, no en WPF (RNF-003).
 /// </summary>
 public static class TiquetesEndpoints
 {
@@ -19,9 +20,11 @@ public static class TiquetesEndpoints
         services.AddAuthorizationBuilder()
             .AddPolicy(PoliticaReporte, politica => politica.RequireRole(CodigosRol.IngenieroBiomedico, CodigosRol.PersonalClinico))
             .AddPolicy(PoliticaConsulta, politica => politica.RequireRole(
+                CodigosRol.AdministradorSistema,
                 CodigosRol.IngenieroBiomedico,
                 CodigosRol.TecnicoMantenimiento,
-                CodigosRol.PersonalClinico));
+                CodigosRol.PersonalClinico,
+                CodigosRol.EnteRegulador));
         return services;
     }
 
@@ -35,8 +38,9 @@ public static class TiquetesEndpoints
                 string? estado = null,
                 string? criticidad = null,
                 int page = 1,
-                int pageSize = 20) =>
-                Results.Ok(await caso.ListarAsync(new FiltroTiquetes(estado, criticidad, page, pageSize), cancellationToken)))
+                int pageSize = 20,
+                bool mios = false) =>
+                Results.Ok(await caso.ListarAsync(new FiltroTiquetes(estado, criticidad, page, pageSize, mios), cancellationToken)))
             .WithName("ListarTiquetes")
             .RequireAuthorization(PoliticaConsulta);
 
@@ -49,6 +53,11 @@ public static class TiquetesEndpoints
         grupo.MapGet("/{codigo}", async (string codigo, GestionTiquetes caso, CancellationToken cancellationToken) =>
                 Results.Ok(await caso.ObtenerAsync(codigo, cancellationToken)))
             .WithName("ObtenerTiquete")
+            .RequireAuthorization(PoliticaConsulta);
+
+        grupo.MapGet("/{codigo}/historial", async (string codigo, GestionTiquetes caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.HistorialAsync(codigo, cancellationToken)))
+            .WithName("HistorialTiquete")
             .RequireAuthorization(PoliticaConsulta);
 
         grupo.MapPost("/", async (DatosTiquete datos, GestionTiquetes caso, CancellationToken cancellationToken) =>

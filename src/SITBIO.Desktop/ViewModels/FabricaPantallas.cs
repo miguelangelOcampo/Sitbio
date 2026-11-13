@@ -31,6 +31,11 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var reporte = servicios.GetRequiredService<ReportarFallaViewModel>();
                 reporte.CargarCommand.Execute(null);
                 return reporte;
+            // UI-010 Seguimiento de tiquetes (HU-017): AC-01 a AC-04 y AC-07; para AC-04 es «Mis tiquetes».
+            case SeguimientoViewModel.IdPantalla:
+                var seguimiento = servicios.GetRequiredService<SeguimientoViewModel>();
+                seguimiento.CargarCommand.Execute(null);
+                return seguimiento;
             case "UI-019":
                 var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
                 catalogos.CargarCommand.Execute(null);

@@ -18,8 +18,8 @@ using Sitbio.Infrastructure.Seguridad;
 namespace Sitbio.Api.Tests.Seguridad;
 
 /// <summary>
-/// Contrato HTTP de /api/v1/tiquetes (API-TIQ; HU-003, HU-018): reportan AC-02 y AC-04; consultan
-/// AC-02, AC-03 y AC-04 (AC-04 solo lo suyo); los demás roles reciben 403. Sin base de datos.
+/// Contrato HTTP de /api/v1/tiquetes (API-TIQ; HU-003, HU-017, HU-018): reportan AC-02 y AC-04;
+/// consultan AC-01 a AC-04 y AC-07 (AC-04 solo lo suyo); los demás roles reciben 403. Sin base de datos.
 /// </summary>
 public class TiquetesEndpointTests(WebApplicationFactory<Program> fabrica) : IClassFixture<WebApplicationFactory<Program>>
 {
@@ -146,10 +146,12 @@ public class TiquetesEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
     }
 
     [Theory]
+    [InlineData(CodigosRol.AdministradorSistema)]
     [InlineData(CodigosRol.IngenieroBiomedico)]
     [InlineData(CodigosRol.TecnicoMantenimiento)]
     [InlineData(CodigosRol.PersonalClinico)]
-    public async Task IngenieroTecnicoYClinico_Consultan(string rol)
+    [InlineData(CodigosRol.EnteRegulador)]
+    public async Task QuienHaceSeguimiento_Consulta(string rol)
     {
         var respuesta = await Cliente(rol).GetAsync($"{Ruta}?estado=recibido&criticidad=critica");
 
@@ -160,16 +162,41 @@ public class TiquetesEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
     }
 
     [Theory]
-    [InlineData(CodigosRol.AdministradorSistema)]
     [InlineData(CodigosRol.GerenteBiomedico)]
     [InlineData(CodigosRol.DirectivaInstitucional)]
-    [InlineData(CodigosRol.EnteRegulador)]
     public async Task OtrosRoles_NoConsultan(string rol)
     {
         var cliente = Cliente(rol);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync(Ruta)).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync($"{Ruta}/TQT-000001")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync($"{Ruta}/TQT-000001/historial")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Mios_ListaSoloLosQueReportoQuienConsulta()
+    {
+        var respuesta = await Cliente(CodigosRol.IngenieroBiomedico).GetAsync($"{Ruta}?mios=true");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        await _repositorio.Received(1).ListarAsync(new FiltroTiquetes(null, null, 1, 20, Mios: true), _usuario.Id, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Historial_PorCodigo_TraeLosCambiosYSinTokenResponde401()
+    {
+        var cliente = Cliente(CodigosRol.PersonalClinico);
+        await cliente.PostAsJsonAsync(Ruta, Cuerpo());
+        _repositorio.HistorialAsync(_guardado!.Id, Arg.Any<CancellationToken>()).Returns([new HistorialTiqueteLeido(_guardado.Recepcion(), "Laura Gómez")]);
+
+        var respuesta = await cliente.GetAsync($"{Ruta}/tqt-000001/historial");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var historial = (await respuesta.Content.ReadFromJsonAsync<HistorialTiqueteDto[]>(Json))!;
+        Assert.Equal([(null, EstadosTiquete.Recibido, "Laura Gómez")], historial.Select(h => (h.EstadoAnterior, h.NuevoEstado, h.Usuario)));
+        await _repositorio.Received().ObtenerAsync("TQT-000001", _usuario.Id, Arg.Any<CancellationToken>());
+        Assert.Equal(HttpStatusCode.NotFound, (await cliente.GetAsync($"{Ruta}/TQT-000777/historial")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Cliente(null).GetAsync($"{Ruta}/TQT-000001/historial")).StatusCode);
     }
 
     [Theory]

@@ -12,6 +12,9 @@ public interface IRepositorioTiquetes
     /// <summary>Tiquete por código; null si no existe, es de otro tenant o (con <paramref name="reportanteId"/>) lo reportó otra persona.</summary>
     Task<TiqueteLeido?> ObtenerAsync(string codigo, Guid? reportanteId, CancellationToken cancellationToken);
 
+    /// <summary>Cambios de estado del tiquete, del más antiguo al más reciente (CA-HU-017-01).</summary>
+    Task<IReadOnlyList<HistorialTiqueteLeido>> HistorialAsync(Guid tiqueteId, CancellationToken cancellationToken);
+
     /// <summary>Equipo con seguimiento de cambios (RN-005 puede cambiar su estado); null si no existe o es de otro tenant.</summary>
     Task<EquipoBiomedico?> EquipoAsync(Guid id, CancellationToken cancellationToken);
 

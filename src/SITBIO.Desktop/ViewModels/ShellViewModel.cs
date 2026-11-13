@@ -152,8 +152,35 @@ public partial class ShellViewModel : ObservableObject
 
         opcion.EsActual = true;
         OpcionActual = opcion;
+        if (Contenido is ISolicitaNavegacion anterior)
+        {
+            anterior.NavegacionSolicitada -= AlSolicitarNavegacion;
+        }
+
         Contenido = _pantallas?.Crear(opcion.Opcion.Id);
+        if (Contenido is ISolicitaNavegacion nueva)
+        {
+            nueva.NavegacionSolicitada += AlSolicitarNavegacion;
+        }
+
         ActualizarSeleccion();
+    }
+
+    /// <summary>Una pantalla pide abrir otra opción del menú del rol; si el rol no la tiene, no pasa nada.</summary>
+    private void AlSolicitarNavegacion(object? sender, SolicitudNavegacion solicitud)
+    {
+        var destino = Modulos.SelectMany(m => m.Opciones).FirstOrDefault(o => o.Opcion.Id == solicitud.IdOpcion);
+        if (destino is null)
+        {
+            return;
+        }
+
+        Navegar(destino);
+        ModuloEnPanel = Modulos.First(m => m.Opciones.Contains(destino));
+        if (solicitud.Parametro is { } parametro && Contenido is IRecibeParametro pantalla)
+        {
+            pantalla.Recibir(parametro);
+        }
     }
 
     [RelayCommand]

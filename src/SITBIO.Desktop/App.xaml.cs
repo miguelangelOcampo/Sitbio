@@ -39,6 +39,7 @@ public partial class App : Application
         servicios.AddTransient<EquiposViewModel>();
         servicios.AddTransient<IServicioTiquetes, ServicioTiquetesHttp>();
         servicios.AddTransient<ReportarFallaViewModel>();
+        servicios.AddTransient<SeguimientoViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
         servicios.AddSingleton(TimeProvider.System);
         servicios.AddSingleton<ControlSesion>(sp => new ControlSesion(

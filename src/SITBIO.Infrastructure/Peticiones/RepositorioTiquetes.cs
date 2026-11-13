@@ -35,6 +35,14 @@ public sealed class RepositorioTiquetes(SitbioDbContext contexto, IContextoUsuar
     public Task<TiqueteLeido?> ObtenerAsync(string codigo, Guid? reportanteId, CancellationToken cancellationToken) =>
         Leer(Filtrar(reportanteId).Where(t => t.Codigo == codigo)).SingleOrDefaultAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<HistorialTiqueteLeido>> HistorialAsync(Guid tiqueteId, CancellationToken cancellationToken) =>
+        await (from h in contexto.HistorialTiquetes.AsNoTracking()
+               join u in contexto.Usuarios on h.UsuarioId equals u.Id
+               where h.TiqueteId == tiqueteId
+               orderby h.FechaCambio, h.Id
+               select new HistorialTiqueteLeido(h, u.Nombres + " " + u.Apellidos))
+            .ToListAsync(cancellationToken);
+
     public Task<EquipoBiomedico?> EquipoAsync(Guid id, CancellationToken cancellationToken) =>
         contexto.Equipos.SingleOrDefaultAsync(e => e.Id == id, cancellationToken);
 

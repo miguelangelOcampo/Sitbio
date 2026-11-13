@@ -8,6 +8,7 @@ using Sitbio.Application.Catalogos;
 using Sitbio.Application.ConfiguracionCampos;
 using Sitbio.Application.Equipos;
 using Sitbio.Application.Instituciones;
+using Sitbio.Application.Ordenes;
 using Sitbio.Application.Seguridad;
 using Sitbio.Application.Tiquetes;
 using Sitbio.Application.Usuarios;
@@ -15,6 +16,7 @@ using Sitbio.Infrastructure.Auditoria;
 using Sitbio.Infrastructure.Catalogos;
 using Sitbio.Infrastructure.Instituciones;
 using Sitbio.Infrastructure.Inventario;
+using Sitbio.Infrastructure.Mantenimiento;
 using Sitbio.Infrastructure.Persistencia;
 using Sitbio.Infrastructure.Persistencia.Mongo;
 using Sitbio.Infrastructure.Peticiones;
@@ -67,6 +69,7 @@ public static class DependencyInjection
         // Inventario (HU-002).
         services.AddScoped<IRepositorioEquipos, RepositorioEquipos>();
         services.AddScoped<IRepositorioTiquetes, RepositorioTiquetes>();
+        services.AddScoped<IRepositorioOrdenes, RepositorioOrdenes>();
         services.AddScoped<IRepositorioCatalogos, RepositorioCatalogos>();
 
         // Configuración de la institución (HU-024).

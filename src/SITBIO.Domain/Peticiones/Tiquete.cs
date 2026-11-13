@@ -109,6 +109,21 @@ public sealed class Tiquete : EntidadTenant
     public HistorialTiquete Recepcion() =>
         new(TenantId, Id, ReportanteId, null, EstadosTiquete.Recibido, "Falla reportada.", FechaReporte);
 
+    /// <summary>
+    /// HU-004: el tiquete pasa de «recibido» a «asignado» cuando se crea su orden de trabajo. Devuelve el
+    /// registro de <c>historial_tiquete</c> a nombre de quien asigna. Solo un tiquete recibido se asigna.
+    /// </summary>
+    public HistorialTiquete Asignar(Guid usuarioId, string comentario, DateTimeOffset fecha)
+    {
+        if (Estado != EstadosTiquete.Recibido)
+        {
+            throw new InvalidOperationException($"El tiquete {Codigo} ya no está «recibido»; no se puede asignar de nuevo.");
+        }
+
+        Estado = EstadosTiquete.Asignado;
+        return new HistorialTiquete(TenantId, Id, usuarioId, EstadosTiquete.Recibido, EstadosTiquete.Asignado, comentario, fecha);
+    }
+
     public static string Formatear(int consecutivo) =>
         consecutivo is >= 1 and <= ConsecutivoMaximo
             ? Prefijo + consecutivo.ToString("D6", CultureInfo.InvariantCulture)

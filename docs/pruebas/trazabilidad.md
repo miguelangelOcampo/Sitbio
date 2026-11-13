@@ -364,3 +364,25 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 
 - **Pantalla UI-010:** resuelta en B1-06. Para el Personal Clínico es «Mis tiquetes» y para AC-01, AC-02, AC-03 y AC-07 es «Seguimiento»; el Ingeniero Biomédico puede ver solo los que reportó. Consulta por código (acepta solo el número), lista por estado y detalle con la línea de tiempo; solo lectura.
 - **Notificaciones del cambio de estado:** avisar al Personal Clínico cuando su tiquete cambia de estado no es parte de CA-HU-017; queda para cuando existan la asignación (HU-004) y el cierre (HU-021).
+
+## HU-004 · Asignación de órdenes de trabajo
+
+Caso de uso CU-004 · RF-007 · RN-003 · RN-008 · RNF-003 · API-OT (`POST /api/v1/ordenes`, `GET /api/v1/ordenes?asignadas=me`, `GET /api/v1/ordenes/{id}`) · Tablas `orden_trabajo` y `historial_tiquete` (script 01).
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-007 | CA-HU-004-01: al asignar un tiquete pendiente a un técnico activo, el tiquete pasa a «Asignado» y la orden aparece en el panel del técnico. | RF-007 | Aplicación: `GestionOrdenesTests.Asignar_CreaLaOrdenDelTecnicoYElTiquetePasaAAsignado` (orden correctiva «asignada» con la prioridad sugerida, fecha programada y quién asignó; historial recibido → asignado), `Asignar_ConOtraPrioridad_LaUsaEnLugarDeLaSugerida`, `Asignar_DejaLaOrdenEnLaBitacoraSinDatosPersonales` (CREAR en `orden_trabajo`), `Listar_ElTecnicoSoloVeLasSuyasYLosDemasConAsignadasAMi`. Dominio: `OrdenTrabajoTests`. API: `OrdenesEndpointTests.Ingeniero_Asigna_Y_RecibeLaOrdenConElTiqueteAsignado`, `AsignadasMe_ListaLasDelUsuarioDelToken`, `ObtenerPorId_ElTecnicoSoloLaSuya`. Infraestructura: `RepositorioOrdenesPostgresTests.Registrar_GuardaLaOrdenElHistorialYElTiqueteAsignadoJuntos`, `Listar_FiltraPorTecnicoYOrdenaPorPrioridad` (críticas primero; otra institución no las ve). | Aprobado (unitario e infraestructura; la integración de punta a punta llega en B1-08) |
+| CP-007 | CA-HU-004-02: asignar a un usuario inactivo o sin rol de Técnico se rechaza (RN-003). | RN-003 | Aplicación: `GestionOrdenesTests.Asignar_AQuienNoEsTecnicoActivo_SeRechazaSinTocarElTiquete` (Ingeniero, Personal Clínico y técnico inactivo), `Asignar_AUnUsuarioDeOtraInstitucion_SeRechazaComoRn003`. API: `OrdenesEndpointTests.AQuienNoEsTecnico_Responde400ConRn003` (400 en `tecnicoId`). Infraestructura: `RepositorioOrdenesPostgresTests.Tecnico_TraeRolYEstadoSoloDentroDeLaInstitucion`. | Aprobado (unitario e infraestructura) |
+
+- **Un tiquete, una orden:** asignar un tiquete que ya no está «recibido» responde 409 con código `OT-001` (`GestionOrdenesTests.Asignar_TiqueteYaAsignado_Responde409`, `OrdenesEndpointTests.TiqueteYaAsignado_Responde409ConCodigo`); si dos ingenieros asignan a la vez, el índice `uq_orden_tiquete` deja pasar solo una (`RepositorioOrdenesPostgresTests.Registrar_AsignacionesSimultaneasDelMismoTiquete_SoloUnaGana`).
+- **Permisos:** solo el Ingeniero Biomédico (AC-02) asigna; consultan AC-01, AC-02, AC-03 (solo las suyas) y AC-07; AC-04, AC-05 y AC-06 reciben 403 y sin token 401 (`OrdenesEndpointTests.OtrosRoles_NoAsignan`, `QuienSigueLasOrdenes_Consulta`, `OtrosRoles_NoConsultan`, `SinToken_Responde401`).
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` definida: `dotnet test SITBIO.sln --filter "FullyQualifiedName~Orden"`.
+
+### Pendientes
+
+- **Criterios de punta a punta (CP-007):** `CriteriosHu004Tests` contra la base real en B1-08.
+- **Pantalla UI-011 (bandeja y asignación):** B1-09.
+- **Preventivas:** las órdenes de un plan (`plan_id`) llegan con el mantenimiento preventivo; por ahora solo se crean correctivas desde un tiquete.

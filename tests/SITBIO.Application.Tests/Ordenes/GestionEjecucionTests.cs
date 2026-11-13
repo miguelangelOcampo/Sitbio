@@ -7,6 +7,7 @@ using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.ConfiguracionCampos;
 using Sitbio.Application.Ordenes;
 using Sitbio.Domain.Configuracion;
+using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Mantenimiento;
 using Sitbio.Domain.Peticiones;
 using Sitbio.Domain.Seguridad;
@@ -136,7 +137,7 @@ public class GestionEjecucionTests
 
     [Theory]
     [InlineData(null)]
-    [InlineData("cerrar")]
+    [InlineData("aprobar")]
     public async Task AccionDesconocida_Responde400(string? accion)
     {
         var error = await Assert.ThrowsAsync<ErrorValidacion>(() =>
@@ -303,6 +304,108 @@ public class GestionEjecucionTests
 
         await _caso.RegistrarIntervencionAsync(_orden.Id, Datos("{}"), CancellationToken.None);
         Assert.Equal(((int?)null, 0), (_guardada!.VersionCampos, _guardada.CamposDinamicos.Count));
+    }
+
+    // ---------- Cierre (HU-021) ----------
+
+    private EquipoBiomedico ConIntervencion(string? salida, DateOnly? venceCalibracion = null)
+    {
+        _orden.Iniciar(Ahora);
+        _orden.EnlazarIntervencion(ObjectIdNuevo);
+        var intervencion = new Intervencion(
+            Guid.NewGuid(), _orden.Id, _orden.EquipoId, _tecnico, TiposMantenimiento.Correctivo, "Sensor descalibrado", "Calibración", [], null, 0m, 30, salida,
+            new Dictionary<string, object>(), 2, Ahora, false);
+        _intervenciones.ObtenerAsync(_orden.Id, Arg.Any<CancellationToken>()).Returns(new IntervencionGuardada(ObjectIdNuevo, intervencion));
+        var equipo = new EquipoBiomedico(Tenant, _tipo, Guid.NewGuid(), "SN-1", "PL-001", "Baxter", "Sigma", Ahora.AddYears(-1));
+        _ordenes.EquipoAsync(_orden.EquipoId, Arg.Any<CancellationToken>()).Returns(new EquipoDeLaOrden(equipo, "Bomba de infusión", "UCI", venceCalibracion));
+        return equipo;
+    }
+
+    [Fact]
+    public async Task Cerrar_ConLaIntervencionRegistrada_QuedaCerradaPendienteDeAprobacion()
+    {
+        ConIntervencion(EstadosSalidaEquipo.Operativo, venceCalibracion: new DateOnly(2027, 1, 1));
+
+        var dto = await _caso.CambiarEstadoAsync(_orden.Id, new DatosEstadoOrden("Cerrar"), CancellationToken.None);
+
+        Assert.Equal((EstadosOrden.Cerrada, (DateTimeOffset?)Ahora), (dto.Estado, dto.FechaCierre));
+        Assert.Null(dto.FirmaAprobacion);
+        await _ordenes.Received(1).GuardarAsync(null, Arg.Any<CancellationToken>());
+        await _auditoria.Received(1).RegistrarAsync(
+            _tecnico,
+            AccionesAuditoria.Actualizar,
+            GestionOrdenes.Entidad,
+            _orden.Id.ToString(),
+            Arg.Is<IReadOnlyDictionary<string, string>>(d => d["accion"] == AccionesOrden.Cerrar && d["estado"] == EstadosOrden.Cerrada),
+            Arg.Any<CancellationToken>());
+
+        var otraVez = await Assert.ThrowsAsync<ErrorConflicto>(() => _caso.CambiarEstadoAsync(_orden.Id, new DatosEstadoOrden(AccionesOrden.Cerrar), CancellationToken.None));
+        Assert.Equal(GestionEjecucion.CodigoOrdenCerrada, otraVez.Codigo);
+        var registrar = await Assert.ThrowsAsync<ErrorConflicto>(() => _caso.RegistrarIntervencionAsync(_orden.Id, Datos(), CancellationToken.None));
+        Assert.Equal(GestionEjecucion.CodigoOrdenCerrada, registrar.Codigo);
+    }
+
+    [Fact]
+    public async Task Cerrar_SinIntervencionOSinIniciar_Responde409SinGuardar()
+    {
+        var asignada = await Assert.ThrowsAsync<ErrorConflicto>(() => _caso.CambiarEstadoAsync(_orden.Id, new DatosEstadoOrden(AccionesOrden.Cerrar), CancellationToken.None));
+        Assert.Equal(GestionEjecucion.CodigoTransicionInvalida, asignada.Codigo);
+
+        _orden.Iniciar(Ahora);
+        var sinIntervencion = await Assert.ThrowsAsync<ErrorConflicto>(() => _caso.CambiarEstadoAsync(_orden.Id, new DatosEstadoOrden(AccionesOrden.Cerrar), CancellationToken.None));
+
+        Assert.Equal((GestionEjecucion.CodigoTransicionInvalida, "Registra la intervención antes de cerrar la orden."), (sinIntervencion.Codigo, sinIntervencion.Message));
+        Assert.Equal(EstadosOrden.EnEjecucion, _orden.Estado);
+        await _ordenes.DidNotReceive().GuardarAsync(Arg.Any<HistorialTiquete?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cerrar_SinEstadoDeSalida_Responde400JuntoAlCampo()
+    {
+        ConIntervencion(salida: null);
+
+        var error = await Assert.ThrowsAsync<ErrorValidacion>(() => _caso.CambiarEstadoAsync(_orden.Id, new DatosEstadoOrden(AccionesOrden.Cerrar), CancellationToken.None));
+
+        Assert.Equal(["estadoEquipoSalida"], error.Errores.Keys);
+        Assert.Equal(EstadosOrden.EnEjecucion, _orden.Estado);
+    }
+
+    [Fact]
+    public async Task Cerrar_ComoOperativoConLaCalibracionVencida_SeImpideConRn007()
+    {
+        ConIntervencion(EstadosSalidaEquipo.Operativo, venceCalibracion: new DateOnly(2026, 11, 1));
+
+        var error = await Assert.ThrowsAsync<ErrorConflicto>(() => _caso.CambiarEstadoAsync(_orden.Id, new DatosEstadoOrden(AccionesOrden.Cerrar), CancellationToken.None));
+
+        Assert.Equal(ReglaCalibracion.Codigo, error.Codigo);
+        Assert.Equal(
+            "La calibración de este equipo venció el 01/11/2026. Registre una nueva calibración antes de cerrar la orden como «Operativo».",
+            error.Message);
+        Assert.Equal(EstadosOrden.EnEjecucion, _orden.Estado);
+        await _ordenes.DidNotReceive().GuardarAsync(Arg.Any<HistorialTiquete?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Cerrar_CalibracionVencidaPeroSaleFueraDeServicio_OEquipoQueNoRequiereCalibracion_SiCierra()
+    {
+        ConIntervencion(EstadosSalidaEquipo.FueraDeServicio, venceCalibracion: new DateOnly(2026, 11, 1));
+        Assert.Equal(EstadosOrden.Cerrada, (await _caso.CambiarEstadoAsync(_orden.Id, new DatosEstadoOrden(AccionesOrden.Cerrar), CancellationToken.None)).Estado);
+
+        var (otra, _) = OrdenTrabajo.Correctiva(
+            new Tiquete(Tenant, Guid.NewGuid(), Guid.NewGuid(), "Ruido", null, Criticidades.Baja, Ahora), _tecnico, Guid.NewGuid(), null, null, Ahora);
+        otra.Iniciar(Ahora);
+        otra.EnlazarIntervencion(ObjectIdNuevo);
+        _ordenes.OrdenAsync(otra.Id, Arg.Any<CancellationToken>()).Returns(otra);
+        _ordenes.ObtenerAsync(otra.Id, Arg.Any<Guid?>(), Arg.Any<CancellationToken>())
+            .Returns(new OrdenLeida(otra, "PL-002", "SN-2", "Estetoscopio", "UCI", "Carlos Ruiz", null, null));
+        _intervenciones.ObtenerAsync(otra.Id, Arg.Any<CancellationToken>()).Returns(new IntervencionGuardada(ObjectIdNuevo, new Intervencion(
+            Guid.NewGuid(), otra.Id, otra.EquipoId, _tecnico, TiposMantenimiento.Correctivo, "D", "A", [], null, 0m, null, EstadosSalidaEquipo.Operativo,
+            new Dictionary<string, object>(), null, Ahora, false)));
+        var estetoscopio = new EquipoBiomedico(Tenant, _tipo, Guid.NewGuid(), "SN-2", "PL-002", "Littmann", "Classic", Ahora.AddYears(-1));
+        estetoscopio.DefinirInformacionRegulatoria("registro_sanitario", "INVIMA 2020DM-0001", new DateOnly(2030, 1, 1), "I", false, null);
+        _ordenes.EquipoAsync(otra.EquipoId, Arg.Any<CancellationToken>()).Returns(new EquipoDeLaOrden(estetoscopio, "Estetoscopio", "UCI", new DateOnly(2026, 1, 1)));
+
+        Assert.Equal(EstadosOrden.Cerrada, (await _caso.CambiarEstadoAsync(otra.Id, new DatosEstadoOrden(AccionesOrden.Cerrar), CancellationToken.None)).Estado);
     }
 
     // ---------- Consulta ----------

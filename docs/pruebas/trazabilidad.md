@@ -341,7 +341,7 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 - **Tiquete abierto del mismo equipo (FLU-003, A2):** avisar el código existente y ofrecer agregar la observación queda pendiente; hoy se crea un tiquete nuevo.
 - **Notificación al panel (CA-HU-003-01):** hoy el Ingeniero ve los tiquetes recibidos al consultar `GET /tiquetes?estado=recibido`; la bandeja UI-011 y el aviso en su panel llegan con HU-004 (B1-07 a B1-09).
 - **Seguimiento por código e historial (HU-017):** resuelto en B1-04 a B1-06 (ver HU-017).
-- **Fin de RN-005:** el equipo vuelve a «Operativo» al cerrar o aprobar la orden con HU-021 (B1-16 a B1-18).
+- **Fin de RN-005:** desde B1-16, al aprobar la orden el equipo toma el estado de salida de la intervención (por ejemplo, de «Fuera de servicio» a «Operativo») con su registro en `historial_estado_equipo` (`GestionAprobacionTests`, `RepositorioOrdenesPostgresTests.GuardarAprobacion_*`). La prueba de punta a punta llega con B1-17.
 - **HU-014:** este bloque trae del commit de HU-014 (rama sin fusionar) `HistorialEstadoEquipo` y los métodos de estado del equipo sin cambios, para que las dos ramas se fusionen sin conflictos nuevos.
 
 ## HU-017 · Seguimiento de tiquetes
@@ -412,3 +412,27 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 - **Criterios de punta a punta (CP-008):** resueltos en B1-11 (`CriteriosHu005Tests`).
 - **Pantallas UI-012 (Mis órdenes) y UI-013 (Intervención):** B1-12; UI-013 genera los controles según `tipoDato` de la versión activa.
 - **Cierre, firma y aprobación:** con HU-021 (Esteban, B1-16), que fija `cerrada_firmada` y pasa la orden a «cerrada» y «aprobada».
+
+## HU-021 · Cierre y firma de órdenes de trabajo
+
+Caso de uso CU-004 · RF-021 · RN-004 · RN-005 · RN-007 · RN-010 · API-OT-ESTADO (`PATCH /api/v1/ordenes/{id}/estado`, acción `cerrar`) · API-OT-APROB (`POST /api/v1/ordenes/{id}/aprobacion`) · Tabla `orden_trabajo` (`fecha_cierre`, `aprobado_por_id`, `fecha_aprobacion`, `firma_aprobacion`, `ck_orden_firma`) · Colección `intervenciones` (`cerrada_firmada`, `estado_equipo_salida`, `equipo_snapshot`) · Tabla `calibracion` (vigencia, RN-007).
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-025 | CA-HU-021-01: con el diagnóstico y las acciones registrados, el técnico cierra la orden y queda pendiente de aprobación del Ingeniero. | RF-021 | Aplicación: `GestionEjecucionTests.Cerrar_ConLaIntervencionRegistrada_QuedaCerradaPendienteDeAprobacion` (estado «cerrada» con fecha de cierre, bitácora `ACTUALIZAR` con la acción; otro cierre responde 409 `OT-003` y la intervención ya no se edita), `Cerrar_SinIntervencionOSinIniciar_Responde409SinGuardar` (`OT-002`), `Cerrar_SinEstadoDeSalida_Responde400JuntoAlCampo`. Dominio: `OrdenTrabajoTests.Cerrar_*`. API: `EjecucionOrdenesEndpointTests.Tecnico_CierraSuOrden_YElIngenieroLaApruebaConSuFirma`. Infraestructura: `RepositorioOrdenesPostgresTests.GuardarAprobacion_*` (la fecha de cierre se guarda). | Aprobado (parcial: criterios de punta a punta en B1-17) |
+| CP-025 | CA-HU-021-02: el Ingeniero aprueba con su firma la orden cerrada; la orden y su intervención quedan inalterables (RN-004). | RF-021, RN-004 | Aplicación: `GestionAprobacionTests.Aprobar_FirmaLaIntervencion_LaOrdenQuedaAprobada_ElTiqueteCerrado_YElEquipoConSuEstadoDeSalida` (primero se firma el documento en MongoDB con la copia del equipo; luego, en una transacción, la orden «aprobada» con firma, fecha y quién aprueba, el tiquete «cerrado» con su historial y el equipo con su estado de salida; bitácora `CIERRE_OT`), `Aprobar_OrdenQueNoEstaCerrada_Responde409_YLaYaAprobadaRn004`, `Aprobar_SinFirmaOMuyLarga_Responde400SinTocarNada`, `Aprobar_SiMongoNoResponde_LaOrdenSigueCerrada_YNoSeGuardaNada`, `Aprobar_EquipoYaEnSuEstadoDeSalida_NoCambiaElEquipo`. Infraestructura: `IntervencionesMongoTests.Firmar_MarcaCerradaFirmadaConSalidaYCopiaDelEquipo_YYaNoSeModifica` (pasa el validador del script 02; repetir la firma no cambia nada; el reemplazo posterior responde `RN-004`), `RepositorioOrdenesPostgresTests.GuardarAprobacion_LaOrdenAprobadaElTiqueteCerradoYElEstadoDelEquipoQuedanJuntos`. Dominio: `OrdenTrabajoTests.Aprobar_*`, `Tiquete_Cerrar_DesdeAsignadoOEnEjecucion_GuardaLaFechaDeCierre`. API: `EjecucionOrdenesEndpointTests.Tecnico_CierraSuOrden_YElIngenieroLaApruebaConSuFirma` (409 con código `RN-004` al aprobar de nuevo). | Aprobado (parcial: criterios de punta a punta en B1-17) |
+
+- **Calibración vencida (RN-007, MSG-013):** un equipo que requiere calibración, con la última `fecha_vencimiento` anterior a hoy (hora de Colombia), no se cierra ni se aprueba como «Operativo»; responde 409 `RN-007` con el texto de MSG-013. Con otro estado de salida, o si el equipo no requiere calibración (RN-010), sí se cierra (`GestionEjecucionTests.Cerrar_ComoOperativoConLaCalibracionVencida_SeImpideConRn007`, `Cerrar_CalibracionVencidaPeroSaleFueraDeServicio_OEquipoQueNoRequiereCalibracion_SiCierra`, `GestionAprobacionTests.Aprobar_ComoOperativoConLaCalibracionVencida_SeImpideConRn007`). La vigencia se lee de `calibracion` con el tenant del equipo (`RepositorioOrdenesPostgresTests.Equipo_TraeTipoUbicacionYElVencimientoDeLaUltimaCalibracion_SoloDeLaInstitucion`).
+- **Permisos:** solo el Técnico asignado cierra (AC-03; la orden de otro responde 404); solo el Ingeniero Biomédico (AC-02) aprueba; AC-01, AC-03, AC-04 y AC-07 reciben 403 y sin token 401 (`EjecucionOrdenesEndpointTests.SoloElIngeniero_ApruebaYFirma`).
+- **Si falla PostgreSQL después de firmar en MongoDB:** la orden sigue «cerrada» con la intervención ya firmada; repetir la aprobación termina el cambio porque la firma en MongoDB no toca un documento ya firmado.
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test SITBIO.sln --filter "FullyQualifiedName~GestionAprobacionTests|FullyQualifiedName~GestionEjecucionTests|FullyQualifiedName~OrdenTrabajoTests|FullyQualifiedName~IntervencionesMongoTests|FullyQualifiedName~RepositorioOrdenesPostgresTests|FullyQualifiedName~EjecucionOrdenesEndpointTests"`.
+
+### Pendientes
+
+- **Criterios de punta a punta (CP-025):** B1-17 (`CriteriosHu021Tests`).
+- **Pantalla UI-014 (Revisión y firma):** B1-18; confirmación MSG-018 antes de firmar y MSG-013 cuando la calibración está vencida. El botón «Cerrar orden» de UI-013 llega con ella.
+- **Equipo que requiere calibración sin ningún registro:** hoy no bloquea el cierre (RN-007 habla de calibración vencida). Decidir con HU-022 (B2-04) si debe bloquearse.
+- **Aprobaciones simultáneas:** dos ingenieros que aprueban la misma orden a la vez pueden pasar ambos la revisión de estado; la última firma gana. Pendiente un control de concurrencia en `orden_trabajo`.

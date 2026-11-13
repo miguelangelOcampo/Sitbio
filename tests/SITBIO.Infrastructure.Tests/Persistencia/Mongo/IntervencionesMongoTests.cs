@@ -141,6 +141,34 @@ public class IntervencionesMongoTests : IAsyncLifetime
         Assert.Equal("Sensor descalibrado", (await repositorio.ObtenerAsync(intervencion.OrdenId, CancellationToken.None))!.Intervencion.Diagnostico);
     }
 
+    [FactIntegracion(Variable)]
+    public async Task Firmar_MarcaCerradaFirmadaConSalidaYCopiaDelEquipo_YYaNoSeModifica()
+    {
+        var repositorio = Repositorio(_tenantA);
+        var intervencion = Nueva(Guid.NewGuid()) with { EstadoEquipoSalida = EstadosSalidaEquipo.EnMantenimiento };
+        var objectId = await repositorio.GuardarAsync(intervencion, null, CancellationToken.None);
+        var foto = new FotoEquipo("Bomba de infusión PL-001", "Baxter", "Sigma", "Bomba de infusión", "UCI", _fecha.AddHours(2));
+
+        // Otra institución no la firma (RN-008).
+        await Repositorio(_tenantB).FirmarAsync(objectId, EstadosSalidaEquipo.Operativo, foto, CancellationToken.None);
+        Assert.False((await repositorio.ObtenerAsync(intervencion.OrdenId, CancellationToken.None))!.Intervencion.CerradaFirmada);
+
+        await repositorio.FirmarAsync(objectId, EstadosSalidaEquipo.Operativo, foto, CancellationToken.None);
+        // Repetir la firma (reintento de la aprobación) no cambia la copia ni la salida.
+        await repositorio.FirmarAsync(objectId, EstadosSalidaEquipo.Baja, foto with { Ubicacion = "Otra" }, CancellationToken.None);
+
+        var leida = (await repositorio.ObtenerAsync(intervencion.OrdenId, CancellationToken.None))!.Intervencion;
+        Assert.Equal((true, EstadosSalidaEquipo.Operativo), (leida.CerradaFirmada, leida.EstadoEquipoSalida));
+        var documento = await _baseDatos!.GetCollection<BsonDocument>(IntervencionesMongo.Coleccion).Find(FilterDefinition<BsonDocument>.Empty).SingleAsync();
+        var copia = documento["equipo_snapshot"].AsBsonDocument;
+        Assert.Equal(("Bomba de infusión PL-001", "Baxter", "Sigma", "Bomba de infusión", "UCI"),
+            (copia["nombre"].AsString, copia["marca"].AsString, copia["modelo"].AsString, copia["tipo_equipo"].AsString, copia["ubicacion"].AsString));
+        Assert.Equal(BsonType.DateTime, copia["capturado_en"].BsonType);
+
+        // RN-004: firmada, el reemplazo se rechaza.
+        await Assert.ThrowsAsync<ErrorConflicto>(() => repositorio.GuardarAsync(intervencion with { Diagnostico = "Cambio" }, objectId, CancellationToken.None));
+    }
+
     [Fact]
     public async Task MongoSinRespuesta_Responde503()
     {
@@ -154,5 +182,7 @@ public class IntervencionesMongoTests : IAsyncLifetime
 
         await Assert.ThrowsAsync<ErrorServicioNoDisponible>(() => repositorio.GuardarAsync(Nueva(Guid.NewGuid()), null, CancellationToken.None));
         await Assert.ThrowsAsync<ErrorServicioNoDisponible>(() => repositorio.ObtenerAsync(Guid.NewGuid(), CancellationToken.None));
+        await Assert.ThrowsAsync<ErrorServicioNoDisponible>(() => repositorio.FirmarAsync(
+            ObjectId.GenerateNewId().ToString(), EstadosSalidaEquipo.Operativo, new FotoEquipo("N", "M", "Mo", "T", "U", _fecha), CancellationToken.None));
     }
 }

@@ -10,8 +10,8 @@ using Sitbio.Domain.Seguridad;
 namespace Sitbio.Application.Ordenes;
 
 /// <summary>
-/// Ejecución de la orden por el técnico asignado (HU-005; RF-005, RF-006; RT-002). El técnico inicia y
-/// pausa su orden y registra la hoja de servicio en <c>intervenciones</c> (MongoDB), validando los
+/// Ejecución de la orden por el técnico asignado (HU-005, HU-021; RF-005, RF-006, RF-021; RT-002). El
+/// técnico inicia, pausa y cierra su orden y registra la hoja de servicio en <c>intervenciones</c> (MongoDB), validando los
 /// <c>camposDinamicos</c> contra la versión activa del tipo de equipo. Solo el técnico asignado actúa:
 /// para cualquier otro la orden «no existe» (404, igual que en la consulta). Primero se guarda en
 /// MongoDB y luego el enlace en PostgreSQL: si MongoDB falla, la orden no cambia (RT-002).
@@ -44,8 +44,9 @@ public sealed class GestionEjecucion(
     private const string MensajeFirmada = "La intervención ya está firmada y aprobada; no se puede modificar (RN-004).";
 
     /// <summary>
-    /// API-OT-ESTADO: «iniciar» (asignada o pausada → en ejecución) o «pausar» (en ejecución → pausada).
-    /// La primera vez que se inicia, el tiquete de origen pasa de «asignado» a «en ejecución».
+    /// API-OT-ESTADO: «iniciar» (asignada o pausada → en ejecución), «pausar» (en ejecución → pausada) o
+    /// «cerrar» (en ejecución o pausada → cerrada, con la intervención registrada; HU-021). La primera vez que
+    /// se inicia, el tiquete de origen pasa de «asignado» a «en ejecución».
     /// </summary>
     public async Task<OrdenDto> CambiarEstadoAsync(Guid id, DatosEstadoOrden datos, CancellationToken cancellationToken)
     {
@@ -59,9 +60,18 @@ public sealed class GestionEjecucion(
         var orden = await PropiaAsync(id, cancellationToken);
         var anterior = orden.Estado;
         HistorialTiquete? cambio = null;
+        if (accion == AccionesOrden.Cerrar)
+        {
+            await CerrarAsync(orden, cancellationToken);
+        }
+
         try
         {
-            if (accion == AccionesOrden.Pausar)
+            if (accion == AccionesOrden.Cerrar)
+            {
+                orden.Cerrar(tiempo.GetUtcNow());
+            }
+            else if (accion == AccionesOrden.Pausar)
             {
                 orden.Pausar();
             }
@@ -180,6 +190,39 @@ public sealed class GestionEjecucion(
         return IntervencionDto.Desde(guardada.Intervencion);
     }
 
+    /// <summary>
+    /// CA-HU-021-01: antes de cerrar, la intervención debe estar registrada con el estado en que sale el
+    /// equipo, y un equipo con la calibración vencida no sale «Operativo» (RN-007, MSG-013).
+    /// </summary>
+    private async Task CerrarAsync(OrdenTrabajo orden, CancellationToken cancellationToken)
+    {
+        switch (orden.Estado)
+        {
+            case EstadosOrden.Aprobada:
+                throw new ErrorConflicto(CodigoFirmada, MensajeFirmada);
+            case EstadosOrden.Cerrada:
+                throw new ErrorConflicto(CodigoOrdenCerrada, "La orden ya está cerrada y espera la aprobación del Ingeniero.");
+            case EstadosOrden.Asignada:
+                throw new ErrorConflicto(CodigoTransicionInvalida, "Inicia la orden y registra la intervención antes de cerrarla.");
+        }
+
+        var guardada = orden.IntervencionId is null ? null : await intervenciones.ObtenerAsync(orden.Id, cancellationToken);
+        if (guardada is null)
+        {
+            throw new ErrorConflicto(CodigoTransicionInvalida, "Registra la intervención antes de cerrar la orden.");
+        }
+
+        var salida = guardada.Intervencion.EstadoEquipoSalida;
+        if (salida is null)
+        {
+            throw ErrorValidacion.DeCampo("estadoEquipoSalida", "Indica en la intervención el estado en que sale el equipo antes de cerrar la orden.");
+        }
+
+        var equipo = await ordenes.EquipoAsync(orden.EquipoId, cancellationToken)
+            ?? throw new InvalidOperationException("El equipo de la orden no se encontró.");
+        ReglaCalibracion.Validar(equipo, salida, FechaColombia.Hoy(tiempo));
+    }
+
     private async Task<OrdenTrabajo> PropiaAsync(Guid id, CancellationToken cancellationToken)
     {
         var orden = await ordenes.OrdenAsync(id, cancellationToken);
@@ -188,9 +231,12 @@ public sealed class GestionEjecucion(
             : throw new ErrorNoEncontrado("La orden de trabajo");
     }
 
-    private static string MensajeTransicion(string accion, string estado) => accion == AccionesOrden.Pausar
-        ? $"Solo puedes pausar una orden en ejecución; esta está «{estado}»."
-        : $"Solo puedes iniciar una orden asignada o pausada; esta está «{estado}».";
+    private static string MensajeTransicion(string accion, string estado) => accion switch
+    {
+        AccionesOrden.Pausar => $"Solo puedes pausar una orden en ejecución; esta está «{estado}».",
+        AccionesOrden.Cerrar => $"Solo puedes cerrar una orden en ejecución o pausada; esta está «{estado}».",
+        _ => $"Solo puedes iniciar una orden asignada o pausada; esta está «{estado}».",
+    };
 
     private static (string Diagnostico, string Acciones, IReadOnlyList<Repuesto> Repuestos, string? Salida) Validar(
         DatosIntervencion datos, IDictionary<string, string[]> errores)

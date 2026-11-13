@@ -256,6 +256,11 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             FROM generate_series(1, {cantidad}) AS g
             """));
 
+    /// <summary>Calibración del equipo directamente en la base (el registro de calibraciones llega con HU-022), para RN-007.</summary>
+    public Task RegistrarCalibracionAsync(Guid tenant, Guid equipoId, Guid usuarioId, DateOnly fecha, DateOnly vence) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.calibracion (tenant_id, equipo_id, registrado_por_id, fecha_calibracion, patron_referencia, fecha_vencimiento) VALUES ({tenant}, {equipoId}, {usuarioId}, {fecha}, {"Analizador Fluke IDA-5"}, {vence})"));
+
     /// <summary>Da de baja un equipo directamente en la base (el flujo de baja llega con HU-014).</summary>
     public Task DarDeBajaAsync(Guid equipoId) =>
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
@@ -360,6 +365,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             {
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_estado_equipo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.calibracion WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.orden_trabajo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_tiquete WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tiquete WHERE tenant_id = ANY({tenants})");

@@ -78,6 +78,9 @@ public static class DependencyInjection
         // Motor de campos dinámicos (HU-006).
         services.AddScoped<IRepositorioConfiguracionCampos, ConfiguracionCamposMongo>();
 
+        // Intervenciones (HU-005).
+        services.AddScoped<IRepositorioIntervenciones, IntervencionesMongo>();
+
         return services;
     }
 }

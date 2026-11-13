@@ -8,12 +8,13 @@ namespace Sitbio.Api.Modules.Ordenes;
 /// API-OT (DOC-06): solo el Ingeniero Biomédico (AC-02) asigna órdenes; consultan AC-01, AC-02, AC-03 y
 /// el Ente Regulador (AC-07). El Técnico (AC-03) solo ve las suyas y las pide con
 /// <c>?asignadas=me</c>. Sin token responde 401; con otro rol, 403. El permiso se valida aquí, no en
-/// WPF (RNF-003).
+/// WPF (RNF-003). Solo el Técnico (AC-03) inicia, pausa y registra la intervención de sus órdenes (HU-005).
 /// </summary>
 public static class OrdenesEndpoints
 {
     public const string PoliticaAsignacion = "AsignacionOrdenes";
     public const string PoliticaConsulta = "ConsultaOrdenes";
+    public const string PoliticaEjecucion = "EjecucionOrdenes";
 
     /// <summary>Único valor de <c>asignadas</c>: las órdenes del usuario del token.</summary>
     public const string AsignadasAMi = "me";
@@ -21,8 +22,10 @@ public static class OrdenesEndpoints
     public static IServiceCollection AddModuloOrdenes(this IServiceCollection services)
     {
         services.AddScoped<GestionOrdenes>();
+        services.AddScoped<GestionEjecucion>();
         services.AddAuthorizationBuilder()
             .AddPolicy(PoliticaAsignacion, politica => politica.RequireRole(CodigosRol.IngenieroBiomedico))
+            .AddPolicy(PoliticaEjecucion, politica => politica.RequireRole(CodigosRol.TecnicoMantenimiento))
             .AddPolicy(PoliticaConsulta, politica => politica.RequireRole(
                 CodigosRol.AdministradorSistema,
                 CodigosRol.IngenieroBiomedico,
@@ -71,6 +74,22 @@ public static class OrdenesEndpoints
             })
             .WithName("AsignarOrden")
             .RequireAuthorization(PoliticaAsignacion);
+
+        // HU-005: el técnico asignado inicia o pausa su orden.
+        grupo.MapPatch("/{id:guid}/estado", async (Guid id, DatosEstadoOrden datos, GestionEjecucion caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.CambiarEstadoAsync(id, datos, cancellationToken)))
+            .WithName("CambiarEstadoOrden")
+            .RequireAuthorization(PoliticaEjecucion);
+
+        grupo.MapGet("/{id:guid}/intervencion", async (Guid id, GestionEjecucion caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.ObtenerIntervencionAsync(id, cancellationToken)))
+            .WithName("ObtenerIntervencion")
+            .RequireAuthorization(PoliticaConsulta);
+
+        grupo.MapPut("/{id:guid}/intervencion", async (Guid id, DatosIntervencion datos, GestionEjecucion caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.RegistrarIntervencionAsync(id, datos, cancellationToken)))
+            .WithName("RegistrarIntervencion")
+            .RequireAuthorization(PoliticaEjecucion);
 
         return api;
     }

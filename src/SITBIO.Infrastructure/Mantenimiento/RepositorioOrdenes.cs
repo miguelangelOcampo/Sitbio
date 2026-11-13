@@ -80,6 +80,22 @@ public sealed class RepositorioOrdenes(SitbioDbContext contexto) : IRepositorioO
         }
     }
 
+    public Task<OrdenTrabajo?> OrdenAsync(Guid id, CancellationToken cancellationToken) =>
+        contexto.Ordenes.SingleOrDefaultAsync(o => o.Id == id, cancellationToken);
+
+    public Task<Guid?> TipoEquipoAsync(Guid equipoId, CancellationToken cancellationToken) =>
+        contexto.Equipos.AsNoTracking().Where(e => e.Id == equipoId).Select(e => (Guid?)e.TipoEquipoId).SingleOrDefaultAsync(cancellationToken);
+
+    public async Task GuardarAsync(HistorialTiquete? cambioTiquete, CancellationToken cancellationToken)
+    {
+        if (cambioTiquete is not null)
+        {
+            contexto.HistorialTiquetes.Add(cambioTiquete);
+        }
+
+        await contexto.SaveChangesAsync(cancellationToken);
+    }
+
     private IQueryable<OrdenTrabajo> Filtrar(Guid? tecnicoId)
     {
         var ordenes = contexto.Ordenes.AsNoTracking();

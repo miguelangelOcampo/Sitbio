@@ -124,6 +124,21 @@ public sealed class Tiquete : EntidadTenant
         return new HistorialTiquete(TenantId, Id, usuarioId, EstadosTiquete.Recibido, EstadosTiquete.Asignado, comentario, fecha);
     }
 
+    /// <summary>
+    /// HU-005: el tiquete pasa de «asignado» a «en ejecución» la primera vez que el técnico inicia su
+    /// orden. Devuelve el registro de <c>historial_tiquete</c> a nombre del técnico.
+    /// </summary>
+    public HistorialTiquete IniciarEjecucion(Guid usuarioId, string comentario, DateTimeOffset fecha)
+    {
+        if (Estado != EstadosTiquete.Asignado)
+        {
+            throw new InvalidOperationException($"El tiquete {Codigo} no está «asignado»; no puede pasar a «en ejecución».");
+        }
+
+        Estado = EstadosTiquete.EnEjecucion;
+        return new HistorialTiquete(TenantId, Id, usuarioId, EstadosTiquete.Asignado, EstadosTiquete.EnEjecucion, comentario, fecha);
+    }
+
     public static string Formatear(int consecutivo) =>
         consecutivo is >= 1 and <= ConsecutivoMaximo
             ? Prefijo + consecutivo.ToString("D6", CultureInfo.InvariantCulture)

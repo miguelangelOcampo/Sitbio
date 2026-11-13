@@ -25,7 +25,7 @@ namespace Sitbio.Api.Tests.Integracion;
 /// <summary>
 /// API completa contra PostgreSQL real (script 01 + V002..V008). Crea dos tenants (y los
 /// que pidan las pruebas) con usuarios de clave conocida y borra todo al terminar. Si hay
-/// MongoDB de pruebas, la bitácora y los campos dinámicos van a una base temporal con los validadores reales (02 + V007). Sin la variable de entorno no
+/// MongoDB de pruebas, la bitácora, los campos dinámicos y las intervenciones van a una base temporal con los validadores reales (02 + V007). Sin la variable de entorno no
 /// toca la base (las pruebas se omiten).
 /// </summary>
 public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsyncLifetime
@@ -55,6 +55,17 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             .Find(new BsonDocument("tenant_id", tenant.ToString()))
             .Sort(new BsonDocument("version", -1))
             .ToListAsync();
+
+    /// <summary>Intervenciones de un tenant tal como quedaron en MongoDB (HU-005).</summary>
+    public Task<List<BsonDocument>> LeerIntervencionesAsync(Guid tenant) =>
+        new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("intervenciones")
+            .Find(new BsonDocument("tenant_id", tenant.ToString()))
+            .ToListAsync();
+
+    /// <summary>Marca la intervención de la orden como firmada, como lo hará la aprobación de HU-021 (RN-004).</summary>
+    public Task FirmarIntervencionAsync(Guid ordenId) =>
+        new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("intervenciones")
+            .UpdateOneAsync(new BsonDocument("orden_id", ordenId.ToString()), new BsonDocument("$set", new BsonDocument("cerrada_firmada", true)));
 
     /// <summary>Eventos de la bitácora de un tenant tal como quedaron en MongoDB, del más reciente al más antiguo.</summary>
     public async Task<List<BsonDocument>> LeerBitacoraAsync(Guid tenant)
@@ -319,7 +330,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         {
             // Misma validación que en desarrollo: se copian los validadores de sitbio_dev (02 + V007).
             var cliente = new MongoClient(_cadenaMongo);
-            foreach (var coleccion in new[] { "bitacora_auditoria", "configuracion_campos" })
+            foreach (var coleccion in new[] { "bitacora_auditoria", "configuracion_campos", "intervenciones" })
             {
                 var origen = await (await cliente.GetDatabase("sitbio_dev").ListCollectionsAsync(
                     new ListCollectionsOptions { Filter = new BsonDocument("name", coleccion) })).SingleAsync();

@@ -32,4 +32,16 @@ public interface IRepositorioOrdenes
     /// ingeniero ya creó la orden de ese tiquete (<c>uq_orden_tiquete</c>), responde conflicto.
     /// </summary>
     Task RegistrarAsync(OrdenTrabajo orden, HistorialTiquete cambioTiquete, CancellationToken cancellationToken);
+
+    /// <summary>Orden con seguimiento de cambios (HU-005 cambia su estado y su enlace); null si no existe o es de otro tenant.</summary>
+    Task<OrdenTrabajo?> OrdenAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>Tipo de equipo del equipo (para la versión activa de los campos dinámicos); null si no existe.</summary>
+    Task<Guid?> TipoEquipoAsync(Guid equipoId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Guarda en una transacción los cambios de las entidades con seguimiento (la orden y su tiquete) y,
+    /// si hay, el nuevo registro de <c>historial_tiquete</c>.
+    /// </summary>
+    Task GuardarAsync(HistorialTiquete? cambioTiquete, CancellationToken cancellationToken);
 }

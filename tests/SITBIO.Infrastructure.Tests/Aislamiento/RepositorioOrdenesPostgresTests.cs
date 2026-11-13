@@ -152,6 +152,43 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
     }
 
     [FactIntegracion(Variable)]
+    public async Task Guardar_IniciaLaOrdenEnlazaLaIntervencion_YElTiqueteQuedaEnEjecucion()
+    {
+        var tiqueteId = await Reportar();
+        var ordenId = await Asignar(tiqueteId, _tecnicoA);
+        var inicio = new DateTimeOffset(2026, 11, 13, 15, 0, 0, TimeSpan.Zero);
+
+        var (contexto, ordenes, _) = Crear(_tenantA);
+        await using (contexto)
+        {
+            var orden = (await ordenes.OrdenAsync(ordenId, CancellationToken.None))!;
+            var tiquete = (await ordenes.TiqueteAsync(tiqueteId, CancellationToken.None))!;
+            Assert.True(orden.Iniciar(inicio));
+            orden.EnlazarIntervencion("65f1a2b3c4d5e6f7a8b9c0d1");
+            await ordenes.GuardarAsync(tiquete.IniciarEjecucion(_tecnicoA, "Inició", inicio), CancellationToken.None);
+            var tipo = await contexto.Equipos.AsNoTracking().Where(e => e.Id == _equipoA).Select(e => e.TipoEquipoId).SingleAsync();
+            Assert.Equal(tipo, await ordenes.TipoEquipoAsync(_equipoA, CancellationToken.None));
+            Assert.Null(await ordenes.TipoEquipoAsync(Guid.NewGuid(), CancellationToken.None));
+        }
+
+        var (lectura, _, _) = Crear(_tenantA);
+        await using (lectura)
+        {
+            var guardada = await lectura.Ordenes.AsNoTracking().SingleAsync(o => o.Id == ordenId);
+            Assert.Equal((EstadosOrden.EnEjecucion, (DateTimeOffset?)inicio, "65f1a2b3c4d5e6f7a8b9c0d1"), (guardada.Estado, guardada.FechaInicio, guardada.IntervencionId));
+            Assert.Equal(EstadosTiquete.EnEjecucion, (await lectura.Tiquetes.AsNoTracking().SingleAsync(t => t.Id == tiqueteId)).Estado);
+            Assert.Contains(EstadosTiquete.EnEjecucion, await lectura.HistorialTiquetes.AsNoTracking().Where(h => h.TiqueteId == tiqueteId).Select(h => h.NuevoEstado).ToListAsync());
+        }
+
+        // Otra institución no la ve (RN-008).
+        var (ajeno, ordenesB, _) = Crear(_tenantB);
+        await using (ajeno)
+        {
+            Assert.Null(await ordenesB.OrdenAsync(ordenId, CancellationToken.None));
+        }
+    }
+
+    [FactIntegracion(Variable)]
     public async Task Tecnico_TraeRolYEstadoSoloDentroDeLaInstitucion()
     {
         var (contexto, ordenes, _) = Crear(_tenantA);

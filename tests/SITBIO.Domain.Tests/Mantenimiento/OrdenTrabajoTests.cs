@@ -38,6 +38,72 @@ public class OrdenTrabajoTests
         Assert.Equal(Tenant, cambio.TenantId);
     }
 
+    // ---------- HU-005: ejecución ----------
+
+    [Fact]
+    public void Iniciar_LaPrimeraVezFijaLaFechaDeInicio_YReanudarNoLaCambia()
+    {
+        var (orden, _) = OrdenTrabajo.Correctiva(Recibido(), _tecnico, _ingeniero, null, null, Ahora);
+
+        Assert.True(orden.Iniciar(Ahora.AddHours(1)));
+        Assert.Equal((EstadosOrden.EnEjecucion, (DateTimeOffset?)Ahora.AddHours(1), true), (orden.Estado, orden.FechaInicio, orden.AdmiteIntervencion));
+
+        orden.Pausar();
+        Assert.Equal((EstadosOrden.Pausada, true), (orden.Estado, orden.AdmiteIntervencion));
+
+        Assert.False(orden.Iniciar(Ahora.AddHours(3)));
+        Assert.Equal((EstadosOrden.EnEjecucion, (DateTimeOffset?)Ahora.AddHours(1)), (orden.Estado, orden.FechaInicio));
+    }
+
+    [Fact]
+    public void Transiciones_FueraDeOrden_SeRechazan()
+    {
+        var (orden, _) = OrdenTrabajo.Correctiva(Recibido(), _tecnico, _ingeniero, null, null, Ahora);
+
+        Assert.False(orden.AdmiteIntervencion);
+        Assert.Throws<InvalidOperationException>(orden.Pausar);
+        orden.Iniciar(Ahora);
+        Assert.Throws<InvalidOperationException>(() => orden.Iniciar(Ahora));
+        Assert.Equal(EstadosOrden.EnEjecucion, orden.Estado);
+    }
+
+    [Theory]
+    [InlineData("65f1a2b3c4d5e6f7a8b9c0d1", true)]
+    [InlineData("65F1A2B3C4D5E6F7A8B9C0D1", true)]
+    [InlineData("65f1a2b3c4d5e6f7a8b9c0d", false)]
+    [InlineData("65f1a2b3c4d5e6f7a8b9c0dz", false)]
+    [InlineData("", false)]
+    public void EnlazarIntervencion_SoloAceptaUnObjectId(string objectId, bool valido)
+    {
+        var (orden, _) = OrdenTrabajo.Correctiva(Recibido(), _tecnico, _ingeniero, null, null, Ahora);
+
+        if (valido)
+        {
+            orden.EnlazarIntervencion(objectId);
+            Assert.Equal(objectId, orden.IntervencionId);
+        }
+        else
+        {
+            Assert.Throws<ArgumentException>(() => orden.EnlazarIntervencion(objectId));
+            Assert.Null(orden.IntervencionId);
+        }
+    }
+
+    [Fact]
+    public void Tiquete_IniciarEjecucion_SoloDesdeAsignado()
+    {
+        var tiquete = Recibido();
+        Assert.Throws<InvalidOperationException>(() => tiquete.IniciarEjecucion(_tecnico, "Inició", Ahora));
+        OrdenTrabajo.Correctiva(tiquete, _tecnico, _ingeniero, null, null, Ahora);
+
+        var cambio = tiquete.IniciarEjecucion(_tecnico, "Inició", Ahora.AddHours(1));
+
+        Assert.Equal(EstadosTiquete.EnEjecucion, tiquete.Estado);
+        Assert.Equal((EstadosTiquete.Asignado, EstadosTiquete.EnEjecucion), (cambio.EstadoAnterior, cambio.NuevoEstado));
+        Assert.Equal((_tecnico, Ahora.AddHours(1), Tenant, tiquete.Id), (cambio.UsuarioId, cambio.FechaCambio, cambio.TenantId, cambio.TiqueteId));
+        Assert.Throws<InvalidOperationException>(() => tiquete.IniciarEjecucion(_tecnico, "Inició", Ahora));
+    }
+
     [Fact]
     public void Correctiva_ConOtraPrioridad_LaRespeta()
     {

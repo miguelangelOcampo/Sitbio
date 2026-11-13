@@ -41,6 +41,12 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var bandeja = servicios.GetRequiredService<BandejaViewModel>();
                 bandeja.CargarCommand.Execute(null);
                 return bandeja;
+            // UI-012 Órdenes de trabajo (HU-004, HU-005): «Mis órdenes» para AC-03, que las ejecuta; AC-01 y AC-02
+            // consultan. La intervención (UI-013) se abre desde cada orden.
+            case OrdenesViewModel.IdPantalla:
+                var ordenes = servicios.GetRequiredService<OrdenesViewModel>();
+                ordenes.CargarCommand.Execute(null);
+                return ordenes;
             case "UI-019":
                 var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
                 catalogos.CargarCommand.Execute(null);

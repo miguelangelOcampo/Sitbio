@@ -8,8 +8,8 @@ using Sitbio.Domain.Seguridad;
 namespace Sitbio.Infrastructure.Persistencia.Configuraciones;
 
 /// <summary>
-/// Tabla <c>orden_trabajo</c> (script 01; HU-004). Por ahora se mapea lo que usa la asignación; las
-/// columnas de inicio, cierre, aprobación e intervención llegan con HU-005 y HU-021. El filtro por
+/// Tabla <c>orden_trabajo</c> (script 01; HU-004, HU-005). Se mapea lo que usan la asignación y la
+/// ejecución (inicio y enlace con la intervención); el cierre y la aprobación llegan con HU-021. El filtro por
 /// tenant lo agrega <see cref="SitbioDbContext"/>.
 /// </summary>
 public sealed class OrdenTrabajoConfiguracion : IEntityTypeConfiguration<OrdenTrabajo>
@@ -32,6 +32,8 @@ public sealed class OrdenTrabajoConfiguracion : IEntityTypeConfiguration<OrdenTr
         orden.Property(o => o.FechaProgramada).HasColumnName("fecha_programada");
         orden.Property(o => o.FechaAsignacion).HasColumnName("fecha_asignacion");
         orden.Property(o => o.FechaCreacion).HasColumnName("fecha_creacion");
+        orden.Property(o => o.FechaInicio).HasColumnName("fecha_inicio");
+        orden.Property(o => o.IntervencionId).HasColumnName("intervencion_id").HasMaxLength(24);
 
         orden.HasIndex(o => o.TiqueteId).IsUnique().HasFilter("tiquete_id IS NOT NULL").HasDatabaseName(IndiceTiquete);
         orden.HasOne<EquipoBiomedico>().WithMany().HasForeignKey(o => o.EquipoId).IsRequired();

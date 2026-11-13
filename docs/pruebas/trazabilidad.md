@@ -387,5 +387,28 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 
 - **Criterios de punta a punta (CP-007):** resueltos en B1-08 (`CriteriosHu004Tests`).
 - **Pantalla UI-011 (bandeja y asignación):** resuelta en B1-09. Lista de tiquetes por asignar, panel lateral con técnicos activos y su carga, prioridad sugerida editable, fecha programada opcional y «Asignar y crear orden».
-- **Panel del técnico (UI-012):** la orden ya se consulta con `?asignadas=me`; la pantalla «Mis órdenes» llega con HU-005.
+- **Panel del técnico (UI-012):** la orden ya se consulta con `?asignadas=me`; la pantalla «Mis órdenes» llega con HU-005 (B1-12).
 - **Preventivas:** las órdenes de un plan (`plan_id`) llegan con el mantenimiento preventivo; por ahora solo se crean correctivas desde un tiquete.
+
+## HU-005 · Ejecución de la orden y registro de la intervención
+
+Caso de uso CU-005 · RF-005 · RF-006 · RN-004 · RN-008 · RT-002 · SEC-003 · RNF-003 · API-OT-ESTADO (`PATCH /api/v1/ordenes/{id}/estado`) · API-INT (`GET` y `PUT /api/v1/ordenes/{id}/intervencion`) · Tabla `orden_trabajo` (`fecha_inicio`, `intervencion_id`, script 01) · Colecciones `intervenciones` y `configuracion_campos` (script 02).
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-008 | El técnico asignado inicia y pausa su orden; al iniciarla por primera vez el tiquete pasa a «en ejecución». | RF-005 | Aplicación: `GestionEjecucionTests.Iniciar_LaPrimeraVez_LaOrdenYElTiquetePasanAEnEjecucion` (historial a nombre del técnico y bitácora), `PausarYReanudar_NoTocanElTiqueteNiLaFechaDeInicio`, `Pausar_UnaOrdenQueNoEstaEnEjecucion_Responde409SinGuardar` (`OT-002`), `AccionDesconocida_Responde400`, `OrdenDeOtroTecnico_SeRespondeComoNoEncontrada`. Dominio: `OrdenTrabajoTests.Iniciar_LaPrimeraVezFijaLaFechaDeInicio_YReanudarNoLaCambia`, `Transiciones_FueraDeOrden_SeRechazan`, `Tiquete_IniciarEjecucion_SoloDesdeAsignado`. Infraestructura: `RepositorioOrdenesPostgresTests.Guardar_IniciaLaOrdenEnlazaLaIntervencion_YElTiqueteQuedaEnEjecucion`. | Aprobado (parcial: criterios de punta a punta en B1-11) |
+| CP-008 | La intervención se guarda en MongoDB con los `camposDinamicos` validados contra la versión activa del tipo de equipo y queda enlazada a la orden. | RF-005, RF-006 | Aplicación: `GestionEjecucionTests.Registrar_GuardaEnMongoConValoresTipados_Y_EnlazaLaOrden` (valores tipados, versión de campos, costo total y `intervencion_id`), `Registrar_CamposDinamicosInvalidos_ExplicaCadaCampo_YNoGuardaNada`, `Registrar_CamposFijosInvalidos_Responde400`, `Registrar_Correccion_ReemplazaElMismoDocumento_ConservaIdYFecha`, `Registrar_SinIniciarLaOrden_Responde409`, `Registrar_TipoSinCamposDinamicos_GuardaSinVersionYRechazaClavesExtra`; `ValoresCamposDinamicosTests` (tipo de dato, obligatorios, opciones y campos desconocidos). Infraestructura: `IntervencionesMongoTests.Guardar_PasaElValidador_YSeLeeIgualConSuObjectId` (el documento pasa el `$jsonSchema` del script 02), `Reemplazar_CorrigeElMismoDocumento_YOtraInstitucionNoLoVe`. | Aprobado (parcial: criterios de punta a punta en B1-11) |
+| CP-008 | RT-002: si MongoDB no responde, la orden no cambia. | RT-002 | Aplicación: `GestionEjecucionTests.Registrar_SiMongoNoResponde_LaOrdenNoCambia` (sin enlace, sin guardar en PostgreSQL y sin bitácora). Infraestructura: `IntervencionesMongoTests.MongoSinRespuesta_Responde503`. API: `EjecucionOrdenesEndpointTests.ErroresDeLaIntervencion_SeRespondenConSuCodigo` (503). | Aprobado |
+
+- **Firmada no se modifica (RN-004):** una intervención con `cerrada_firmada` o una orden aprobada responde 409 `RN-004`; el reemplazo en MongoDB exige `cerrada_firmada` en falso (`GestionEjecucionTests.Registrar_SobreUnaIntervencionFirmada_Responde409Rn004`, `IntervencionesMongoTests.Reemplazar_UnaIntervencionFirmada_SeRechazaRn004`). Una orden cerrada que espera aprobación responde 409 `OT-003`.
+- **Permisos:** solo el Técnico de Mantenimiento (AC-03) inicia, pausa y registra, y solo en sus órdenes (otra orden responde 404); consultan la intervención AC-01, AC-02, AC-03 (solo las suyas) y AC-07; los demás roles reciben 403 y sin token 401 (`EjecucionOrdenesEndpointTests.SoloElTecnico_IniciaPausaYRegistra`, `ConsultarIntervencion_PorRol`, `SinToken_Responde401`, `Tecnico_IniciaYRegistraLaIntervencion`).
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test SITBIO.sln --filter "FullyQualifiedName~Ejecucion|FullyQualifiedName~Intervenciones|FullyQualifiedName~ValoresCamposDinamicos|FullyQualifiedName~OrdenTrabajoTests"`.
+
+### Pendientes
+
+- **Criterios de punta a punta (CP-008):** `CriteriosHu005Tests` con API, PostgreSQL y MongoDB reales (Steven, B1-11).
+- **Pantallas UI-012 (Mis órdenes) y UI-013 (Intervención):** B1-12; UI-013 genera los controles según `tipoDato` de la versión activa.
+- **Cierre, firma y aprobación:** con HU-021 (Esteban, B1-16), que fija `cerrada_firmada` y pasa la orden a «cerrada» y «aprobada».

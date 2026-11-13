@@ -64,6 +64,17 @@ public abstract class RepositorioMongoTenant<TDocumento>
         return _coleccion.InsertOneAsync(documento, null, cancellationToken);
     }
 
+    /// <summary>Reemplaza el documento que cumpla el filtro (siempre dentro del tenant); devuelve cuántos coincidieron.</summary>
+    protected async Task<long> ReemplazarAsync(
+        FilterDefinition<TDocumento> filtro,
+        TDocumento documento,
+        CancellationToken cancellationToken = default)
+    {
+        documento.TenantId = TenantActual;
+        var resultado = await _coleccion.ReplaceOneAsync(FiltroTenant(filtro), documento, (ReplaceOptions?)null, cancellationToken);
+        return resultado.MatchedCount;
+    }
+
     protected async Task<long> ActualizarAsync(
         FilterDefinition<TDocumento> filtro,
         UpdateDefinition<TDocumento> cambios,

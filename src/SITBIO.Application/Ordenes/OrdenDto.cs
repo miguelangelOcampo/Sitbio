@@ -21,7 +21,9 @@ public sealed record OrdenDto(
     string Estado,
     DateOnly? FechaProgramada,
     DateTimeOffset? FechaAsignacion,
-    DateTimeOffset FechaCreacion)
+    DateTimeOffset FechaCreacion,
+    DateTimeOffset? FechaInicio = null,
+    bool TieneIntervencion = false)
 {
     public static OrdenDto Desde(OrdenLeida leida)
     {
@@ -45,7 +47,9 @@ public sealed record OrdenDto(
             o.Estado,
             o.FechaProgramada,
             o.FechaAsignacion,
-            o.FechaCreacion);
+            o.FechaCreacion,
+            o.FechaInicio,
+            o.IntervencionId is not null);
     }
 }
 

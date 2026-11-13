@@ -31,6 +31,68 @@
     <DataTemplate DataType="{x:Type vm:ConfiguracionViewModel}">
       <views:ConfiguracionView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:MantenimientosViewModel}">
+      <views:MantenimientosView />
+    </DataTemplate>
+
+    <!-- Tarjeta de alerta de UI-016: estado con punto y texto (ACC-001); la revisada se atenúa. -->
+    <Style x:Key="PuntoAlerta" TargetType="Ellipse" BasedOn="{StaticResource StatusDot}">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Text3}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoEstado.Advertencia}">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoEstado.Critico}">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+    <DataTemplate x:Key="TarjetaAlerta" DataType="{x:Type vm:FilaAlerta}">
+      <Border x:Name="Tarjeta" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="{StaticResource Radius.Field}"
+              Padding="14,12" Margin="0,0,0,10" Background="{DynamicResource Brush.Surface}">
+        <StackPanel>
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding Fecha}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" Margin="8,0,0,0" />
+            <TextBlock Text="{Binding Tipo}" Style="{StaticResource Overline}" />
+          </DockPanel>
+          <TextBlock Text="{Binding Equipo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"
+                     ToolTip="{Binding Equipo}" Margin="0,4,0,0" />
+          <TextBlock Text="{Binding Ubicacion}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Descripcion}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,6,0,0" />
+          <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+            <Ellipse Style="{StaticResource PuntoAlerta}" />
+            <TextBlock Text="{Binding Estado}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+            <TextBlock Text="· Revisada" Foreground="{DynamicResource Brush.Text2}" Margin="6,0,0,0"
+                       Visibility="{Binding Revisada, Converter={StaticResource Visible}}" />
+          </StackPanel>
+          <TextBlock Text="{Binding Orden}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" Margin="0,4,0,0"
+                     Visibility="{Binding Orden, Converter={StaticResource TextoVisible}}" />
+          <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <Button Content="Abrir" Style="{StaticResource LinkButton}" Margin="0,0,18,0"
+                    Command="{Binding DataContext.AbrirAlertaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                    AutomationProperties.Name="{Binding Equipo, StringFormat='Abrir la alerta de {0}'}" />
+            <Button Content="Marcar como revisada"
+                    Command="{Binding DataContext.MarcarRevisadaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                    AutomationProperties.Name="{Binding Equipo, StringFormat='Marcar como revisada la alerta de {0}'}">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Revisada}" Value="True">
+                      <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding Revisada}" Value="True">
+          <Setter TargetName="Tarjeta" Property="Opacity" Value="0.62" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
     <Style x:Key="RailButton" TargetType="Button">
       <Setter Property="Foreground" Value="{DynamicResource Brush.OnBrandPanelMuted}" />
       <Setter Property="Height" Value="40" />
@@ -80,6 +142,21 @@
               </Style>
             </ContentControl.Style>
           </ContentControl>
+        </Button>
+        <!-- Campana del centro de alertas (UI-016), con el número de alertas sin revisar -->
+        <Button DockPanel.Dock="Bottom" Style="{StaticResource RailButton}" Margin="0,0,0,6" DataContext="{Binding Alertas}"
+                Command="{Binding AlternarCommand}" ToolTip="{Binding TextoPendientes}"
+                AutomationProperties.Name="{Binding TextoPendientes, StringFormat='Centro de alertas: {0}'}"
+                Visibility="{Binding DataContext.TieneAlertas, RelativeSource={RelativeSource AncestorType=views:ShellView}, Converter={StaticResource Visible}}">
+          <Grid>
+            <ContentControl Style="{StaticResource Icono}" Width="20" Height="20" Content="{StaticResource Icono.Campana}" />
+            <Border Background="{DynamicResource Brush.Danger}" CornerRadius="8" MinWidth="16" Height="16" Padding="4,0"
+                    HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-7,-11,0"
+                    Visibility="{Binding HayPendientes, Converter={StaticResource Visible}}">
+              <TextBlock Text="{Binding Pendientes}" FontSize="10" FontWeight="SemiBold" Foreground="White"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+          </Grid>
         </Button>
         <ItemsControl ItemsSource="{Binding Modulos}" Focusable="False" AutomationProperties.Name="Módulos">
           <ItemsControl.ItemTemplate>
@@ -176,6 +253,61 @@
 
       <!-- Pantalla de la opción actual (DataTemplate por ViewModel) -->
       <ContentControl Content="{Binding Contenido}" Focusable="False" />
+
+      <!-- UI-016 Centro de alertas: panel lateral sobre el área principal (NAV-011: abrir una alerta lo cierra) -->
+      <Border HorizontalAlignment="Right" Width="380" Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}"
+              BorderThickness="1,0,0,0" DataContext="{Binding Alertas}" AutomationProperties.Name="Centro de alertas"
+              Visibility="{Binding Abierto, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Margin="24,24,24,12">
+            <DockPanel>
+              <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Command="{Binding CerrarCommand}"
+                      AutomationProperties.Name="Cerrar el centro de alertas" VerticalAlignment="Top">
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Cerrar}" />
+              </Button>
+              <TextBlock Text="ALERTAS" Style="{StaticResource Overline}" />
+            </DockPanel>
+            <TextBlock Text="Centro de alertas" Style="{StaticResource SectionTitle}" FontSize="20" Margin="0,4,0,0" />
+            <TextBlock Text="{Binding TextoAnticipacion}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0"
+                       Visibility="{Binding Cargado, Converter={StaticResource Visible}}" />
+            <DockPanel Margin="0,12,0,0">
+              <Button DockPanel.Dock="Right" Content="Marcar todas como revisadas" Style="{StaticResource LinkButton}" FontSize="13"
+                      Command="{Binding MarcarTodasRevisadasCommand}" Visibility="{Binding HayPendientes, Converter={StaticResource Visible}}" />
+              <TextBlock Text="{Binding TextoPendientes}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+            </DockPanel>
+
+            <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+                    Margin="0,12,0,0" AutomationProperties.LiveSetting="Assertive"
+                    Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+              <StackPanel>
+                <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,6,0,0" />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
+                    Margin="0,12,0,0" AutomationProperties.LiveSetting="Polite"
+                    Visibility="{Binding OrdenesGeneradas, Converter={StaticResource TextoVisible}}">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarOrdenesGeneradasCommand}"
+                        VerticalAlignment="Top" Margin="12,0,0,0" />
+                <TextBlock Text="{Binding OrdenesGeneradas}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+              </DockPanel>
+            </Border>
+            <TextBlock Text="Consultando las alertas…" Style="{StaticResource Muted}" Margin="0,12,0,0"
+                       Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+            <StackPanel Margin="0,16,0,0" Visibility="{Binding SinAlertas, Converter={StaticResource Visible}}">
+              <TextBlock Text="No hay mantenimientos ni calibraciones por vencer." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+              <TextBlock Text="Cuando uno entre en los días de anticipación de tu institución, aparecerá aquí." Style="{StaticResource Muted}"
+                         TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+          </StackPanel>
+          <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+            <ItemsControl ItemsSource="{Binding Filas}" ItemTemplate="{StaticResource TarjetaAlerta}" Margin="24,0,24,24" Focusable="False"
+                          AutomationProperties.Name="Alertas de vencimiento" />
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
 
       <!-- Confirmación breve del marco (por ejemplo, «Contraseña actualizada») -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"

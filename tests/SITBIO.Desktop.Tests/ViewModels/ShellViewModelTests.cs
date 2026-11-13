@@ -1,4 +1,5 @@
 using NSubstitute;
+using Sitbio.Desktop.Services;
 using Sitbio.Desktop.ViewModels;
 
 namespace Sitbio.Desktop.Tests.ViewModels;
@@ -94,5 +95,51 @@ public class ShellViewModelTests
         shell.NavegarCommand.Execute(administracion.Opciones.First(o => o.Opcion.Id != "UI-004"));
         Assert.Null(shell.Contenido);
         Assert.True(shell.EnConstruccion);
+    }
+
+    [Theory]
+    [InlineData("AC-02")]
+    [InlineData("AC-03")]
+    public void IngenieroYTecnico_TienenElCentroDeAlertas_YAbrirUnaLlevaAMantenimientos(string rol)
+    {
+        var servicio = Substitute.For<IServicioMantenimiento>();
+        var plan = Guid.NewGuid();
+        servicio.AlertasAsync(Arg.Any<CancellationToken>()).Returns(new ResumenAlertas(15,
+        [
+            new Alerta(TiposAlerta.Preventivo, TiposAlerta.Vencida, new DateOnly(2026, 11, 1), -5, Guid.NewGuid(), "PL-001", "Bomba", "UCI", "Preventivo", plan, null, null),
+        ], 0));
+        var alertas = new CentroAlertasViewModel(servicio);
+        alertas.CargarCommand.Execute(null);
+        var mantenimientos = Substitute.For<IRecibeParametro>();
+        var pantallas = Substitute.For<IFabricaPantallas>();
+        pantallas.Crear(CentroAlertasViewModel.IdPantalla).Returns(alertas);
+        pantallas.Crear(MantenimientosViewModel.IdPantalla).Returns(mantenimientos);
+
+        var shell = new ShellViewModel(rol, pantallas);
+        Assert.Same(alertas, shell.Alertas);
+        Assert.True(shell.TieneAlertas);
+        Assert.Equal(1, shell.Alertas!.Pendientes);
+
+        alertas.AbrirAlertaCommand.Execute(alertas.Filas[0]);
+
+        Assert.Equal(MantenimientosViewModel.IdPantalla, shell.OpcionActual?.Opcion.Id);
+        Assert.Same(mantenimientos, shell.Contenido);
+        mantenimientos.Received(1).Recibir($"plan:{plan}");
+    }
+
+    [Theory]
+    [InlineData("AC-01")]
+    [InlineData("AC-04")]
+    [InlineData("AC-05")]
+    [InlineData("AC-07")]
+    public void LosDemasRoles_NoTienenCentroDeAlertas(string rol)
+    {
+        var pantallas = Substitute.For<IFabricaPantallas>();
+        pantallas.Crear(CentroAlertasViewModel.IdPantalla).Returns(new CentroAlertasViewModel(Substitute.For<IServicioMantenimiento>()));
+
+        var shell = new ShellViewModel(rol, pantallas);
+
+        Assert.Equal((false, (CentroAlertasViewModel?)null), (shell.TieneAlertas, shell.Alertas));
+        pantallas.DidNotReceive().Crear(CentroAlertasViewModel.IdPantalla);
     }
 }

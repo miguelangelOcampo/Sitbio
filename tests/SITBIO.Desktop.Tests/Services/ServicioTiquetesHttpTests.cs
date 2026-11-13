@@ -6,7 +6,7 @@ using Sitbio.Desktop.Services;
 
 namespace Sitbio.Desktop.Tests.Services;
 
-/// <summary>API-TIQ desde el cliente (HU-003, HU-018): rutas, cuerpo del reporte y errores.</summary>
+/// <summary>API-TIQ desde el cliente (HU-003, HU-017, HU-018): rutas, cuerpo del reporte, seguimiento y errores.</summary>
 public class ServicioTiquetesHttpTests
 {
     private sealed class ManejadorFalso(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
@@ -87,5 +87,59 @@ public class ServicioTiquetesHttpTests
             servicio.ReportarAsync(new DatosTiquete(Equipo, "No enciende", null, Criticidades.Baja), CancellationToken.None));
 
         Assert.Equal("Tu rol no permite reportar fallas.", error.Message);
+    }
+
+    private static string TiqueteJson(string codigo, string estado) => $$"""
+        {"id":"{{Guid.NewGuid()}}","codigo":"{{codigo}}","equipoId":"{{Equipo}}","placaInventario":"HSV-EQ-0412","numeroSerie":"MX-1",
+         "tipoEquipo":"Monitor","ubicacion":"UCI","tipoFalla":"No enciende","descripcion":"","criticidad":"alta",
+         "prioridadSugerida":"alta","estado":"{{estado}}","fechaReporte":"2026-11-13T15:00:00+00:00","fechaCierre":null,
+         "reportanteId":"{{Guid.NewGuid()}}","reportante":"Laura Gómez","estadoEquipo":"OPERATIVO","equipoFueraDeServicio":false}
+        """;
+
+    [Theory]
+    [InlineData(null, false, 1, "GET /api/v1/tiquetes?page=1&pageSize=20")]
+    [InlineData("en_ejecucion", false, 2, "GET /api/v1/tiquetes?page=2&pageSize=20&estado=en_ejecucion")]
+    [InlineData(null, true, 1, "GET /api/v1/tiquetes?page=1&pageSize=20&mios=true")]
+    public async Task Listar_ArmaLaRutaConLosFiltros(string? estado, bool mios, int pagina, string ruta)
+    {
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK,
+            $$"""{"items":[{{TiqueteJson("TQT-000002", "asignado")}}],"page":{{pagina}},"pageSize":20,"total":21}"""));
+
+        var resultado = await servicio.ListarAsync(new FiltroTiquetes(estado, mios, pagina), CancellationToken.None);
+
+        Assert.Equal(ruta, manejador.Rutas.Single());
+        Assert.Equal((21, "TQT-000002", "asignado"), (resultado.Total, resultado.Items[0].Codigo, resultado.Items[0].Estado));
+    }
+
+    [Fact]
+    public async Task ObtenerEHistorial_LeenElTiqueteYSusCambios()
+    {
+        var (servicio, manejador) = Crear(solicitud => solicitud.RequestUri!.AbsolutePath.EndsWith("/historial", StringComparison.Ordinal)
+            ? Json(HttpStatusCode.OK, $$"""
+                [{"estadoAnterior":null,"nuevoEstado":"recibido","comentario":"Falla reportada.","fechaCambio":"2026-11-13T15:00:00+00:00","usuarioId":"{{Guid.NewGuid()}}","usuario":"Laura Gómez"},
+                 {"estadoAnterior":"recibido","nuevoEstado":"asignado","comentario":null,"fechaCambio":"2026-11-13T15:10:00+00:00","usuarioId":"{{Guid.NewGuid()}}","usuario":"Carlos Ruiz"}]
+                """)
+            : Json(HttpStatusCode.OK, TiqueteJson("TQT-000015", "asignado")));
+
+        var tiquete = await servicio.ObtenerAsync("TQT-000015", CancellationToken.None);
+        var historial = await servicio.HistorialAsync("TQT-000015", CancellationToken.None);
+
+        Assert.Equal(["GET /api/v1/tiquetes/TQT-000015", "GET /api/v1/tiquetes/TQT-000015/historial"], manejador.Rutas);
+        Assert.Equal("asignado", tiquete.Estado);
+        Assert.Equal(
+            [((string?)null, "recibido", "Laura Gómez"), ("recibido", "asignado", "Carlos Ruiz")],
+            historial.Select(c => (c.EstadoAnterior, c.NuevoEstado, c.Usuario)));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.NotFound, "No encontramos un tiquete con ese código entre los que puedes consultar. Revisa el código.")]
+    [InlineData(HttpStatusCode.Forbidden, "Tu rol no permite consultar tiquetes.")]
+    public async Task Obtener_SinAcceso_UsaElMensajeDeConsulta(HttpStatusCode estado, string mensaje)
+    {
+        var (servicio, _) = Crear(_ => new HttpResponseMessage(estado));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.HistorialAsync("TQT-000099", CancellationToken.None));
+
+        Assert.Equal(mensaje, error.Message);
     }
 }

@@ -10,7 +10,7 @@ namespace Sitbio.Desktop.ViewModels;
 /// caracteres. Una falla crítica pide confirmación con MSG-006 porque el equipo quedará «Fuera de
 /// servicio» (RN-005); al enviar se muestra MSG-005 con el código del tiquete. Reportan AC-02 y AC-04.
 /// </summary>
-public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServicioEquipos equipos, IPortapapeles portapapeles) : ObservableObject
+public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServicioEquipos equipos, IPortapapeles portapapeles) : ObservableObject, ISolicitaNavegacion
 {
     public const int MaximoDescripcion = 500;
     public const int MinimoBusqueda = 2;
@@ -29,6 +29,8 @@ public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServici
         new(Criticidades.Media, "Media", "Falla parcial que no impide el uso habitual del equipo."),
         new(Criticidades.Baja, "Baja", "Detalle menor o estético; no afecta el funcionamiento."),
     ];
+
+    public event EventHandler<SolicitudNavegacion>? NavegacionSolicitada;
 
     public bool Cargado { get; private set; }
 
@@ -292,6 +294,16 @@ public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServici
 
     [RelayCommand]
     private void ReportarOtra() => Limpiar();
+
+    /// <summary>MSG-005 «Ver seguimiento»: abre UI-010 con el tiquete recién creado (HU-017).</summary>
+    [RelayCommand]
+    private void VerSeguimiento()
+    {
+        if (Creado is { } t)
+        {
+            NavegacionSolicitada?.Invoke(this, new SolicitudNavegacion(SeguimientoViewModel.IdPantalla, t.Codigo));
+        }
+    }
 
     [RelayCommand]
     private void CopiarCodigo()

@@ -305,6 +305,19 @@ public class ReportarFallaViewModelTests
         Assert.Equal((string.Empty, (string?)null, (OpcionCriticidad?)null), (vm.Busqueda, vm.TipoFalla, vm.Criticidad));
     }
 
+    [Fact]
+    public async Task VerSeguimiento_PideAbrirUi010ConElCodigo()
+    {
+        var vm = await DiligenciadoAsync(Criticidades.Alta);
+        await vm.EnviarCommand.ExecuteAsync(null);
+        SolicitudNavegacion? pedida = null;
+        vm.NavegacionSolicitada += (_, solicitud) => pedida = solicitud;
+
+        vm.VerSeguimientoCommand.Execute(null);
+
+        Assert.Equal(new SolicitudNavegacion("UI-010", "TQT-000015"), pedida);
+    }
+
     // ---------- Navegación ----------
 
     [Theory]

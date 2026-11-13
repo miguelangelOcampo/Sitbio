@@ -99,4 +99,104 @@ public class ServicioOrdenesHttpTests
 
         Assert.Equal(mensaje, error.Message);
     }
+
+    // ---------- HU-005: ejecución e intervención ----------
+
+    private const string OrdenJson = """
+        {"id":"33333333-3333-3333-3333-333333333333","equipoId":"44444444-4444-4444-4444-444444444444","placaInventario":"BOM-05",
+         "tipoEquipo":"Bomba de infusión","ubicacion":"UCI","tiqueteId":null,"codigoTiquete":"TQT-000007","tipoFalla":"No enciende",
+         "tecnicoId":"22222222-2222-2222-2222-222222222222","tecnico":"Carlos Ruiz","tipoMantenimiento":"correctivo","prioridad":"alta",
+         "estado":"en_ejecucion","fechaProgramada":null,"fechaInicio":"2026-11-13T15:00:00+00:00","tieneIntervencion":true}
+        """;
+
+    private static readonly Guid OrdenId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
+    [Fact]
+    public async Task Listar_PideLasDelTecnicoConFiltroYPagina_YLeeLosDatosDeLaOrden()
+    {
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, $$"""{"items":[{{OrdenJson}}],"page":2,"pageSize":20,"total":21}"""));
+
+        var pagina = await servicio.ListarAsync(new FiltroOrdenes("en_ejecucion", true, 2, 20), CancellationToken.None);
+
+        Assert.Equal("GET /api/v1/ordenes?page=2&pageSize=20&estado=en_ejecucion&asignadas=me", manejador.Rutas.Single());
+        var orden = Assert.Single(pagina.Items);
+        Assert.Equal(("BOM-05", "Bomba de infusión", "UCI", "No enciende", true), (orden.PlacaInventario, orden.TipoEquipo, orden.Ubicacion, orden.TipoFalla, orden.TieneIntervencion));
+        Assert.Equal((Guid.Parse("44444444-4444-4444-4444-444444444444"), 21), (orden.EquipoId, pagina.Total));
+    }
+
+    [Fact]
+    public async Task CambiarEstado_EnviaLaAccion()
+    {
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, OrdenJson));
+
+        var orden = await servicio.CambiarEstadoAsync(OrdenId, AccionesOrden.Iniciar, CancellationToken.None);
+
+        Assert.Equal($"PATCH /api/v1/ordenes/{OrdenId}/estado", manejador.Rutas.Single());
+        Assert.Equal("""{"accion":"iniciar"}""", manejador.Cuerpo);
+        Assert.Equal(EstadosOrden.EnEjecucion, orden.Estado);
+    }
+
+    [Fact]
+    public async Task ObtenerIntervencion_SinRegistrar_DevuelveNull_YConRegistroLaLee()
+    {
+        var (sinRegistro, _) = Crear(_ => Json(HttpStatusCode.NotFound, """{"status":404,"detail":"La intervención no existe."}"""));
+        Assert.Null(await sinRegistro.ObtenerIntervencionAsync(OrdenId, CancellationToken.None));
+
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, $$"""
+            {"id":"{{Guid.NewGuid()}}","ordenId":"{{OrdenId}}","diagnostico":"D","accionesRealizadas":"A","repuestos":[{"nombre":"Sensor","cantidad":2,"costoUnitario":15000}],
+             "costoManoObra":null,"costoTotal":30000,"tiempoAtencionMin":null,"estadoEquipoSalida":null,
+             "camposDinamicos":{"tasa_goteo":25.5,"vence":"2027-05-01"},"versionCampos":2,"fechaIntervencion":"2026-11-13T15:00:00+00:00","cerradaFirmada":false}
+            """));
+        var intervencion = (await servicio.ObtenerIntervencionAsync(OrdenId, CancellationToken.None))!;
+
+        Assert.Equal($"GET /api/v1/ordenes/{OrdenId}/intervencion", manejador.Rutas.Single());
+        Assert.Equal((30000m, (int?)2), (intervencion.CostoTotal, intervencion.VersionCampos));
+        Assert.Equal(25.5, intervencion.CamposDinamicos["tasa_goteo"].GetDouble());
+        Assert.Equal([new Repuesto("Sensor", 2, 15000m)], intervencion.Repuestos);
+    }
+
+    [Fact]
+    public async Task Registrar_EnviaLosCamposDinamicosConSuTipoJson()
+    {
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, $$"""
+            {"id":"{{Guid.NewGuid()}}","ordenId":"{{OrdenId}}","diagnostico":"D","accionesRealizadas":"A","repuestos":[],"costoTotal":0,
+             "camposDinamicos":{},"fechaIntervencion":"2026-11-13T15:00:00+00:00","cerradaFirmada":false}
+            """));
+        var datos = new DatosIntervencion("D", "A", [], null, 90, "Operativo",
+            new Dictionary<string, object> { ["tasa_goteo"] = 25.5m, ["ciclos"] = 3L, ["calibrado"] = true, ["vence"] = "2027-05-01" });
+
+        await servicio.RegistrarIntervencionAsync(OrdenId, datos, CancellationToken.None);
+
+        Assert.Equal($"PUT /api/v1/ordenes/{OrdenId}/intervencion", manejador.Rutas.Single());
+        using var cuerpo = JsonDocument.Parse(manejador.Cuerpo!);
+        var campos = cuerpo.RootElement.GetProperty("camposDinamicos");
+        Assert.Equal((JsonValueKind.Number, JsonValueKind.Number, JsonValueKind.True, JsonValueKind.String),
+            (campos.GetProperty("tasa_goteo").ValueKind, campos.GetProperty("ciclos").ValueKind, campos.GetProperty("calibrado").ValueKind, campos.GetProperty("vence").ValueKind));
+        Assert.Equal(90, cuerpo.RootElement.GetProperty("tiempoAtencionMin").GetInt32());
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.ServiceUnavailable, "No se pudo guardar la intervención porque el servidor de documentos no respondió. La orden no cambió; intenta de nuevo.")]
+    [InlineData(HttpStatusCode.Forbidden, "Solo el técnico de mantenimiento ejecuta las órdenes de trabajo.")]
+    [InlineData(HttpStatusCode.NotFound, "Esta orden ya no está asignada a ti. Actualiza la lista.")]
+    public async Task Registrar_ErroresSinDetalle_DanUnMensajeClaro(HttpStatusCode estado, string mensaje)
+    {
+        var (servicio, _) = Crear(_ => new HttpResponseMessage(estado));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() =>
+            servicio.RegistrarIntervencionAsync(OrdenId, new DatosIntervencion("D", "A", [], null, null, null, new Dictionary<string, object>()), CancellationToken.None));
+
+        Assert.Equal(mensaje, error.Message);
+    }
+
+    [Fact]
+    public async Task Registrar_Rn004_TraeElCodigo()
+    {
+        var (servicio, _) = Crear(_ => Json(HttpStatusCode.Conflict, """{"status":409,"detail":"La intervención ya está firmada y aprobada; no se puede modificar (RN-004).","codigo":"RN-004"}"""));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() =>
+            servicio.RegistrarIntervencionAsync(OrdenId, new DatosIntervencion("D", "A", [], null, null, null, new Dictionary<string, object>()), CancellationToken.None));
+
+        Assert.Equal("RN-004", error.Codigo);
+    }
 }

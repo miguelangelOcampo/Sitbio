@@ -1,3 +1,4 @@
+using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Mantenimiento;
 using Sitbio.Domain.Peticiones;
 
@@ -44,4 +45,16 @@ public interface IRepositorioOrdenes
     /// si hay, el nuevo registro de <c>historial_tiquete</c>.
     /// </summary>
     Task GuardarAsync(HistorialTiquete? cambioTiquete, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Equipo de la orden con seguimiento de cambios (la aprobación le fija el estado de salida), su tipo, su
+    /// ubicación y el vencimiento de su última calibración (RN-007); null si no existe o es de otro tenant.
+    /// </summary>
+    Task<EquipoDeLaOrden?> EquipoAsync(Guid equipoId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// HU-021: guarda en una transacción la orden aprobada, el tiquete cerrado con su historial y el nuevo
+    /// estado del equipo con su historial (los que haya).
+    /// </summary>
+    Task GuardarAprobacionAsync(HistorialTiquete? cambioTiquete, HistorialEstadoEquipo? cambioEquipo, CancellationToken cancellationToken);
 }

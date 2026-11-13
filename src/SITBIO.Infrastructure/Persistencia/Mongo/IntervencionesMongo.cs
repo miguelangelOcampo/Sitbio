@@ -72,6 +72,35 @@ public sealed class DocumentoIntervencion : IDocumentoTenant
 
     [BsonElement("camposDinamicos")]
     public BsonDocument CamposDinamicos { get; set; } = [];
+
+    /// <summary>Copia del equipo al firmar (HU-021); ausente mientras no esté firmada.</summary>
+    [BsonElement("equipo_snapshot")]
+    [BsonIgnoreIfNull]
+    public DocumentoFotoEquipo? EquipoSnapshot { get; set; }
+}
+
+/// <summary><c>equipo_snapshot</c> (diccionario de datos NoSQL): el validador no lo declara; su forma la garantiza la API.</summary>
+[BsonIgnoreExtraElements]
+public sealed class DocumentoFotoEquipo
+{
+    [BsonElement("nombre")]
+    public string Nombre { get; set; } = string.Empty;
+
+    [BsonElement("marca")]
+    public string Marca { get; set; } = string.Empty;
+
+    [BsonElement("modelo")]
+    public string Modelo { get; set; } = string.Empty;
+
+    [BsonElement("tipo_equipo")]
+    public string TipoEquipo { get; set; } = string.Empty;
+
+    [BsonElement("ubicacion")]
+    public string Ubicacion { get; set; } = string.Empty;
+
+    [BsonElement("capturado_en")]
+    [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
+    public DateTime CapturadoEn { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -133,6 +162,36 @@ public sealed class IntervencionesMongo(IMongoDatabase baseDatos, IContextoUsuar
             return coincidencias > 0
                 ? objectIdExistente
                 : throw new ErrorConflicto(GestionEjecucion.CodigoFirmada, "La intervención ya está firmada y aprobada; no se puede modificar (RN-004).");
+        }
+        catch (Exception error) when (error is MongoException or TimeoutException)
+        {
+            throw new ErrorServicioNoDisponible(error);
+        }
+    }
+
+    public async Task FirmarAsync(string objectId, string estadoSalida, FotoEquipo foto, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(foto);
+        var id = ObjectId.Parse(objectId);
+        var snapshot = new DocumentoFotoEquipo
+        {
+            Nombre = foto.Nombre,
+            Marca = foto.Marca,
+            Modelo = foto.Modelo,
+            TipoEquipo = foto.TipoEquipo,
+            Ubicacion = foto.Ubicacion,
+            CapturadoEn = foto.CapturadoEn.UtcDateTime,
+        };
+        try
+        {
+            // Un documento ya firmado no se toca: así reintentar la aprobación no cambia la copia ni la salida (RN-004).
+            await ActualizarAsync(
+                Filtro.And(Filtro.Eq(d => d.Id, id), Filtro.Ne(d => d.CerradaFirmada, true)),
+                Builders<DocumentoIntervencion>.Update
+                    .Set(d => d.CerradaFirmada, true)
+                    .Set(d => d.EstadoEquipoSalida, estadoSalida)
+                    .Set(d => d.EquipoSnapshot, snapshot),
+                cancellationToken);
         }
         catch (Exception error) when (error is MongoException or TimeoutException)
         {

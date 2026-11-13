@@ -26,13 +26,14 @@ public static class EstadosOrden
     public static IReadOnlyList<string> Abiertos { get; } = [Asignada, EnEjecucion, Pausada];
 }
 
-/// <summary>Acciones del técnico sobre su orden (API-OT-ESTADO, HU-005). El cierre llega con HU-021.</summary>
+/// <summary>Acciones del técnico sobre su orden (API-OT-ESTADO): iniciar y pausar (HU-005) y cerrar (HU-021).</summary>
 public static class AccionesOrden
 {
     public const string Iniciar = "iniciar";
     public const string Pausar = "pausar";
+    public const string Cerrar = "cerrar";
 
-    public static IReadOnlyList<string> Todas { get; } = [Iniciar, Pausar];
+    public static IReadOnlyList<string> Todas { get; } = [Iniciar, Pausar, Cerrar];
 }
 
 /// <summary>
@@ -43,6 +44,9 @@ public static class AccionesOrden
 /// </summary>
 public sealed partial class OrdenTrabajo : EntidadTenant
 {
+    /// <summary>Longitud de <c>firma_aprobacion</c> (script 01).</summary>
+    public const int LongitudMaximaFirma = 100;
+
     // Constructor para EF Core.
     private OrdenTrabajo(Guid tenantId)
         : base(tenantId)
@@ -105,6 +109,17 @@ public sealed partial class OrdenTrabajo : EntidadTenant
     /// <summary><c>_id</c> (ObjectId) del documento de <c>intervenciones</c> en MongoDB (RT-002).</summary>
     public string? IntervencionId { get; private set; }
 
+    /// <summary>HU-021: cuando el técnico la cerró; queda pendiente de la aprobación del Ingeniero.</summary>
+    public DateTimeOffset? FechaCierre { get; private set; }
+
+    /// <summary>Ingeniero Biomédico (AC-02) que la aprobó con su firma (HU-021).</summary>
+    public Guid? AprobadoPorId { get; private set; }
+
+    public DateTimeOffset? FechaAprobacion { get; private set; }
+
+    /// <summary>Firma electrónica interna del Ingeniero (texto; <c>ck_orden_firma</c> exige la fecha de aprobación).</summary>
+    public string? FirmaAprobacion { get; private set; }
+
     /// <summary>El técnico registra o corrige la intervención mientras la orden está en ejecución o pausada.</summary>
     public bool AdmiteIntervencion => Estado is EstadosOrden.EnEjecucion or EstadosOrden.Pausada;
 
@@ -138,6 +153,45 @@ public sealed partial class OrdenTrabajo : EntidadTenant
         }
 
         Estado = EstadosOrden.Pausada;
+    }
+
+    /// <summary>
+    /// CA-HU-021-01: el técnico cierra su orden en ejecución o pausada cuando ya registró la intervención.
+    /// Queda «cerrada» y pendiente de la aprobación del Ingeniero.
+    /// </summary>
+    public void Cerrar(DateTimeOffset ahora)
+    {
+        if (!AdmiteIntervencion)
+        {
+            throw new InvalidOperationException($"La orden está «{Estado}»; solo se cierra una orden en ejecución o pausada.");
+        }
+
+        if (IntervencionId is null)
+        {
+            throw new InvalidOperationException("Registra la intervención antes de cerrar la orden.");
+        }
+
+        Estado = EstadosOrden.Cerrada;
+        FechaCierre = ahora;
+    }
+
+    /// <summary>
+    /// CA-HU-021-02: el Ingeniero aprueba la orden cerrada con su firma. Desde aquí la orden y su
+    /// intervención son inalterables (RN-004).
+    /// </summary>
+    public void Aprobar(Guid ingenieroId, string firma, DateTimeOffset ahora)
+    {
+        if (Estado != EstadosOrden.Cerrada)
+        {
+            throw new InvalidOperationException($"La orden está «{Estado}»; solo se aprueba una orden cerrada.");
+        }
+
+        // Se valida todo antes de cambiar la orden: si algo falla, queda como estaba.
+        var firmaLimpia = Texto.Requerido(firma, nameof(firma), LongitudMaximaFirma);
+        AprobadoPorId = ingenieroId != Guid.Empty ? ingenieroId : throw new ArgumentException("La aprobación debe tener quién la firma.", nameof(ingenieroId));
+        FirmaAprobacion = firmaLimpia;
+        Estado = EstadosOrden.Aprobada;
+        FechaAprobacion = ahora;
     }
 
     /// <summary>Guarda el enlace con el documento de la intervención (ObjectId de 24 caracteres, CHECK del script 01).</summary>

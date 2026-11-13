@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Sitbio.Domain.Inventario;
 
 namespace Sitbio.Application.Ordenes;
 
@@ -11,7 +12,23 @@ public static class EstadosSalidaEquipo
     public const string Baja = "Baja";
 
     public static IReadOnlyList<string> Todos { get; } = [Operativo, EnMantenimiento, FueraDeServicio, Baja];
+
+    /// <summary>Id de <c>estado_equipo</c> que toma el equipo al aprobar la orden (HU-021).</summary>
+    public static short IdEstadoEquipo(string estadoSalida) => estadoSalida switch
+    {
+        Operativo => EstadosEquipo.Operativo,
+        EnMantenimiento => EstadosEquipo.EnMantenimiento,
+        FueraDeServicio => EstadosEquipo.FueraDeServicio,
+        Baja => EstadosEquipo.Baja,
+        _ => throw new ArgumentException($"Estado de salida desconocido: {estadoSalida}.", nameof(estadoSalida)),
+    };
 }
+
+/// <summary>
+/// Copia del equipo que se guarda en la intervención al firmarla (<c>equipo_snapshot</c>, HU-021): conserva
+/// cómo era el equipo aunque después cambie su ubicación o sus datos.
+/// </summary>
+public sealed record FotoEquipo(string Nombre, string Marca, string Modelo, string TipoEquipo, string Ubicacion, DateTimeOffset CapturadoEn);
 
 /// <summary>Repuesto usado en la intervención (embebido en el documento).</summary>
 public sealed record Repuesto(string Nombre, int Cantidad, decimal? CostoUnitario);
@@ -96,4 +113,10 @@ public interface IRepositorioIntervenciones
     /// (RN-004). Devuelve el ObjectId del documento.
     /// </summary>
     Task<string> GuardarAsync(Intervencion intervencion, string? objectIdExistente, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// HU-021: marca el documento como firmado (<c>cerrada_firmada</c>) con el estado de salida y la copia del
+    /// equipo. Repetirlo sobre un documento ya firmado lo deja igual (la aprobación se puede reintentar).
+    /// </summary>
+    Task FirmarAsync(string objectId, string estadoSalida, FotoEquipo foto, CancellationToken cancellationToken);
 }

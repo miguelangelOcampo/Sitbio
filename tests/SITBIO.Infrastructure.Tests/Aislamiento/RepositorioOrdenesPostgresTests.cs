@@ -93,7 +93,7 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
         var (contexto, _, _) = Crear(_tenantA);
         await using (contexto)
         {
-            foreach (var tabla in new[] { "orden_trabajo", "historial_tiquete", "tiquete", "historial_estado_equipo", "equipo_biomedico", "tipo_equipo", "ubicacion", "usuario" })
+            foreach (var tabla in new[] { "calibracion", "orden_trabajo", "historial_tiquete", "tiquete", "historial_estado_equipo", "equipo_biomedico", "tipo_equipo", "ubicacion", "usuario" })
             {
                 await contexto.Database.ExecuteSqlRawAsync(
                     $"DELETE FROM sitbio.{tabla} WHERE tenant_id IN (@a, @b)",
@@ -185,6 +185,80 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
         await using (ajeno)
         {
             Assert.Null(await ordenesB.OrdenAsync(ordenId, CancellationToken.None));
+        }
+    }
+
+    [FactIntegracion(Variable)]
+    public async Task Equipo_TraeTipoUbicacionYElVencimientoDeLaUltimaCalibracion_SoloDeLaInstitucion()
+    {
+        var (contexto, ordenes, _) = Crear(_tenantA);
+        await using (contexto)
+        {
+            var sinCalibracion = (await ordenes.EquipoAsync(_equipoA, CancellationToken.None))!;
+            Assert.Equal(("PL-OT1", "Monitor", "Urgencias", (DateOnly?)null),
+                (sinCalibracion.Equipo.PlacaInventario, sinCalibracion.TipoEquipo, sinCalibracion.Ubicacion, sinCalibracion.VenceCalibracion));
+
+            foreach (var (fecha, vence) in new[] { (new DateOnly(2025, 1, 10), new DateOnly(2026, 1, 10)), (new DateOnly(2026, 1, 10), new DateOnly(2027, 1, 10)) })
+            {
+                await contexto.Database.ExecuteSqlAsync(
+                    $"INSERT INTO sitbio.calibracion (tenant_id, equipo_id, registrado_por_id, fecha_calibracion, patron_referencia, fecha_vencimiento) VALUES ({_tenantA}, {_equipoA}, {_ingenieroA}, {fecha}, {"Analizador Fluke"}, {vence})");
+            }
+        }
+
+        var (lectura, ordenesA, _) = Crear(_tenantA);
+        await using (lectura)
+        {
+            Assert.Equal(new DateOnly(2027, 1, 10), (await ordenesA.EquipoAsync(_equipoA, CancellationToken.None))!.VenceCalibracion);
+            Assert.Null(await ordenesA.EquipoAsync(Guid.NewGuid(), CancellationToken.None));
+        }
+
+        var (ajeno, ordenesB, _) = Crear(_tenantB);
+        await using (ajeno)
+        {
+            Assert.Null(await ordenesB.EquipoAsync(_equipoA, CancellationToken.None));
+        }
+    }
+
+    [FactIntegracion(Variable)]
+    public async Task GuardarAprobacion_LaOrdenAprobadaElTiqueteCerradoYElEstadoDelEquipoQuedanJuntos()
+    {
+        var tiqueteId = await Reportar(Criticidades.Critica);
+        var ordenId = await Asignar(tiqueteId, _tecnicoA);
+        var ahora = new DateTimeOffset(2026, 11, 13, 15, 0, 0, TimeSpan.Zero);
+
+        var (contexto, ordenes, _) = Crear(_tenantA);
+        await using (contexto)
+        {
+            var orden = (await ordenes.OrdenAsync(ordenId, CancellationToken.None))!;
+            var tiquete = (await ordenes.TiqueteAsync(tiqueteId, CancellationToken.None))!;
+            orden.Iniciar(ahora);
+            orden.EnlazarIntervencion("65f1a2b3c4d5e6f7a8b9c0d1");
+            await ordenes.GuardarAsync(tiquete.IniciarEjecucion(_tecnicoA, "Inició", ahora), CancellationToken.None);
+            orden.Cerrar(ahora.AddHours(1));
+            await ordenes.GuardarAsync(null, CancellationToken.None);
+
+            var equipo = (await ordenes.EquipoAsync(_equipoA, CancellationToken.None))!.Equipo;
+            orden.Aprobar(_ingenieroA, "Laura Gómez", ahora.AddHours(2));
+            var cambioTiquete = tiquete.Cerrar(_ingenieroA, "Orden aprobada", ahora.AddHours(2));
+            var cambioEquipo = equipo.CambiarEstado(EstadosEquipo.EnMantenimiento, "Orden aprobada: sale «En mantenimiento».", _ingenieroA, ahora.AddHours(2));
+            await ordenes.GuardarAprobacionAsync(cambioTiquete, cambioEquipo, CancellationToken.None);
+        }
+
+        var (lectura, _, _) = Crear(_tenantA);
+        await using (lectura)
+        {
+            var orden = await lectura.Ordenes.AsNoTracking().SingleAsync(o => o.Id == ordenId);
+            Assert.Equal((EstadosOrden.Aprobada, (Guid?)_ingenieroA, "Laura Gómez"), (orden.Estado, orden.AprobadoPorId, orden.FirmaAprobacion));
+            Assert.Equal(((DateTimeOffset?)ahora.AddHours(1), (DateTimeOffset?)ahora.AddHours(2)), (orden.FechaCierre, orden.FechaAprobacion));
+
+            var tiquete = await lectura.Tiquetes.AsNoTracking().SingleAsync(t => t.Id == tiqueteId);
+            Assert.Equal((EstadosTiquete.Cerrado, (DateTimeOffset?)ahora.AddHours(2)), (tiquete.Estado, tiquete.FechaCierre));
+            Assert.Contains(EstadosTiquete.Cerrado, await lectura.HistorialTiquetes.AsNoTracking().Where(h => h.TiqueteId == tiqueteId).Select(h => h.NuevoEstado).ToListAsync());
+
+            Assert.Equal(EstadosEquipo.EnMantenimiento, (await lectura.Equipos.AsNoTracking().SingleAsync(e => e.Id == _equipoA)).EstadoEquipoId);
+            Assert.Contains(
+                await lectura.HistorialEstados.AsNoTracking().Where(h => h.EquipoId == _equipoA).Select(h => h.NuevoEstadoId).ToListAsync(),
+                id => id == EstadosEquipo.EnMantenimiento);
         }
     }
 

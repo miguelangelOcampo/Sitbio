@@ -135,4 +135,88 @@ public class OrdenTrabajoTests
         Assert.Contains("TQT-000007", error.Message);
         Assert.Equal(EstadosTiquete.Asignado, tiquete.Estado);
     }
+
+    // ---------- HU-021: cierre y aprobación ----------
+
+    private OrdenTrabajo EnEjecucion(bool conIntervencion = true)
+    {
+        var (orden, _) = OrdenTrabajo.Correctiva(Recibido(), _tecnico, _ingeniero, null, null, Ahora);
+        orden.Iniciar(Ahora.AddMinutes(5));
+        if (conIntervencion)
+        {
+            orden.EnlazarIntervencion("65f1a2b3c4d5e6f7a8b9c0d1");
+        }
+
+        return orden;
+    }
+
+    [Fact]
+    public void Cerrar_ConLaIntervencion_QuedaCerradaConSuFecha_DesdeEjecucionOPausada()
+    {
+        var orden = EnEjecucion();
+        orden.Cerrar(Ahora.AddHours(1));
+        Assert.Equal((EstadosOrden.Cerrada, (DateTimeOffset?)Ahora.AddHours(1)), (orden.Estado, orden.FechaCierre));
+        Assert.False(orden.AdmiteIntervencion);
+
+        var pausada = EnEjecucion();
+        pausada.Pausar();
+        pausada.Cerrar(Ahora.AddHours(2));
+        Assert.Equal(EstadosOrden.Cerrada, pausada.Estado);
+    }
+
+    [Fact]
+    public void Cerrar_SinIntervencionOSinIniciar_NoCambiaLaOrden()
+    {
+        var sinIntervencion = EnEjecucion(conIntervencion: false);
+        var error = Assert.Throws<InvalidOperationException>(() => sinIntervencion.Cerrar(Ahora));
+        Assert.Contains("Registra la intervención", error.Message);
+        Assert.Equal((EstadosOrden.EnEjecucion, (DateTimeOffset?)null), (sinIntervencion.Estado, sinIntervencion.FechaCierre));
+
+        var (asignada, _) = OrdenTrabajo.Correctiva(Recibido(), _tecnico, _ingeniero, null, null, Ahora);
+        Assert.Throws<InvalidOperationException>(() => asignada.Cerrar(Ahora));
+        Assert.Equal(EstadosOrden.Asignada, asignada.Estado);
+    }
+
+    [Fact]
+    public void Aprobar_SoloUnaOrdenCerrada_GuardaFirmaFechaYQuienAprueba()
+    {
+        var orden = EnEjecucion();
+        Assert.Throws<InvalidOperationException>(() => orden.Aprobar(_ingeniero, "Laura Gómez", Ahora));
+
+        orden.Cerrar(Ahora.AddHours(1));
+        orden.Aprobar(_ingeniero, "  Laura Gómez  ", Ahora.AddHours(2));
+
+        Assert.Equal(EstadosOrden.Aprobada, orden.Estado);
+        Assert.Equal(((Guid?)_ingeniero, "Laura Gómez", (DateTimeOffset?)Ahora.AddHours(2)), (orden.AprobadoPorId, orden.FirmaAprobacion, orden.FechaAprobacion));
+        Assert.Throws<InvalidOperationException>(() => orden.Aprobar(_ingeniero, "Otra firma", Ahora.AddHours(3)));
+        Assert.Equal("Laura Gómez", orden.FirmaAprobacion);
+    }
+
+    [Fact]
+    public void Aprobar_SinFirmaOFirmaLarga_NoCambiaLaOrden()
+    {
+        var orden = EnEjecucion();
+        orden.Cerrar(Ahora.AddHours(1));
+
+        Assert.Throws<ArgumentException>(() => orden.Aprobar(_ingeniero, "   ", Ahora));
+        Assert.Throws<ArgumentException>(() => orden.Aprobar(_ingeniero, new string('x', OrdenTrabajo.LongitudMaximaFirma + 1), Ahora));
+        Assert.Throws<ArgumentException>(() => orden.Aprobar(Guid.Empty, "Laura Gómez", Ahora));
+
+        Assert.Equal((EstadosOrden.Cerrada, (Guid?)null, (string?)null), (orden.Estado, orden.AprobadoPorId, orden.FirmaAprobacion));
+    }
+
+    [Fact]
+    public void Tiquete_Cerrar_DesdeAsignadoOEnEjecucion_GuardaLaFechaDeCierre()
+    {
+        var tiquete = Recibido();
+        Assert.Throws<InvalidOperationException>(() => tiquete.Cerrar(_ingeniero, "Aprobada", Ahora));
+        OrdenTrabajo.Correctiva(tiquete, _tecnico, _ingeniero, null, null, Ahora);
+        tiquete.IniciarEjecucion(_tecnico, "Inició", Ahora.AddMinutes(5));
+
+        var cambio = tiquete.Cerrar(_ingeniero, "Orden aprobada", Ahora.AddHours(2));
+
+        Assert.Equal((EstadosTiquete.Cerrado, (DateTimeOffset?)Ahora.AddHours(2)), (tiquete.Estado, tiquete.FechaCierre));
+        Assert.Equal((EstadosTiquete.EnEjecucion, EstadosTiquete.Cerrado, _ingeniero), (cambio.EstadoAnterior, cambio.NuevoEstado, cambio.UsuarioId));
+        Assert.Throws<InvalidOperationException>(() => tiquete.Cerrar(_ingeniero, "Otra vez", Ahora.AddHours(3)));
+    }
 }

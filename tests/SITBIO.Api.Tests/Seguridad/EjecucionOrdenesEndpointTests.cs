@@ -14,6 +14,7 @@ using Sitbio.Application.ConfiguracionCampos;
 using Sitbio.Application.Ordenes;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Configuracion;
+using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Mantenimiento;
 using Sitbio.Domain.Peticiones;
 using Sitbio.Domain.Seguridad;
@@ -22,8 +23,9 @@ using Sitbio.Infrastructure.Seguridad;
 namespace Sitbio.Api.Tests.Seguridad;
 
 /// <summary>
-/// Contrato HTTP de la ejecución de órdenes (API-OT-ESTADO y API-INT; HU-005): solo el Técnico (AC-03)
-/// inicia, pausa y registra la intervención; consultan la intervención AC-01, AC-02, AC-03 y AC-07. Sin base de datos.
+/// Contrato HTTP de la ejecución de órdenes (API-OT-ESTADO, API-INT y API-OT-APROB; HU-005, HU-021): solo el
+/// Técnico (AC-03) inicia, pausa, registra la intervención y cierra; solo el Ingeniero (AC-02) aprueba y firma;
+/// consultan la intervención AC-01, AC-02, AC-03 y AC-07. Sin base de datos.
 /// </summary>
 public class EjecucionOrdenesEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
@@ -170,9 +172,69 @@ public class EjecucionOrdenesEndpointTests : IClassFixture<WebApplicationFactory
         Assert.Equal(HttpStatusCode.ServiceUnavailable, (await cliente.PutAsJsonAsync($"{Ruta}/{_orden.Id}/intervencion", Intervencion())).StatusCode);
         Assert.Null(_orden.IntervencionId);
 
-        // Acción desconocida: 400; orden ajena: 404.
-        Assert.Equal(HttpStatusCode.BadRequest, (await cliente.PatchAsJsonAsync($"{Ruta}/{_orden.Id}/estado", new { accion = "cerrar" })).StatusCode);
+        // Cerrar sin intervención: 409 OT-002; acción desconocida: 400; orden ajena: 404.
+        Assert.Equal(HttpStatusCode.Conflict, (await cliente.PatchAsJsonAsync($"{Ruta}/{_orden.Id}/estado", new { accion = "cerrar" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await cliente.PatchAsJsonAsync($"{Ruta}/{_orden.Id}/estado", new { accion = "aprobar" })).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await cliente.PatchAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/estado", new { accion = "iniciar" })).StatusCode);
+    }
+
+    // ---------- HU-021: cierre y aprobación ----------
+
+    private void ConIntervencion()
+    {
+        Preparar();
+        var guardada = new Intervencion(
+            Guid.NewGuid(), _orden.Id, _orden.EquipoId, _usuario.Id, TiposMantenimiento.Correctivo, "D", "A", [], null, 0m, null, "Operativo",
+            new Dictionary<string, object>(), 1, DateTimeOffset.UtcNow, false);
+        _intervenciones.ObtenerAsync(_orden.Id, Arg.Any<CancellationToken>()).Returns(new IntervencionGuardada(ObjectId, guardada));
+        var equipo = new EquipoBiomedico(Guid.NewGuid(), _tipo, Guid.NewGuid(), "SN-1", "PL-001", "Baxter", "Sigma", DateTimeOffset.UtcNow);
+        _ordenes.EquipoAsync(_orden.EquipoId, Arg.Any<CancellationToken>()).Returns(new EquipoDeLaOrden(equipo, "Bomba", "UCI", null));
+    }
+
+    [Fact]
+    public async Task Tecnico_CierraSuOrden_YElIngenieroLaApruebaConSuFirma()
+    {
+        ConIntervencion();
+        _orden.Iniciar(DateTimeOffset.UtcNow);
+        _orden.EnlazarIntervencion(ObjectId);
+
+        var cerrada = await Cliente(CodigosRol.TecnicoMantenimiento).PatchAsJsonAsync($"{Ruta}/{_orden.Id}/estado", new { accion = "cerrar" });
+        Assert.Equal(HttpStatusCode.OK, cerrada.StatusCode);
+        Assert.Equal(EstadosOrden.Cerrada, (await cerrada.Content.ReadFromJsonAsync<OrdenDto>(Json))!.Estado);
+
+        var ingeniero = Cliente(CodigosRol.IngenieroBiomedico);
+        Assert.Equal(HttpStatusCode.BadRequest, (await ingeniero.PostAsJsonAsync($"{Ruta}/{_orden.Id}/aprobacion", new { firma = " " })).StatusCode);
+
+        var aprobada = await ingeniero.PostAsJsonAsync($"{Ruta}/{_orden.Id}/aprobacion", new { firma = "Laura Gómez" });
+        Assert.Equal(HttpStatusCode.OK, aprobada.StatusCode);
+        var dto = (await aprobada.Content.ReadFromJsonAsync<OrdenDto>(Json))!;
+        Assert.Equal((EstadosOrden.Aprobada, "Laura Gómez", (Guid?)_usuario.Id), (dto.Estado, dto.FirmaAprobacion, dto.AprobadoPorId));
+        await _intervenciones.Received(1).FirmarAsync(ObjectId, "Operativo", Arg.Any<FotoEquipo>(), Arg.Any<CancellationToken>());
+
+        // RN-004: otra aprobación responde 409 con su código.
+        var otraVez = await ingeniero.PostAsJsonAsync($"{Ruta}/{_orden.Id}/aprobacion", new { firma = "Otra" });
+        Assert.Equal(HttpStatusCode.Conflict, otraVez.StatusCode);
+        using var problema = JsonDocument.Parse(await otraVez.Content.ReadAsStringAsync());
+        Assert.Equal(GestionEjecucion.CodigoFirmada, problema.RootElement.GetProperty("codigo").GetString());
+    }
+
+    [Theory]
+    [InlineData(CodigosRol.AdministradorSistema)]
+    [InlineData(CodigosRol.TecnicoMantenimiento)]
+    [InlineData(CodigosRol.PersonalClinico)]
+    [InlineData(CodigosRol.EnteRegulador)]
+    [InlineData(null)]
+    public async Task SoloElIngeniero_ApruebaYFirma(string? rol)
+    {
+        ConIntervencion();
+        _orden.Iniciar(DateTimeOffset.UtcNow);
+        _orden.EnlazarIntervencion(ObjectId);
+        _orden.Cerrar(DateTimeOffset.UtcNow);
+
+        var respuesta = await Cliente(rol).PostAsJsonAsync($"{Ruta}/{_orden.Id}/aprobacion", new { firma = "Laura Gómez" });
+
+        Assert.Equal(rol is null ? HttpStatusCode.Unauthorized : HttpStatusCode.Forbidden, respuesta.StatusCode);
+        Assert.Equal(EstadosOrden.Cerrada, _orden.Estado);
     }
 
     [Theory]

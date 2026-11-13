@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.Ordenes;
+using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Mantenimiento;
 using Sitbio.Domain.Peticiones;
 using Sitbio.Domain.Seguridad;
@@ -91,6 +92,44 @@ public sealed class RepositorioOrdenes(SitbioDbContext contexto) : IRepositorioO
         if (cambioTiquete is not null)
         {
             contexto.HistorialTiquetes.Add(cambioTiquete);
+        }
+
+        await contexto.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<EquipoDeLaOrden?> EquipoAsync(Guid equipoId, CancellationToken cancellationToken)
+    {
+        // El filtro global deja solo los equipos del tenant del token (RN-008).
+        var leido = await (from e in contexto.Equipos
+                           join tipo in contexto.TiposEquipo on e.TipoEquipoId equals tipo.Id
+                           join u in contexto.Ubicaciones on e.UbicacionId equals u.Id
+                           where e.Id == equipoId
+                           select new { Equipo = e, Tipo = tipo.Nombre, Ubicacion = u.Nombre })
+            .SingleOrDefaultAsync(cancellationToken);
+        if (leido is null)
+        {
+            return null;
+        }
+
+        // calibracion aún no tiene entidad (HU-022): se lee la última vigencia con el tenant del propio equipo.
+        var tenant = leido.Equipo.TenantId;
+        var vence = await contexto.Database
+            .SqlQuery<DateOnly?>($"SELECT max(fecha_vencimiento) AS \"Value\" FROM sitbio.calibracion WHERE tenant_id = {tenant} AND equipo_id = {equipoId}")
+            .SingleAsync(cancellationToken);
+        return new EquipoDeLaOrden(leido.Equipo, leido.Tipo, leido.Ubicacion, vence);
+    }
+
+    public async Task GuardarAprobacionAsync(HistorialTiquete? cambioTiquete, HistorialEstadoEquipo? cambioEquipo, CancellationToken cancellationToken)
+    {
+        // La orden, el tiquete y el equipo vienen con seguimiento: un solo SaveChanges los guarda en una transacción.
+        if (cambioTiquete is not null)
+        {
+            contexto.HistorialTiquetes.Add(cambioTiquete);
+        }
+
+        if (cambioEquipo is not null)
+        {
+            contexto.HistorialEstados.Add(cambioEquipo);
         }
 
         await contexto.SaveChangesAsync(cancellationToken);

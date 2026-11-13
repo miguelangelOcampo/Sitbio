@@ -23,7 +23,11 @@ public sealed record OrdenDto(
     DateTimeOffset? FechaAsignacion,
     DateTimeOffset FechaCreacion,
     DateTimeOffset? FechaInicio = null,
-    bool TieneIntervencion = false)
+    bool TieneIntervencion = false,
+    DateTimeOffset? FechaCierre = null,
+    Guid? AprobadoPorId = null,
+    DateTimeOffset? FechaAprobacion = null,
+    string? FirmaAprobacion = null)
 {
     public static OrdenDto Desde(OrdenLeida leida)
     {
@@ -49,7 +53,11 @@ public sealed record OrdenDto(
             o.FechaAsignacion,
             o.FechaCreacion,
             o.FechaInicio,
-            o.IntervencionId is not null);
+            o.IntervencionId is not null,
+            o.FechaCierre,
+            o.AprobadoPorId,
+            o.FechaAprobacion,
+            o.FirmaAprobacion);
     }
 }
 

@@ -139,6 +139,23 @@ public sealed class Tiquete : EntidadTenant
         return new HistorialTiquete(TenantId, Id, usuarioId, EstadosTiquete.Asignado, EstadosTiquete.EnEjecucion, comentario, fecha);
     }
 
+    /// <summary>
+    /// HU-021: el tiquete se cierra cuando el Ingeniero aprueba su orden de trabajo; guarda la fecha de
+    /// cierre y devuelve el registro de <c>historial_tiquete</c> a nombre de quien aprueba.
+    /// </summary>
+    public HistorialTiquete Cerrar(Guid usuarioId, string comentario, DateTimeOffset fecha)
+    {
+        if (Estado is not (EstadosTiquete.Asignado or EstadosTiquete.EnEjecucion))
+        {
+            throw new InvalidOperationException($"El tiquete {Codigo} está «{Estado}»; solo se cierra un tiquete asignado o en ejecución.");
+        }
+
+        var anterior = Estado;
+        Estado = EstadosTiquete.Cerrado;
+        FechaCierre = fecha;
+        return new HistorialTiquete(TenantId, Id, usuarioId, anterior, EstadosTiquete.Cerrado, comentario, fecha);
+    }
+
     public static string Formatear(int consecutivo) =>
         consecutivo is >= 1 and <= ConsecutivoMaximo
             ? Prefijo + consecutivo.ToString("D6", CultureInfo.InvariantCulture)

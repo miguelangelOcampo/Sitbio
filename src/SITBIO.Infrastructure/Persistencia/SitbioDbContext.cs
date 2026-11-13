@@ -4,6 +4,7 @@ using Sitbio.Application.Comun;
 using Sitbio.Domain.Comun;
 using Sitbio.Domain.Instituciones;
 using Sitbio.Domain.Inventario;
+using Sitbio.Domain.Peticiones;
 using Sitbio.Domain.Seguridad;
 
 namespace Sitbio.Infrastructure.Persistencia;
@@ -52,9 +53,15 @@ public class SitbioDbContext : DbContext
 
     public DbSet<TipoFalla> TiposFalla => Set<TipoFalla>();
 
+    public DbSet<Tiquete> Tiquetes => Set<Tiquete>();
+
+    public DbSet<HistorialTiquete> HistorialTiquetes => Set<HistorialTiquete>();
+
     public DbSet<EquipoBiomedico> Equipos => Set<EquipoBiomedico>();
 
     public DbSet<PlanPreventivo> PlanesPreventivos => Set<PlanPreventivo>();
+
+    public DbSet<HistorialEstadoEquipo> HistorialEstados => Set<HistorialEstadoEquipo>();
 
     /// <summary>Tenant del token; EF Core lo evalúa en cada consulta.</summary>
     protected Guid TenantActual => _contextoUsuario.TenantId;

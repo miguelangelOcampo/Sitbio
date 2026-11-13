@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Sitbio.Domain.Inventario;
+using Sitbio.Domain.Seguridad;
 
 namespace Sitbio.Infrastructure.Persistencia.Configuraciones;
 
@@ -159,5 +160,27 @@ public sealed class PlanPreventivoConfiguracion : IEntityTypeConfiguration<PlanP
         plan.Property(p => p.FechaCreacion).HasColumnName("fecha_creacion");
 
         plan.HasOne<EquipoBiomedico>().WithMany().HasForeignKey(p => p.EquipoId).IsRequired();
+    }
+}
+
+/// <summary>Historial de estados (script 01; RF-014). Solo inserciones.</summary>
+public sealed class HistorialEstadoEquipoConfiguracion : IEntityTypeConfiguration<HistorialEstadoEquipo>
+{
+    public void Configure(EntityTypeBuilder<HistorialEstadoEquipo> historial)
+    {
+        historial.ToTable("historial_estado_equipo");
+        historial.HasKey(h => h.Id);
+        historial.Property(h => h.Id).HasColumnName("id_historial");
+        historial.Property(h => h.EquipoId).HasColumnName("equipo_id");
+        historial.Property(h => h.EstadoAnteriorId).HasColumnName("estado_anterior_id");
+        historial.Property(h => h.NuevoEstadoId).HasColumnName("nuevo_estado_id");
+        historial.Property(h => h.UsuarioId).HasColumnName("usuario_id");
+        historial.Property(h => h.Motivo).HasColumnName("motivo").HasMaxLength(HistorialEstadoEquipo.LongitudMaximaMotivo);
+        historial.Property(h => h.FechaCambio).HasColumnName("fecha_cambio");
+
+        historial.HasOne<EquipoBiomedico>().WithMany().HasForeignKey(h => h.EquipoId).IsRequired();
+        historial.HasOne<EstadoEquipo>().WithMany().HasForeignKey(h => h.EstadoAnteriorId);
+        historial.HasOne<EstadoEquipo>().WithMany().HasForeignKey(h => h.NuevoEstadoId).IsRequired();
+        historial.HasOne<Usuario>().WithMany().HasForeignKey(h => h.UsuarioId).IsRequired();
     }
 }

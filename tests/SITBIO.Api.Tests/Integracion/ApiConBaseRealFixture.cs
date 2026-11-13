@@ -15,6 +15,7 @@ using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Instituciones;
 using Sitbio.Domain.Inventario;
+using Sitbio.Domain.Peticiones;
 using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Persistencia;
 using Sitbio.Infrastructure.Seguridad;
@@ -61,6 +62,21 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         var coleccion = new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("bitacora_auditoria");
         return await coleccion.Find(new BsonDocument("tenant_id", tenant.ToString())).Sort(new BsonDocument("fecha_hora", -1)).ToListAsync();
     }
+
+    /// <summary>Tiquetes de la institución con su historial, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<List<(Tiquete Tiquete, List<HistorialTiquete> Historial)>> LeerTiquetesAsync(Guid tenant)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        var tiquetes = await contexto.Tiquetes.IgnoreQueryFilters().AsNoTracking().Where(t => t.TenantId == tenant).OrderBy(t => t.Codigo).ToListAsync();
+        var historial = await contexto.HistorialTiquetes.IgnoreQueryFilters().AsNoTracking().Where(h => h.TenantId == tenant).ToListAsync();
+        return tiquetes.Select(t => (t, historial.Where(h => h.TiqueteId == t.Id).ToList())).ToList();
+    }
+
+    /// <summary>Tipo de falla activo del catálogo de la institución (HU-025), que exige el reporte de fallas.</summary>
+    public Task CrearTipoFallaAsync(Guid tenant, string nombre) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.tipo_falla (tenant_id, nombre) VALUES ({tenant}, {nombre})"));
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -231,6 +247,17 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         return await contexto.Equipos.IgnoreQueryFilters().AsNoTracking().SingleAsync(e => e.Id == equipoId);
     }
 
+    /// <summary>Historial de estados del equipo tal como quedó en la base, del más reciente al más antiguo (solo para comprobar).</summary>
+    public async Task<List<HistorialEstadoEquipo>> LeerHistorialAsync(Guid equipoId)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.HistorialEstados.IgnoreQueryFilters().AsNoTracking()
+            .Where(h => h.EquipoId == equipoId)
+            .OrderByDescending(h => h.FechaCambio)
+            .ToListAsync();
+    }
+
     /// <summary>Planes preventivos del equipo, sin pasar por el filtro (solo para comprobar).</summary>
     public async Task<List<PlanPreventivo>> LeerPlanesAsync(Guid equipoId)
     {
@@ -301,7 +328,10 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             Guid[] tenants = [TenantA, TenantB, .. _tenantsAdicionales];
             await EjecutarSqlAsync(async contexto =>
             {
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_estado_equipo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_tiquete WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tiquete WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.equipo_biomedico WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.proveedor WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tipo_falla WHERE tenant_id = ANY({tenants})");

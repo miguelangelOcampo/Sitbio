@@ -9,7 +9,7 @@ namespace Sitbio.Desktop.Tests.ViewModels;
 /// <summary>
 /// UI-013 Intervención (HU-005, HU-006): el formulario se arma con los campos dinámicos de la versión activa
 /// según su tipo de dato, se valida en el cliente, envía cada valor con su tipo y muestra junto a cada campo
-/// lo que rechace la API.
+/// lo que rechace la API. Con «Cerrar orden» (HU-021) el técnico confirma un resumen y la orden queda «cerrada».
 /// </summary>
 public class IntervencionViewModelTests
 {
@@ -232,6 +232,115 @@ public class IntervencionViewModelTests
         await vm.CargarCommand.ExecuteAsync(null);
 
         Assert.Equal(("Sin conexión", "MSG-011", true), (vm.Aviso!.Titulo, vm.Aviso.Codigo, vm.Aviso.PuedeReintentar));
+    }
+
+    // ---------- HU-021: cerrar la orden ----------
+
+    private void AlCerrar(Orden orden) =>
+        _ordenes.CambiarEstadoAsync(orden.Id, AccionesOrden.Cerrar, Arg.Any<CancellationToken>())
+            .Returns(orden with { Estado = EstadosOrden.Cerrada, TieneIntervencion = true, FechaCierre = DateTimeOffset.UtcNow });
+
+    [Fact]
+    public async Task Cerrar_PideConfirmarElResumen_GuardaLaHoja_YVuelveConLaOrdenCerrada()
+    {
+        var orden = OrdenesViewModelTests.Orden(EstadosOrden.EnEjecucion);
+        var vm = await AbrirAsync(orden);
+        AlCerrar(orden);
+        Completar(vm);
+        vm.EstadoSalida = "Operativo";
+        vm.TiempoAtencion = "45";
+        vm.AgregarRepuestoCommand.Execute(null);
+        vm.Repuestos[0].Nombre = "Sensor";
+
+        vm.CerrarOrdenCommand.Execute(null);
+
+        // Primero el resumen; nada se envía hasta confirmar.
+        Assert.True(vm.ConfirmandoCierre);
+        Assert.Equal(("1 repuesto", "45 min"), (vm.ResumenRepuestos, vm.ResumenTiempo));
+        await _ordenes.DidNotReceiveWithAnyArgs().RegistrarIntervencionAsync(default, default!, default);
+
+        await vm.ConfirmarCierreCommand.ExecuteAsync(null);
+
+        Assert.False(vm.ConfirmandoCierre);
+        Assert.Equal("Operativo", _enviada!.EstadoEquipoSalida);
+        Received.InOrder(() =>
+        {
+            _ordenes.RegistrarIntervencionAsync(orden.Id, Arg.Any<DatosIntervencion>(), Arg.Any<CancellationToken>());
+            _ordenes.CambiarEstadoAsync(orden.Id, AccionesOrden.Cerrar, Arg.Any<CancellationToken>());
+        });
+        Assert.Equal(EstadosOrden.Cerrada, Assert.Single(_vueltas)!.Estado);
+    }
+
+    [Fact]
+    public async Task Cerrar_SinEstadoDeSalida_LoMarcaYNoAbreElResumen()
+    {
+        var vm = await AbrirAsync(OrdenesViewModelTests.Orden(EstadosOrden.Pausada));
+        Completar(vm);
+
+        vm.CerrarOrdenCommand.Execute(null);
+
+        Assert.False(vm.ConfirmandoCierre);
+        Assert.Equal(IntervencionViewModel.SalidaParaCerrar, vm.ErrorSalida);
+        vm.EstadoSalida = "Fuera de servicio";
+        Assert.Null(vm.ErrorSalida);
+
+        vm.CerrarOrdenCommand.Execute(null);
+        Assert.True(vm.ConfirmandoCierre);
+        vm.CancelarCierreCommand.Execute(null);
+        Assert.False(vm.ConfirmandoCierre);
+        Assert.Empty(_vueltas);
+    }
+
+    [Fact]
+    public async Task Cerrar_CalibracionVencida_MuestraMsg013_YLaHojaQuedaGuardada()
+    {
+        const string Msg013 = "La calibración de este equipo venció el 01/10/2026. Registre una nueva calibración antes de cerrar la orden como «Operativo».";
+        var orden = OrdenesViewModelTests.Orden(EstadosOrden.EnEjecucion);
+        var vm = await AbrirAsync(orden);
+        _ordenes.CambiarEstadoAsync(orden.Id, AccionesOrden.Cerrar, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ErrorApi(CodigosOrden.CalibracionVencida, Msg013, new Dictionary<string, string>()));
+        Completar(vm);
+        vm.EstadoSalida = "Operativo";
+
+        vm.CerrarOrdenCommand.Execute(null);
+        await vm.ConfirmarCierreCommand.ExecuteAsync(null);
+
+        Assert.Equal(("Calibración vencida", Msg013, "RN-007"), (vm.Aviso!.Titulo, vm.Aviso.Mensaje, vm.Aviso.Codigo));
+        Assert.True(vm.Editable);
+        Assert.Empty(_vueltas);
+
+        // Al volver, la fila queda con la intervención registrada aunque la orden siga abierta.
+        vm.CancelarCommand.Execute(null);
+        var vuelta = Assert.Single(_vueltas)!;
+        Assert.Equal((EstadosOrden.EnEjecucion, true), (vuelta.Estado, vuelta.TieneIntervencion));
+    }
+
+    [Fact]
+    public async Task Cerrar_SiFallaElGuardado_NoIntentaCerrar()
+    {
+        var orden = OrdenesViewModelTests.Orden(EstadosOrden.EnEjecucion);
+        var vm = await AbrirAsync(orden);
+        _ordenes.RegistrarIntervencionAsync(orden.Id, Arg.Any<DatosIntervencion>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ErrorApi(null, "Datos inválidos.", new Dictionary<string, string> { ["diagnostico"] = "El diagnóstico es demasiado largo." }));
+        Completar(vm);
+        vm.EstadoSalida = "Operativo";
+
+        vm.CerrarOrdenCommand.Execute(null);
+        await vm.ConfirmarCierreCommand.ExecuteAsync(null);
+
+        Assert.Equal("El diagnóstico es demasiado largo.", vm.ErrorDiagnostico);
+        await _ordenes.DidNotReceiveWithAnyArgs().CambiarEstadoAsync(default, default!, default);
+        Assert.Empty(_vueltas);
+    }
+
+    [Fact]
+    public async Task SoloLectura_NoOfreceCerrar()
+    {
+        var orden = OrdenesViewModelTests.Orden(EstadosOrden.Cerrada, intervencion: true);
+        var vm = await AbrirAsync(orden, editable: false, guardada: Guardada(orden));
+
+        Assert.False(vm.CerrarOrdenCommand.CanExecute(null));
+        Assert.True(vm.MuestraBarra);
     }
 
     [Theory]

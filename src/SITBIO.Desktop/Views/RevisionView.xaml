@@ -1,0 +1,107 @@
+<!-- UI-014 Revisión y firma (HU-021, FLU-006). A la izquierda, la intervención de la orden «cerrada» en
+     solo lectura (UI-013 sin su barra); a la derecha, el panel del Ingeniero con el resumen, la firma y
+     «Aprobar y firmar», que pide confirmar MSG-018 en un modal. -->
+<UserControl x:Class="Sitbio.Desktop.Views.RevisionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+
+    <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}, Converter={StaticResource TextoVisible}}" Value="Visible">
+          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid>
+    <Grid>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+        <ColumnDefinition Width="360" />
+      </Grid.ColumnDefinitions>
+
+      <!-- Intervención en solo lectura -->
+      <views:IntervencionView DataContext="{Binding Detalle}" />
+
+      <!-- Panel del Ingeniero -->
+      <Border Grid.Column="1" Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1,0,0,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+          <StackPanel Margin="24">
+            <TextBlock Text="REVISIÓN Y FIRMA" Style="{StaticResource Overline}" />
+            <TextBlock Text="{Binding Referencia, StringFormat='Aprobar la orden {0}'}" Style="{StaticResource SectionTitle}" FontSize="18"
+                       TextWrapping="Wrap" Margin="0,4,0,16" />
+
+            <TextBlock Text="Técnico" Style="{StaticResource Muted}" FontSize="13" />
+            <TextBlock Text="{Binding Tecnico}" FontSize="14" Foreground="{DynamicResource Brush.Text}" Margin="0,2,0,12" TextWrapping="Wrap" />
+            <TextBlock Text="Cerrada" Style="{StaticResource Muted}" FontSize="13" />
+            <TextBlock Text="{Binding Cerrada}" FontSize="14" Foreground="{DynamicResource Brush.Text}" Margin="0,2,0,12" />
+            <TextBlock Text="Estado del equipo al salir" Style="{StaticResource Muted}" FontSize="13" />
+            <TextBlock Text="{Binding Detalle.EstadoSalida, TargetNullValue='Sin registrar'}" FontSize="14" FontWeight="SemiBold"
+                       Foreground="{DynamicResource Brush.Text}" Margin="0,2,0,12" />
+            <TextBlock Text="Costo total" Style="{StaticResource Muted}" FontSize="13" />
+            <TextBlock Text="{Binding Detalle.CostoTotal}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" Margin="0,2,0,20" />
+
+            <!-- Aviso de error (MSG-013, RN-004, conexión) -->
+            <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+                    Margin="0,0,0,16" AutomationProperties.LiveSetting="Assertive"
+                    Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+              <StackPanel>
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+                  <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+                </DockPanel>
+                <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarAvisoCommand}" HorizontalAlignment="Right" Margin="0,8,0,0" />
+              </StackPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource FieldLabel}" Margin="0,0,0,6">
+              <Run Text="Firma" /><Run Text=" *" Foreground="{DynamicResource Brush.DangerText}" />
+            </TextBlock>
+            <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorFirma}">
+              <TextBox Style="{StaticResource FieldInput}" Text="{Binding Firma, UpdateSourceTrigger=PropertyChanged}"
+                       MaxLength="{Binding LongitudMaximaFirma, Mode=OneTime}" IsEnabled="{Binding PuedeAprobar}"
+                       AutomationProperties.Name="Firma del Ingeniero, obligatoria" />
+            </Border>
+            <TextBlock Text="{Binding ErrorFirma}" Style="{StaticResource FieldError}" AutomationProperties.LiveSetting="Assertive"
+                       Visibility="{Binding ErrorFirma, Converter={StaticResource TextoVisible}}" />
+            <TextBlock Text="Escribe tu nombre completo. Queda registrada con la fecha y la hora de la aprobación." Style="{StaticResource Muted}"
+                       FontSize="13" TextWrapping="Wrap" Margin="0,6,0,20" />
+
+            <Button Content="Aprobar y firmar" Style="{StaticResource PrimaryButton}" Command="{Binding AprobarCommand}" HorizontalAlignment="Stretch"
+                    AutomationProperties.Name="{Binding Referencia, StringFormat='Aprobar y firmar la orden {0}'}" />
+            <TextBlock Text="Aprobando…" Style="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,10,0,0"
+                       Visibility="{Binding Aprobando, Converter={StaticResource Visible}}" />
+            <Button Content="Volver a las órdenes" Style="{StaticResource LinkButton}" Command="{Binding CancelarCommand}" HorizontalAlignment="Center" Margin="0,16,0,0" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+
+    <!-- MSG-018: confirmación antes de firmar -->
+    <Grid Visibility="{Binding Confirmando, Converter={StaticResource Visible}}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CancelarAprobacionCommand}" />
+      <Border Style="{StaticResource Dialog}" Width="440" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel>
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="MSG-018" Style="{StaticResource Overline}" Margin="8,4,0,0" />
+            <TextBlock Text="¿Aprobar y firmar?" Style="{StaticResource SectionTitle}" FontSize="18" />
+          </DockPanel>
+          <TextBlock Text="{Binding TextoConfirmacion}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,20" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0"
+                    Command="{Binding CancelarAprobacionCommand}" IsCancel="True" />
+            <Button Content="Aprobar y firmar" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarAprobacionCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

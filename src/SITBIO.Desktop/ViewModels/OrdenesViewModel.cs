@@ -7,8 +7,9 @@ namespace Sitbio.Desktop.ViewModels;
 /// <summary>
 /// UI-012 «Mis órdenes» / «Órdenes de trabajo» (HU-004, HU-005). El Técnico (AC-03) ve solo sus órdenes, de
 /// la más urgente a la menos urgente, y desde cada una inicia, pausa, reanuda y abre la intervención
-/// (UI-013). Los demás roles que consultan (AC-01, AC-02, AC-07) ven las órdenes de la institución y la
-/// intervención en solo lectura. La API valida que solo el técnico asignado ejecute.
+/// (UI-013), donde la cierra. Los demás roles que consultan (AC-01, AC-02, AC-07) ven las órdenes de la
+/// institución y la intervención en solo lectura; el Ingeniero (AC-02) abre las «cerradas» con «Revisar y
+/// aprobar» (UI-014, NAV-010) y vuelve con la orden «aprobada». La API valida los permisos.
 /// </summary>
 public partial class OrdenesViewModel(
     IServicioOrdenes ordenes,
@@ -26,6 +27,9 @@ public partial class OrdenesViewModel(
 
     /// <summary>Solo el Técnico de Mantenimiento ejecuta (inicia, pausa y registra).</summary>
     public bool EsTecnico => sesion.Sesion?.Rol == "AC-03";
+
+    /// <summary>Solo el Ingeniero Biomédico aprueba y firma (HU-021).</summary>
+    public bool EsIngeniero => sesion.Sesion?.Rol == "AC-02";
 
     public string Titulo => EsTecnico ? "Mis órdenes" : "Órdenes de trabajo";
 
@@ -69,7 +73,12 @@ public partial class OrdenesViewModel(
     [NotifyPropertyChangedFor(nameof(EnLista))]
     private IntervencionViewModel? _intervencion;
 
-    public bool EnLista => Intervencion is null;
+    /// <summary>UI-014 abierta; null = la lista.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(EnLista))]
+    private RevisionViewModel? _revision;
+
+    public bool EnLista => Intervencion is null && Revision is null;
 
     public bool Cargado { get; private set; }
 
@@ -132,13 +141,35 @@ public partial class OrdenesViewModel(
         intervencion.CargarCommand.Execute(null);
     }
 
+    /// <summary>NAV-010: el Ingeniero revisa y firma una orden cerrada.</summary>
+    [RelayCommand]
+    private void AbrirRevision(FilaOrden? fila)
+    {
+        if (fila is null || !fila.PuedeAprobar)
+        {
+            return;
+        }
+
+        Exito = null;
+        var revision = new RevisionViewModel(ordenes, equipos, configuracion, fila.Orden, Volver);
+        Revision = revision;
+        revision.CargarCommand.Execute(null);
+    }
+
     private void Volver(Orden? actualizada)
     {
         Intervencion = null;
+        Revision = null;
         if (actualizada is not null)
         {
             Reemplazar(actualizada);
-            Exito = $"Intervención guardada para la orden {actualizada.CodigoTiquete ?? actualizada.PlacaInventario}.";
+            var referencia = actualizada.CodigoTiquete ?? actualizada.PlacaInventario;
+            Exito = actualizada.Estado switch
+            {
+                EstadosOrden.Cerrada => $"Cerraste la orden {referencia}; queda pendiente de la aprobación del Ingeniero.",
+                EstadosOrden.Aprobada => $"Aprobaste y firmaste la orden {referencia}.",
+                _ => $"Intervención guardada para la orden {referencia}.",
+            };
         }
     }
 
@@ -176,7 +207,7 @@ public partial class OrdenesViewModel(
     }
 
     private void Reemplazar(Orden orden) =>
-        Filas = Filas.Select(f => f.Orden.Id == orden.Id ? new FilaOrden(orden, EsTecnico) : f).ToList();
+        Filas = Filas.Select(f => f.Orden.Id == orden.Id ? new FilaOrden(orden, EsTecnico, EsIngeniero) : f).ToList();
 
     private async Task ConsultarAsync(int pagina)
     {
@@ -191,7 +222,7 @@ public partial class OrdenesViewModel(
                 return;
             }
 
-            Filas = resultado.Items.Select(o => new FilaOrden(o, EsTecnico)).ToList();
+            Filas = resultado.Items.Select(o => new FilaOrden(o, EsTecnico, EsIngeniero)).ToList();
             Total = resultado.Total;
             Pagina = pagina;
             Aviso = null;
@@ -224,8 +255,8 @@ public partial class OrdenesViewModel(
     }
 }
 
-/// <summary>Fila de UI-012 con los textos y las acciones que admite cada estado; solo el técnico ejecuta.</summary>
-public sealed record FilaOrden(Orden Orden, bool EsTecnico = false)
+/// <summary>Fila de UI-012 con los textos y las acciones que admite cada estado; solo el técnico ejecuta y solo el Ingeniero aprueba.</summary>
+public sealed record FilaOrden(Orden Orden, bool EsTecnico = false, bool EsIngeniero = false)
 {
     /// <summary>Código del tiquete de origen o, sin tiquete, la placa del equipo.</summary>
     public string Referencia => Orden.CodigoTiquete ?? Orden.PlacaInventario;
@@ -264,8 +295,11 @@ public sealed record FilaOrden(Orden Orden, bool EsTecnico = false)
     /// <summary>El técnico registra o corrige la intervención con la orden en ejecución o pausada.</summary>
     public bool Editable => EsTecnico && Orden.Estado is EstadosOrden.EnEjecucion or EstadosOrden.Pausada;
 
-    /// <summary>Quien no puede editarla la abre en solo lectura si ya existe.</summary>
-    public bool MuestraIntervencion => Editable || Orden.TieneIntervencion;
+    /// <summary>El Ingeniero revisa y firma la orden cerrada (UI-014).</summary>
+    public bool PuedeAprobar => EsIngeniero && Orden.Estado == EstadosOrden.Cerrada;
+
+    /// <summary>Quien no puede editarla la abre en solo lectura si ya existe; la que se aprueba se ve en UI-014.</summary>
+    public bool MuestraIntervencion => !PuedeAprobar && (Editable || Orden.TieneIntervencion);
 
     public string TextoIntervencion => Editable
         ? Orden.TieneIntervencion ? "Editar intervención" : "Registrar intervención"

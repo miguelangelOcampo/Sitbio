@@ -12,7 +12,8 @@ namespace Sitbio.Desktop.ViewModels;
 /// acciones, repuestos, costos, tiempo, estado de salida del equipo y los campos dinámicos de la versión
 /// activa del tipo de equipo, cada uno con el control de su <c>tipoDato</c>. Valida en el cliente lo
 /// evidente y muestra junto a cada campo lo que rechace la API. Solo el técnico la edita, con la orden en
-/// ejecución o pausada; los demás la ven en solo lectura.
+/// ejecución o pausada; los demás la ven en solo lectura. Con «Cerrar orden» (HU-021, FLU-005) el técnico
+/// confirma el resumen, se guarda la hoja y la orden queda «cerrada», pendiente de la aprobación del Ingeniero.
 /// </summary>
 public partial class IntervencionViewModel(
     IServicioOrdenes ordenes,
@@ -26,12 +27,19 @@ public partial class IntervencionViewModel(
     public const string Obligatorio = "Este campo es obligatorio.";
     public const string NumeroInvalido = "Escribe un número válido.";
     public const string SinCamposDinamicos = "Este tipo de equipo no tiene campos adicionales.";
+    public const string SalidaParaCerrar = "Indica el estado del equipo al salir; se necesita para cerrar la orden.";
+
+    /// <summary>Ya se guardó la hoja en esta pantalla (aunque el cierre haya fallado).</summary>
+    private bool _guardada;
 
     public Orden Orden { get; private set; } = orden;
 
-    /// <summary>Se puede guardar (técnico, orden en ejecución o pausada, intervención sin firmar).</summary>
+    /// <summary>Muestra la barra de acciones; UI-014 la oculta porque tiene sus propias acciones.</summary>
+    public bool MuestraBarra { get; init; } = true;
+
+    /// <summary>Se puede guardar y cerrar (técnico, orden en ejecución o pausada, intervención sin firmar).</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(GuardarCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GuardarCommand), nameof(CerrarOrdenCommand), nameof(ConfirmarCierreCommand))]
     private bool _editable = editable;
 
     public string Referencia => Orden.CodigoTiquete ?? Orden.PlacaInventario;
@@ -43,12 +51,17 @@ public partial class IntervencionViewModel(
     public static IReadOnlyList<string> OpcionesSalida => EstadosSalidaEquipo.Todos;
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(GuardarCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GuardarCommand), nameof(CerrarOrdenCommand), nameof(ConfirmarCierreCommand))]
     private bool _cargando;
 
+    /// <summary>Guardando la hoja o cerrando la orden.</summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(GuardarCommand))]
+    [NotifyCanExecuteChangedFor(nameof(GuardarCommand), nameof(CerrarOrdenCommand), nameof(ConfirmarCierreCommand))]
     private bool _guardando;
+
+    /// <summary>Resumen de cierre abierto, a la espera de que el técnico confirme.</summary>
+    [ObservableProperty]
+    private bool _confirmandoCierre;
 
     [ObservableProperty]
     private Aviso? _aviso;
@@ -111,6 +124,18 @@ public partial class IntervencionViewModel(
 
     /// <summary>Repuestos (cantidad × costo) más mano de obra, como lo calcula la API.</summary>
     public string CostoTotal => (Repuestos.Sum(r => r.Subtotal) + (Decimal(CostoManoObra) ?? 0m)).ToString("C0", TextosEquipo.Cultura);
+
+    /// <summary>Repuestos del resumen de cierre.</summary>
+    public string ResumenRepuestos => Repuestos.Count switch
+    {
+        0 => "Sin repuestos",
+        1 => "1 repuesto",
+        var n => $"{n} repuestos",
+    };
+
+    public string ResumenTiempo => int.TryParse(TiempoAtencion.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var minutos) && minutos > 0
+        ? $"{minutos} min"
+        : "Sin registrar";
 
     [RelayCommand]
     private async Task CargarAsync()
@@ -184,6 +209,7 @@ public partial class IntervencionViewModel(
         OnPropertyChanged(nameof(CostoTotal));
         OnPropertyChanged(nameof(SinRepuestos));
         OnPropertyChanged(nameof(HayRepuestos));
+        OnPropertyChanged(nameof(ResumenRepuestos));
     }
 
     [RelayCommand]
@@ -194,11 +220,13 @@ public partial class IntervencionViewModel(
             OnPropertyChanged(nameof(CostoTotal));
             OnPropertyChanged(nameof(SinRepuestos));
             OnPropertyChanged(nameof(HayRepuestos));
+            OnPropertyChanged(nameof(ResumenRepuestos));
         }
     }
 
+    /// <summary>Vuelve a la lista; si la hoja se guardó aquí, la fila queda marcada.</summary>
     [RelayCommand]
-    private void Cancelar() => volver(null);
+    private void Cancelar() => volver(_guardada ? Orden : null);
 
     [RelayCommand]
     private void CerrarAviso() => Aviso = null;
@@ -229,6 +257,93 @@ public partial class IntervencionViewModel(
     }
 
     private bool PuedeGuardar() => Editable && !Cargando && !Guardando;
+
+    /// <summary>«Cerrar orden»: valida la hoja (con el estado de salida, obligatorio para cerrar) y muestra el resumen.</summary>
+    [RelayCommand(CanExecute = nameof(PuedeGuardar))]
+    private void CerrarOrden()
+    {
+        if (ValidarCierre(out _))
+        {
+            ConfirmandoCierre = true;
+        }
+    }
+
+    [RelayCommand]
+    private void CancelarCierre() => ConfirmandoCierre = false;
+
+    /// <summary>Confirma el resumen: guarda la hoja y cierra la orden, que vuelve a la lista «cerrada».</summary>
+    [RelayCommand(CanExecute = nameof(PuedeGuardar))]
+    private async Task ConfirmarCierreAsync()
+    {
+        ConfirmandoCierre = false;
+        if (!ValidarCierre(out var datos))
+        {
+            return;
+        }
+
+        Guardando = true;
+        Aviso = null;
+        try
+        {
+            await ordenes.RegistrarIntervencionAsync(Orden.Id, datos, CancellationToken.None);
+            _guardada = true;
+            Orden = Orden with { TieneIntervencion = true };
+        }
+        catch (ErrorApi error)
+        {
+            MostrarErrores(error);
+            Guardando = false;
+            return;
+        }
+
+        try
+        {
+            volver(await ordenes.CambiarEstadoAsync(Orden.Id, AccionesOrden.Cerrar, CancellationToken.None));
+        }
+        catch (ErrorApi error)
+        {
+            Aviso = error.Codigo == CodigosOrden.CalibracionVencida
+                ? new Aviso("Calibración vencida", error.Message, error.Codigo)
+                : new Aviso(
+                    error.SinConexion ? "Sin conexión" : "La intervención se guardó, pero no se pudo cerrar la orden",
+                    error.Message,
+                    error.SinConexion ? "MSG-011" : error.Codigo);
+            if (error.Errores.TryGetValue("estadoEquipoSalida", out var salida))
+            {
+                ErrorSalida = salida;
+            }
+
+            if (error.Codigo is CodigosOrden.Firmada or "OT-003")
+            {
+                Editable = false;
+            }
+        }
+        finally
+        {
+            Guardando = false;
+        }
+    }
+
+    private bool ValidarCierre(out DatosIntervencion datos)
+    {
+        var valido = Validar(out datos);
+        if (string.IsNullOrWhiteSpace(EstadoSalida))
+        {
+            ErrorSalida = SalidaParaCerrar;
+            Aviso = new Aviso("Revisa la intervención", "Hay campos por completar o corregir; están marcados en el formulario.", null);
+            return false;
+        }
+
+        return valido;
+    }
+
+    partial void OnEstadoSalidaChanged(string? value) => ErrorSalida = null;
+
+    partial void OnTiempoAtencionChanged(string value)
+    {
+        ErrorTiempo = null;
+        OnPropertyChanged(nameof(ResumenTiempo));
+    }
 
     /// <summary>Validación del cliente: obligatorios y números. Lo demás lo valida la API.</summary>
     public bool Validar(out DatosIntervencion datos)
@@ -338,7 +453,7 @@ public partial class IntervencionViewModel(
             Aviso = new Aviso("Revisa la intervención", "El servidor rechazó algunos datos; están marcados en el formulario.", null);
         }
 
-        if (error.Codigo == "RN-004")
+        if (error.Codigo == CodigosOrden.Firmada)
         {
             Editable = false;
         }
@@ -393,7 +508,6 @@ public partial class IntervencionViewModel(
 
     partial void OnCostoManoObraChanged(string value) => ErrorManoObra = null;
 
-    partial void OnTiempoAtencionChanged(string value) => ErrorTiempo = null;
 
     /// <summary>Acepta coma o punto decimal y separadores de miles con punto («15.000»).</summary>
     public static decimal? Decimal(string texto)

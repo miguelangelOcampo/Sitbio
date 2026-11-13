@@ -6,7 +6,7 @@ using Sitbio.Desktop.Services;
 
 namespace Sitbio.Desktop.Tests.Services;
 
-/// <summary>API-OT desde el cliente (HU-004): técnicos con su carga, cuerpo de la asignación y errores.</summary>
+/// <summary>API-OT desde el cliente (HU-004, HU-005, HU-021): técnicos con su carga, asignación, ejecución, cierre, aprobación y errores.</summary>
 public class ServicioOrdenesHttpTests
 {
     private sealed class ManejadorFalso(Func<HttpRequestMessage, HttpResponseMessage> responder) : HttpMessageHandler
@@ -198,5 +198,59 @@ public class ServicioOrdenesHttpTests
             servicio.RegistrarIntervencionAsync(OrdenId, new DatosIntervencion("D", "A", [], null, null, null, new Dictionary<string, object>()), CancellationToken.None));
 
         Assert.Equal("RN-004", error.Codigo);
+    }
+
+    // ---------- HU-021: cierre y aprobación ----------
+
+    [Fact]
+    public async Task CambiarEstado_Cerrar_EnviaLaAccion()
+    {
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, OrdenJson.Replace("\"en_ejecucion\"", "\"cerrada\"", StringComparison.Ordinal)));
+
+        var orden = await servicio.CambiarEstadoAsync(OrdenId, AccionesOrden.Cerrar, CancellationToken.None);
+
+        Assert.Equal("""{"accion":"cerrar"}""", manejador.Cuerpo);
+        Assert.Equal(EstadosOrden.Cerrada, orden.Estado);
+    }
+
+    [Fact]
+    public async Task Aprobar_EnviaLaFirma_YLeeLaOrdenAprobada()
+    {
+        var aprobada = OrdenJson.Replace("\"en_ejecucion\"", "\"aprobada\"", StringComparison.Ordinal).Replace(
+            "\"tieneIntervencion\":true", "\"tieneIntervencion\":true,\"fechaCierre\":\"2026-11-13T16:00:00+00:00\",\"aprobadoPorId\":\"55555555-5555-5555-5555-555555555555\",\"fechaAprobacion\":\"2026-11-13T17:00:00+00:00\",\"firmaAprobacion\":\"Laura Gómez\"",
+            StringComparison.Ordinal);
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, aprobada));
+
+        var orden = await servicio.AprobarAsync(OrdenId, "Laura Gómez", CancellationToken.None);
+
+        Assert.Equal($"POST /api/v1/ordenes/{OrdenId}/aprobacion", manejador.Rutas.Single());
+        Assert.Equal("Laura Gómez", JsonDocument.Parse(manejador.Cuerpo!).RootElement.GetProperty("firma").GetString());
+        Assert.Equal((EstadosOrden.Aprobada, "Laura Gómez", (Guid?)Guid.Parse("55555555-5555-5555-5555-555555555555")), (orden.Estado, orden.FirmaAprobacion, orden.AprobadoPorId));
+        Assert.NotNull(orden.FechaCierre);
+        Assert.NotNull(orden.FechaAprobacion);
+    }
+
+    [Fact]
+    public async Task Aprobar_CalibracionVencida_TraeElCodigoYElMensajeDeLaApi()
+    {
+        const string Msg013 = "La calibración de este equipo venció el 01/10/2026. Registre una nueva calibración antes de cerrar la orden como «Operativo».";
+        var (servicio, _) = Crear(_ => Json(HttpStatusCode.Conflict, $$$"""{"status":409,"detail":"{{{Msg013}}}","codigo":"RN-007"}"""));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.AprobarAsync(OrdenId, "Laura Gómez", CancellationToken.None));
+
+        Assert.Equal((CodigosOrden.CalibracionVencida, Msg013), (error.Codigo, error.Message));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Forbidden, "Solo el Ingeniero Biomédico aprueba y firma las órdenes de trabajo.")]
+    [InlineData(HttpStatusCode.NotFound, "Esta orden ya no está en tu institución. Actualiza la lista.")]
+    [InlineData(HttpStatusCode.ServiceUnavailable, "No se pudo firmar porque el servidor de documentos no respondió. La orden sigue cerrada; intenta de nuevo.")]
+    public async Task Aprobar_ErroresSinDetalle_DanUnMensajeClaro(HttpStatusCode estado, string mensaje)
+    {
+        var (servicio, _) = Crear(_ => new HttpResponseMessage(estado));
+
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => servicio.AprobarAsync(OrdenId, "Laura Gómez", CancellationToken.None));
+
+        Assert.Equal(mensaje, error.Message);
     }
 }

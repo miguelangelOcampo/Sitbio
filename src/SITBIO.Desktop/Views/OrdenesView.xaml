@@ -1,7 +1,7 @@
 <!-- UI-012 «Mis órdenes» / «Órdenes de trabajo» (HU-004, HU-005). Lista de órdenes de la más urgente a la
-     menos urgente; el técnico inicia, pausa o reanuda cada una y abre su intervención (UI-013), que
-     reemplaza la lista mientras está abierta. Prioridad y estado van con punto y texto, no solo color
-     (ACC-001). -->
+     menos urgente; el técnico inicia, pausa o reanuda cada una y abre su intervención (UI-013), y el
+     Ingeniero abre las cerradas en «Revisión y firma» (UI-014); cada una reemplaza la lista mientras está
+     abierta. Prioridad y estado van con punto y texto, no solo color (ACC-001). -->
 <UserControl x:Class="Sitbio.Desktop.Views.OrdenesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -14,6 +14,9 @@
 
     <DataTemplate DataType="{x:Type vm:IntervencionViewModel}">
       <views:IntervencionView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:RevisionViewModel}">
+      <views:RevisionView />
     </DataTemplate>
 
     <Style x:Key="PuntoEstado" TargetType="Ellipse" BasedOn="{StaticResource StatusDot}">
@@ -44,6 +47,10 @@
     <!-- UI-013 Intervención -->
     <ContentControl Content="{Binding Intervencion}" Focusable="False" IsTabStop="False"
                     Visibility="{Binding Intervencion, Converter={StaticResource NuloVisible}}" />
+
+    <!-- UI-014 Revisión y firma -->
+    <ContentControl Content="{Binding Revision}" Focusable="False" IsTabStop="False"
+                    Visibility="{Binding Revision, Converter={StaticResource NuloVisible}}" />
 
     <!-- UI-012 Lista -->
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False"
@@ -167,6 +174,10 @@
                             Visibility="{Binding MuestraIntervencion, Converter={StaticResource Visible}}"
                             Command="{Binding DataContext.AbrirIntervencionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             AutomationProperties.Name="{Binding Referencia, StringFormat='Intervención de la orden {0}'}" />
+                    <Button Content="Revisar y aprobar" Style="{StaticResource LinkButton}"
+                            Visibility="{Binding PuedeAprobar, Converter={StaticResource Visible}}"
+                            Command="{Binding DataContext.AbrirRevisionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                            AutomationProperties.Name="{Binding Referencia, StringFormat='Revisar y aprobar la orden {0}'}" />
                   </StackPanel>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>

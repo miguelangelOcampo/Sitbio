@@ -6,7 +6,10 @@ using Sitbio.Desktop.ViewModels;
 
 namespace Sitbio.Desktop.Tests.ViewModels;
 
-/// <summary>UI-012 «Mis órdenes» (HU-005): el técnico ve sus órdenes, las inicia, pausa y reanuda y abre la intervención; los demás roles solo consultan.</summary>
+/// <summary>
+/// UI-012 «Mis órdenes» (HU-005, HU-021): el técnico ve sus órdenes, las inicia, pausa y reanuda, abre la
+/// intervención y la cierra; el Ingeniero revisa y aprueba las cerradas (UI-014); los demás roles solo consultan.
+/// </summary>
 public class OrdenesViewModelTests
 {
     private readonly IServicioOrdenes _ordenes = Substitute.For<IServicioOrdenes>();
@@ -157,6 +160,75 @@ public class OrdenesViewModelTests
         vm.AbrirIntervencionCommand.Execute(vm.Filas[0]);
 
         Assert.Null(vm.Intervencion);
+    }
+
+    [Fact]
+    public async Task Ingeniero_RevisaYApruebaLaCerrada_YVuelveConLaOrdenAprobada()
+    {
+        var cerrada = Orden(EstadosOrden.Cerrada, intervencion: true);
+        var vm = await AbrirAsync("AC-02", cerrada, Orden(EstadosOrden.EnEjecucion, "TQT-000008", intervencion: true));
+        var equipo = EquiposPrueba.Equipo();
+        _equipos.ObtenerAsync(cerrada.EquipoId, Arg.Any<CancellationToken>()).Returns(equipo);
+        _configuracion.ObtenerAsync(equipo.TipoEquipoId, Arg.Any<CancellationToken>())
+            .Returns(new ConfiguracionCampos(equipo.TipoEquipoId, "Monitor", null, null, [], []));
+        _ordenes.ObtenerIntervencionAsync(cerrada.Id, Arg.Any<CancellationToken>()).Returns((Intervencion?)null);
+        _ordenes.AprobarAsync(cerrada.Id, "Laura Gómez", Arg.Any<CancellationToken>())
+            .Returns(cerrada with { Estado = EstadosOrden.Aprobada, FirmaAprobacion = "Laura Gómez" });
+
+        // Solo la cerrada ofrece «Revisar y aprobar»; la otra se ve en solo lectura.
+        Assert.Equal((true, false), (vm.Filas[0].PuedeAprobar, vm.Filas[0].MuestraIntervencion));
+        Assert.Equal((false, true), (vm.Filas[1].PuedeAprobar, vm.Filas[1].MuestraIntervencion));
+
+        vm.AbrirRevisionCommand.Execute(vm.Filas[0]);
+
+        var revision = Assert.IsType<RevisionViewModel>(vm.Revision);
+        Assert.False(vm.EnLista);
+        revision.Firma = "Laura Gómez";
+        revision.AprobarCommand.Execute(null);
+        await revision.ConfirmarAprobacionCommand.ExecuteAsync(null);
+
+        Assert.True(vm.EnLista);
+        Assert.Equal(("Aprobada", false), (vm.Filas[0].Estado, vm.Filas[0].PuedeAprobar));
+        Assert.Equal("Aprobaste y firmaste la orden TQT-000007.", vm.Exito);
+    }
+
+    [Theory]
+    [InlineData("AC-03")]
+    [InlineData("AC-01")]
+    [InlineData("AC-07")]
+    public async Task SoloElIngeniero_VeRevisarYAprobar(string rol)
+    {
+        var vm = await AbrirAsync(rol, Orden(EstadosOrden.Cerrada, intervencion: true));
+
+        Assert.False(vm.Filas[0].PuedeAprobar);
+        vm.AbrirRevisionCommand.Execute(vm.Filas[0]);
+        Assert.Null(vm.Revision);
+    }
+
+    [Fact]
+    public async Task Tecnico_AlCerrarDesdeLaIntervencion_VuelveConLaOrdenCerrada()
+    {
+        var orden = Orden(EstadosOrden.EnEjecucion);
+        var vm = await AbrirAsync("AC-03", orden);
+        var equipo = EquiposPrueba.Equipo();
+        _equipos.ObtenerAsync(orden.EquipoId, Arg.Any<CancellationToken>()).Returns(equipo);
+        _configuracion.ObtenerAsync(equipo.TipoEquipoId, Arg.Any<CancellationToken>())
+            .Returns(new ConfiguracionCampos(equipo.TipoEquipoId, "Monitor", null, null, [], []));
+        _ordenes.ObtenerIntervencionAsync(orden.Id, Arg.Any<CancellationToken>()).Returns((Intervencion?)null);
+        _ordenes.CambiarEstadoAsync(orden.Id, AccionesOrden.Cerrar, Arg.Any<CancellationToken>())
+            .Returns(orden with { Estado = EstadosOrden.Cerrada, TieneIntervencion = true });
+
+        vm.AbrirIntervencionCommand.Execute(vm.Filas[0]);
+        var intervencion = vm.Intervencion!;
+        intervencion.Diagnostico = "Sensor descalibrado";
+        intervencion.AccionesRealizadas = "Calibración";
+        intervencion.EstadoSalida = "Operativo";
+        intervencion.CerrarOrdenCommand.Execute(null);
+        await intervencion.ConfirmarCierreCommand.ExecuteAsync(null);
+
+        Assert.True(vm.EnLista);
+        Assert.Equal(("Cerrada", false, false), (vm.Filas[0].Estado, vm.Filas[0].Editable, vm.Filas[0].PuedePausar));
+        Assert.Equal("Cerraste la orden TQT-000007; queda pendiente de la aprobación del Ingeniero.", vm.Exito);
     }
 
     [Fact]

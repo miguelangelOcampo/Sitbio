@@ -60,7 +60,7 @@ public sealed record DatosTiquete(Guid? EquipoId, string? TipoFalla, string? Des
 /// Filtros de GET /tiquetes: estado y criticidad, con paginación (bandeja UI-011). <see cref="Mios"/>
 /// limita la lista a los tiquetes que reportó quien consulta (seguimiento UI-010, HU-017).
 /// </summary>
-public sealed record FiltroTiquetes(string? Estado, string? Criticidad, int Pagina = 1, int Tamano = 20, bool Mios = false);
+public sealed record FiltroTiquetes(string? Estado, string? Criticidad, int Pagina = 1, int Tamano = 20, bool Mios = false, bool PorCriticidad = false);
 
 /// <summary>Un cambio de estado del tiquete (CA-HU-017-01). La recepción no tiene estado anterior.</summary>
 public sealed record HistorialTiqueteDto(

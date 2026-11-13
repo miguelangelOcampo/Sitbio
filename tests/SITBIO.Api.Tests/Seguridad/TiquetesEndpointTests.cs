@@ -183,6 +183,21 @@ public class TiquetesEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
     }
 
     [Fact]
+    public async Task OrdenCriticidad_PideLaBandejaPriorizada_YOtroOrdenResponde400()
+    {
+        var cliente = Cliente(CodigosRol.IngenieroBiomedico);
+
+        Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync($"{Ruta}?estado=recibido&orden=Criticidad")).StatusCode);
+        await _repositorio.Received(1).ListarAsync(
+            new FiltroTiquetes(EstadosTiquete.Recibido, null, 1, 20, PorCriticidad: true), null, Arg.Any<CancellationToken>());
+
+        var invalido = await cliente.GetAsync($"{Ruta}?orden=fecha");
+        Assert.Equal(HttpStatusCode.BadRequest, invalido.StatusCode);
+        using var problema = JsonDocument.Parse(await invalido.Content.ReadAsStringAsync());
+        Assert.True(problema.RootElement.GetProperty("errors").TryGetProperty("orden", out _));
+    }
+
+    [Fact]
     public async Task Historial_PorCodigo_TraeLosCambiosYSinTokenResponde401()
     {
         var cliente = Cliente(CodigosRol.PersonalClinico);

@@ -22,6 +22,12 @@ public interface IRepositorioOrdenes
     Task<TecnicoCandidato?> TecnicoAsync(Guid id, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Técnicos de Mantenimiento activos de la institución (RN-003) con sus órdenes abiertas (asignada, en
+    /// ejecución o pausada), del menos al más ocupado y luego por nombre.
+    /// </summary>
+    Task<IReadOnlyList<TecnicoConCarga>> TecnicosAsync(CancellationToken cancellationToken);
+
+    /// <summary>
     /// En una sola transacción: inserta la orden, guarda el nuevo estado del tiquete y su historial. Si otro
     /// ingeniero ya creó la orden de ese tiquete (<c>uq_orden_tiquete</c>), responde conflicto.
     /// </summary>

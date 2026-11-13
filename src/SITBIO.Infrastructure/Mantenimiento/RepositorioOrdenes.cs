@@ -4,6 +4,7 @@ using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.Ordenes;
 using Sitbio.Domain.Mantenimiento;
 using Sitbio.Domain.Peticiones;
+using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Persistencia;
 using Sitbio.Infrastructure.Persistencia.Configuraciones;
 
@@ -43,6 +44,18 @@ public sealed class RepositorioOrdenes(SitbioDbContext contexto) : IRepositorioO
          where u.Id == id
          select new TecnicoCandidato(u.Id, r.Codigo, u.EstadoActivo))
         .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<TecnicoConCarga>> TecnicosAsync(CancellationToken cancellationToken)
+    {
+        var abiertos = EstadosOrden.Abiertos.ToList();
+        return await (from u in contexto.Usuarios.AsNoTracking()
+                      join r in contexto.Roles on u.RolId equals r.Id
+                      where r.Codigo == CodigosRol.TecnicoMantenimiento && u.EstadoActivo
+                      let carga = contexto.Ordenes.Count(o => o.TecnicoId == u.Id && abiertos.Contains(o.Estado))
+                      orderby carga, u.Nombres, u.Apellidos, u.Id
+                      select new TecnicoConCarga(u.Id, u.Nombres + " " + u.Apellidos, carga))
+            .ToListAsync(cancellationToken);
+    }
 
     public async Task RegistrarAsync(OrdenTrabajo orden, HistorialTiquete cambioTiquete, CancellationToken cancellationToken)
     {

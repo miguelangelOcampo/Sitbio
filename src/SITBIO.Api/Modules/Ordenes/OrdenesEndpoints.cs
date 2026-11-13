@@ -53,6 +53,12 @@ public static class OrdenesEndpoints
             .WithName("ListarOrdenes")
             .RequireAuthorization(PoliticaConsulta);
 
+        // Panel de UI-011: técnicos activos con su carga, para quien asigna.
+        grupo.MapGet("/tecnicos", async (GestionOrdenes caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.TecnicosAsync(cancellationToken)))
+            .WithName("ListarTecnicosAsignables")
+            .RequireAuthorization(PoliticaAsignacion);
+
         grupo.MapGet("/{id:guid}", async (Guid id, GestionOrdenes caso, CancellationToken cancellationToken) =>
                 Results.Ok(await caso.ObtenerAsync(id, cancellationToken)))
             .WithName("ObtenerOrden")

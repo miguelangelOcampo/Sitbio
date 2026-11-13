@@ -36,6 +36,11 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var seguimiento = servicios.GetRequiredService<SeguimientoViewModel>();
                 seguimiento.CargarCommand.Execute(null);
                 return seguimiento;
+            // UI-011 Bandeja de tiquetes y asignación (HU-004, HU-018): solo AC-02.
+            case BandejaViewModel.IdPantalla:
+                var bandeja = servicios.GetRequiredService<BandejaViewModel>();
+                bandeja.CargarCommand.Execute(null);
+                return bandeja;
             case "UI-019":
                 var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
                 catalogos.CargarCommand.Execute(null);

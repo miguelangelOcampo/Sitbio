@@ -165,6 +165,24 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
     }
 
     [FactIntegracion(Variable)]
+    public async Task Tecnicos_SoloActivosConSuCargaDelMenosAlMasOcupado()
+    {
+        await Asignar(await Reportar(), _tecnicoA);
+        await Asignar(await Reportar(), _tecnicoA);
+        await Asignar(await Reportar(), _otroTecnicoA);
+
+        var (contexto, ordenes, _) = Crear(_tenantA);
+        await using (contexto)
+        {
+            var tecnicos = await ordenes.TecnicosAsync(CancellationToken.None);
+
+            // Sin el inactivo (RN-003), sin el Ingeniero y sin el técnico de otra institución.
+            Assert.Equal([(_otroTecnicoA, 1), (_tecnicoA, 2)], tecnicos.Select(t => (t.Id, t.OrdenesAbiertas)));
+            Assert.All(tecnicos, t => Assert.Equal("Carlos Ruiz", t.Nombre));
+        }
+    }
+
+    [FactIntegracion(Variable)]
     public async Task Listar_FiltraPorTecnicoYOrdenaPorPrioridad()
     {
         var baja = await Asignar(await Reportar(Criticidades.Baja), _tecnicoA);

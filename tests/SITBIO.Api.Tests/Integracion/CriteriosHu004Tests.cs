@@ -108,6 +108,34 @@ public class CriteriosHu004Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
         Assert.Equal(0, (await Cuerpo(await i.Ingeniero.GetAsync(Ruta))).GetProperty("total").GetInt32());
     }
 
+    // ---------- Bandeja UI-011 ----------
+
+    [FactIntegracion]
+    public async Task Bandeja_PriorizaPorCriticidad_YElPanelMuestraTecnicosActivosConSuCarga()
+    {
+        var i = await InstitucionConEquipo();
+        var (_, otroTecnico) = await SesionDe(i.Tenant, CodigosRol.TecnicoMantenimiento);
+        var (admin, _) = await SesionDe(i.Tenant, CodigosRol.AdministradorSistema);
+        var (_, inactivo) = await SesionDe(i.Tenant, CodigosRol.TecnicoMantenimiento);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PatchAsJsonAsync($"/api/v1/usuarios/{inactivo}/estado", new { accion = "desactivar" })).StatusCode);
+
+        var baja = Texto(await Reportar(i.Clinico, i.Equipo, Criticidades.Baja), "codigo");
+        var critica = Texto(await Reportar(i.Clinico, i.Equipo, Criticidades.Critica), "codigo");
+        var media = await Reportar(i.Clinico, i.Equipo, Criticidades.Media);
+        var alta = Texto(await Reportar(i.Clinico, i.Equipo, Criticidades.Alta), "codigo");
+        Assert.Equal(HttpStatusCode.Created, (await i.Ingeniero.PostAsJsonAsync(Ruta, new { tiqueteId = media.GetProperty("id").GetGuid(), tecnicoId = otroTecnico })).StatusCode);
+
+        // Solo los recibidos, de lo más crítico a lo menos crítico.
+        var bandeja = await Cuerpo(await i.Ingeniero.GetAsync($"{RutaTiquetes}?estado=recibido&orden=criticidad"));
+        Assert.Equal([critica, alta, baja], bandeja.GetProperty("items").EnumerateArray().Select(t => Texto(t, "codigo")));
+
+        // El panel: solo técnicos activos, del menos al más ocupado.
+        var tecnicos = (await Cuerpo(await i.Ingeniero.GetAsync($"{Ruta}/tecnicos"))).EnumerateArray()
+            .Select(t => (t.GetProperty("id").GetGuid(), t.GetProperty("ordenesAbiertas").GetInt32())).ToList();
+        Assert.Equal([(i.TecnicoId, 0), (otroTecnico, 1)], tecnicos);
+        Assert.Equal(HttpStatusCode.Forbidden, (await i.Tecnico.GetAsync($"{Ruta}/tecnicos")).StatusCode);
+    }
+
     // ---------- Permisos y aislamiento ----------
 
     [FactIntegracion]

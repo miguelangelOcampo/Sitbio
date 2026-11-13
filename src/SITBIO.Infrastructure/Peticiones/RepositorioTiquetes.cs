@@ -24,8 +24,13 @@ public sealed class RepositorioTiquetes(SitbioDbContext contexto, IContextoUsuar
         }
 
         var total = await tiquetes.CountAsync(cancellationToken);
-        var pagina = tiquetes
-            .OrderByDescending(t => t.FechaReporte).ThenByDescending(t => t.Codigo)
+        // La bandeja (UI-011) atiende primero lo más crítico y, a igual criticidad, lo que más lleva esperando.
+        var ordenados = filtro.PorCriticidad
+            ? tiquetes
+                .OrderBy(t => t.Criticidad == Criticidades.Critica ? 0 : t.Criticidad == Criticidades.Alta ? 1 : t.Criticidad == Criticidades.Media ? 2 : 3)
+                .ThenBy(t => t.FechaReporte).ThenBy(t => t.Codigo)
+            : tiquetes.OrderByDescending(t => t.FechaReporte).ThenByDescending(t => t.Codigo);
+        var pagina = ordenados
             .Skip((filtro.Pagina - 1) * filtro.Tamano)
             .Take(filtro.Tamano);
         var items = await Leer(pagina).ToListAsync(cancellationToken);

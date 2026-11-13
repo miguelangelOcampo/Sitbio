@@ -187,6 +187,25 @@ public class OrdenesEndpointTests(WebApplicationFactory<Program> fabrica) : ICla
         Assert.True(problema.RootElement.GetProperty("errors").TryGetProperty("asignadas", out _));
     }
 
+    [Theory]
+    [InlineData(CodigosRol.IngenieroBiomedico, HttpStatusCode.OK)]
+    [InlineData(CodigosRol.AdministradorSistema, HttpStatusCode.Forbidden)]
+    [InlineData(CodigosRol.TecnicoMantenimiento, HttpStatusCode.Forbidden)]
+    [InlineData(CodigosRol.EnteRegulador, HttpStatusCode.Forbidden)]
+    public async Task Tecnicos_SoloParaQuienAsigna(string rol, HttpStatusCode esperado)
+    {
+        var cliente = Cliente(rol);
+        _repositorio.TecnicosAsync(Arg.Any<CancellationToken>()).Returns([new TecnicoConCarga(_tecnico, "Carlos Ruiz", 2)]);
+
+        var respuesta = await cliente.GetAsync($"{Ruta}/tecnicos");
+
+        Assert.Equal(esperado, respuesta.StatusCode);
+        if (esperado == HttpStatusCode.OK)
+        {
+            Assert.Equal([new TecnicoConCarga(_tecnico, "Carlos Ruiz", 2)], (await respuesta.Content.ReadFromJsonAsync<TecnicoConCarga[]>(Json))!);
+        }
+    }
+
     [Fact]
     public async Task ObtenerPorId_ElTecnicoSoloLaSuya()
     {

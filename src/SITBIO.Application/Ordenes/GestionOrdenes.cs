@@ -86,6 +86,10 @@ public sealed class GestionOrdenes(
         return new Pagina<OrdenDto>(items.Select(OrdenDto.Desde).ToList(), filtro.Pagina, filtro.Tamano, total);
     }
 
+    /// <summary>Panel de UI-011: solo se ofrece a quien puede recibir la orden (RN-003), con su carga actual.</summary>
+    public Task<IReadOnlyList<TecnicoConCarga>> TecnicosAsync(CancellationToken cancellationToken) =>
+        repositorio.TecnicosAsync(cancellationToken);
+
     /// <summary>Orden por id; 404 si es de otra institución o, para el técnico, de otro técnico.</summary>
     public async Task<OrdenDto> ObtenerAsync(Guid id, CancellationToken cancellationToken)
     {

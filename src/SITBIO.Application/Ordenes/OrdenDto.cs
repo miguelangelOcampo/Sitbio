@@ -71,3 +71,6 @@ public sealed record OrdenLeida(
 
 /// <summary>Usuario candidato a ejecutar la orden, con su rol y si está activo (RN-003).</summary>
 public sealed record TecnicoCandidato(Guid Id, string CodigoRol, bool Activo);
+
+/// <summary>Técnico activo que puede recibir la orden, con cuántas órdenes abiertas tiene (panel de UI-011).</summary>
+public sealed record TecnicoConCarga(Guid Id, string Nombre, int OrdenesAbiertas);

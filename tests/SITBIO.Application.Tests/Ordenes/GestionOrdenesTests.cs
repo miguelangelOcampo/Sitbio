@@ -181,6 +181,15 @@ public class GestionOrdenesTests
     }
 
     [Fact]
+    public async Task Tecnicos_DevuelveLosActivosConSuCarga()
+    {
+        IReadOnlyList<TecnicoConCarga> activos = [new(_tecnico, "Carlos Ruiz", 1)];
+        _repositorio.TecnicosAsync(Arg.Any<CancellationToken>()).Returns(activos);
+
+        Assert.Same(activos, await _caso.TecnicosAsync(CancellationToken.None));
+    }
+
+    [Fact]
     public async Task Obtener_DeOtroTecnico_Responde404()
     {
         _contexto.Rol.Returns(CodigosRol.TecnicoMantenimiento);

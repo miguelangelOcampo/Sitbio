@@ -6,7 +6,11 @@ namespace Sitbio.Application.Tiquetes;
 /// <summary>Tiquetes del tenant del token (el filtro lo aplica la persistencia, RN-008).</summary>
 public interface IRepositorioTiquetes
 {
-    /// <summary>Página de tiquetes del filtro, del más reciente al más antiguo. Con <paramref name="reportanteId"/>, solo los de esa persona.</summary>
+    /// <summary>
+    /// Página de tiquetes del filtro, del más reciente al más antiguo; con <see cref="FiltroTiquetes.PorCriticidad"/>,
+    /// del más crítico al menos crítico y, a igual criticidad, del más antiguo al más reciente. Con
+    /// <paramref name="reportanteId"/>, solo los de esa persona.
+    /// </summary>
     Task<(IReadOnlyList<TiqueteLeido> Items, int Total)> ListarAsync(FiltroTiquetes filtro, Guid? reportanteId, CancellationToken cancellationToken);
 
     /// <summary>Tiquete por código; null si no existe, es de otro tenant o (con <paramref name="reportanteId"/>) lo reportó otra persona.</summary>

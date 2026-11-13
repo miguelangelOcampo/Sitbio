@@ -20,6 +20,9 @@ public static class EstadosOrden
     public const string Aprobada = "aprobada";
 
     public static IReadOnlyList<string> Todos { get; } = [Asignada, EnEjecucion, Pausada, Cerrada, Aprobada];
+
+    /// <summary>Estados en los que la orden todavía ocupa al técnico (su carga en UI-011).</summary>
+    public static IReadOnlyList<string> Abiertos { get; } = [Asignada, EnEjecucion, Pausada];
 }
 
 /// <summary>

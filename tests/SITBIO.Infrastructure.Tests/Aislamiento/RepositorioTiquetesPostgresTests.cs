@@ -174,6 +174,35 @@ public class RepositorioTiquetesPostgresTests : IAsyncLifetime
     }
 
     [FactIntegracion(Variable)]
+    public async Task Historial_EnOrdenConQuienHizoCadaCambio_YSoloDeLaInstitucion()
+    {
+        var codigo = await Reportar(_tenantA, _equipoA, _clinicoA);
+        Guid tiqueteId;
+        var (contexto, repositorio) = Crear(_tenantA);
+        await using (contexto)
+        {
+            tiqueteId = (await repositorio.ObtenerAsync(codigo, null, CancellationToken.None))!.Tiquete.Id;
+
+            // La asignación la escribe HU-004; aquí basta con un segundo cambio posterior.
+            await contexto.Database.ExecuteSqlAsync(
+                $"INSERT INTO sitbio.historial_tiquete (id_historial, tenant_id, tiquete_id, usuario_id, estado_anterior, nuevo_estado, comentario, fecha_cambio) VALUES ({Guid.NewGuid()}, {_tenantA}, {tiqueteId}, {_otroClinicoA}, {EstadosTiquete.Recibido}, {EstadosTiquete.Asignado}, {"Asignado a técnico"}, {DateTimeOffset.UtcNow.AddMinutes(5)})");
+
+            var historial = await repositorio.HistorialAsync(tiqueteId, CancellationToken.None);
+
+            Assert.Equal(
+                [((string?)null, EstadosTiquete.Recibido, _clinicoA), (EstadosTiquete.Recibido, EstadosTiquete.Asignado, _otroClinicoA)],
+                historial.Select(h => (h.Cambio.EstadoAnterior, h.Cambio.NuevoEstado, h.Cambio.UsuarioId)));
+            Assert.All(historial, h => Assert.Equal("Laura Gómez", h.Usuario));
+        }
+
+        var (otro, repositorioB) = Crear(_tenantB);
+        await using (otro)
+        {
+            Assert.Empty(await repositorioB.HistorialAsync(tiqueteId, CancellationToken.None));
+        }
+    }
+
+    [FactIntegracion(Variable)]
     public async Task TipoFalla_SoloActivosYSinDistinguirMayusculas()
     {
         var (contexto, repositorio) = Crear(_tenantA);

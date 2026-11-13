@@ -10,7 +10,7 @@ using Sitbio.Domain.Seguridad;
 
 namespace Sitbio.Application.Tests.Tiquetes;
 
-/// <summary>Reporte y consulta de tiquetes (HU-003, HU-018): validación, código, RN-005, bitácora y alcance de AC-04.</summary>
+/// <summary>Reporte, consulta y seguimiento de tiquetes (HU-003, HU-017, HU-018): validación, código, RN-005, bitácora y alcance de AC-04.</summary>
 public class GestionTiquetesTests
 {
     private static readonly Guid Tenant = Guid.NewGuid();
@@ -230,6 +230,19 @@ public class GestionTiquetesTests
     }
 
     [Theory]
+    [InlineData(CodigosRol.IngenieroBiomedico)]
+    [InlineData(CodigosRol.PersonalClinico)]
+    public async Task Listar_Mios_ConsultaSoloLosQueReportoQuienConsulta(string rol)
+    {
+        _contexto.Rol.Returns(rol);
+        _repositorio.ListarAsync(Arg.Any<FiltroTiquetes>(), Arg.Any<Guid?>(), Arg.Any<CancellationToken>()).Returns(([], 0));
+
+        await _caso.ListarAsync(new FiltroTiquetes(null, null, Mios: true), CancellationToken.None);
+
+        await _repositorio.Received(1).ListarAsync(new FiltroTiquetes(null, null, Mios: true), _usuario, Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
     [InlineData("abierto", null, "estado")]
     [InlineData(null, "urgente", "criticidad")]
     public async Task Listar_FiltroInvalido_Responde400(string? estado, string? criticidad, string campo)
@@ -260,4 +273,31 @@ public class GestionTiquetesTests
     [InlineData("cualquier-cosa")]
     public async Task Obtener_InexistenteOConFormatoInvalido_Responde404(string codigo) =>
         await Assert.ThrowsAsync<ErrorNoEncontrado>(() => _caso.ObtenerAsync(codigo, CancellationToken.None));
+
+    // ---------- CA-HU-017-01: historial de cambios ----------
+
+    [Fact]
+    public async Task Historial_DevuelveLosCambiosConQuienLosHizo_ConElAlcanceDelRol()
+    {
+        var tiquete = new Tiquete(Tenant, _monitor.Id, _usuario, "No enciende", "Falla", Criticidades.Baja, Ahora);
+        tiquete.Numerar(3);
+        _repositorio.ObtenerAsync("TQT-000003", _usuario, Arg.Any<CancellationToken>()).Returns(Leido(tiquete));
+        _repositorio.HistorialAsync(tiquete.Id, Arg.Any<CancellationToken>()).Returns([new HistorialTiqueteLeido(tiquete.Recepcion(), "Laura Gómez")]);
+
+        var historial = await _caso.HistorialAsync(" tqt-000003 ", CancellationToken.None);
+
+        var recepcion = Assert.Single(historial);
+        Assert.Equal(((string?)null, EstadosTiquete.Recibido, Ahora), (recepcion.EstadoAnterior, recepcion.NuevoEstado, recepcion.FechaCambio));
+        Assert.Equal((_usuario, "Laura Gómez"), (recepcion.UsuarioId, recepcion.Usuario));
+    }
+
+    [Theory]
+    [InlineData("TQT-000099")]
+    [InlineData("cualquier-cosa")]
+    public async Task Historial_DeUnTiqueteQueNoVe_Responde404SinLeerElHistorial(string codigo)
+    {
+        await Assert.ThrowsAsync<ErrorNoEncontrado>(() => _caso.HistorialAsync(codigo, CancellationToken.None));
+
+        await _repositorio.DidNotReceiveWithAnyArgs().HistorialAsync(default, default);
+    }
 }

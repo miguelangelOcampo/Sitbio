@@ -56,8 +56,31 @@ public sealed record TiqueteDto(
 /// <summary>Cuerpo de POST /tiquetes (UI-009). Quién reporta y la institución salen del token; la descripción es opcional.</summary>
 public sealed record DatosTiquete(Guid? EquipoId, string? TipoFalla, string? Descripcion, string? Criticidad);
 
-/// <summary>Filtros de GET /tiquetes (bandeja UI-011): estado y criticidad, con paginación.</summary>
-public sealed record FiltroTiquetes(string? Estado, string? Criticidad, int Pagina = 1, int Tamano = 20);
+/// <summary>
+/// Filtros de GET /tiquetes: estado y criticidad, con paginación (bandeja UI-011). <see cref="Mios"/>
+/// limita la lista a los tiquetes que reportó quien consulta (seguimiento UI-010, HU-017).
+/// </summary>
+public sealed record FiltroTiquetes(string? Estado, string? Criticidad, int Pagina = 1, int Tamano = 20, bool Mios = false);
+
+/// <summary>Un cambio de estado del tiquete (CA-HU-017-01). La recepción no tiene estado anterior.</summary>
+public sealed record HistorialTiqueteDto(
+    string? EstadoAnterior,
+    string NuevoEstado,
+    string? Comentario,
+    DateTimeOffset FechaCambio,
+    Guid UsuarioId,
+    string Usuario)
+{
+    public static HistorialTiqueteDto Desde(HistorialTiqueteLeido leido)
+    {
+        ArgumentNullException.ThrowIfNull(leido);
+        var h = leido.Cambio;
+        return new HistorialTiqueteDto(h.EstadoAnterior, h.NuevoEstado, h.Comentario, h.FechaCambio, h.UsuarioId, leido.Usuario);
+    }
+}
+
+/// <summary>Cambio del historial con el nombre de quien lo hizo.</summary>
+public sealed record HistorialTiqueteLeido(HistorialTiquete Cambio, string Usuario);
 
 /// <summary>Tiquete con los datos del equipo y de quien lo reportó, para armar el DTO.</summary>
 public sealed record TiqueteLeido(

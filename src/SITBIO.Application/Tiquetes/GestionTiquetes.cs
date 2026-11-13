@@ -9,9 +9,10 @@ using Sitbio.Domain.Seguridad;
 namespace Sitbio.Application.Tiquetes;
 
 /// <summary>
-/// Reporte y consulta de tiquetes (HU-003, HU-018; RF-004, RF-018; RN-005). Los permisos (reportan
-/// AC-02 y AC-04; consultan AC-02, AC-03 y AC-04) los exige la API. El Personal Clínico solo ve los
-/// tiquetes que reportó (DOC-06, Tabla 37). El tenant y quien reporta salen del token.
+/// Reporte, consulta y seguimiento de tiquetes (HU-003, HU-017, HU-018; RF-004, RF-017, RF-018; RN-005).
+/// Los permisos (reportan AC-02 y AC-04; consultan AC-01 a AC-04 y AC-07) los exige la API. El Personal
+/// Clínico solo ve los tiquetes que reportó (CA-HU-017-02; DOC-06, Tabla 37). El tenant y quien reporta
+/// salen del token.
 /// </summary>
 public sealed class GestionTiquetes(
     IRepositorioTiquetes repositorio,
@@ -72,21 +73,25 @@ public sealed class GestionTiquetes(
             throw ErrorValidacion.DeCampo("criticidad", $"La criticidad debe ser {string.Join(", ", Criticidades.Todas)}.");
         }
 
-        var (items, total) = await repositorio.ListarAsync(filtro with { Estado = estado, Criticidad = criticidad }, SoloPropios(), cancellationToken);
+        // «mios» (UI-010) acota a lo que reportó quien consulta; para AC-04 siempre es así (CA-HU-017-02).
+        var reportante = SoloPropios() ?? (filtro.Mios ? contexto.UsuarioId : null);
+        var (items, total) = await repositorio.ListarAsync(filtro with { Estado = estado, Criticidad = criticidad }, reportante, cancellationToken);
         return new Pagina<TiqueteDto>(items.Select(TiqueteDto.Desde).ToList(), filtro.Pagina, filtro.Tamano, total);
     }
 
     /// <summary>Tiquete por su código (TQT-######); 404 si es de otra institución o, para AC-04, de otra persona.</summary>
-    public async Task<TiqueteDto> ObtenerAsync(string codigo, CancellationToken cancellationToken)
-    {
-        var normalizado = Limpio(codigo)?.ToUpperInvariant();
-        if (Tiquete.Consecutivo(normalizado) is null)
-        {
-            throw new ErrorNoEncontrado("El tiquete");
-        }
+    public async Task<TiqueteDto> ObtenerAsync(string codigo, CancellationToken cancellationToken) =>
+        TiqueteDto.Desde(await Visible(codigo, cancellationToken));
 
-        var leido = await repositorio.ObtenerAsync(normalizado!, SoloPropios(), cancellationToken) ?? throw new ErrorNoEncontrado("El tiquete");
-        return TiqueteDto.Desde(leido);
+    /// <summary>
+    /// CA-HU-017-01: historial de cambios del tiquete por su código, del más antiguo al más reciente. Con el
+    /// mismo alcance que la consulta: 404 si es de otra institución o, para AC-04, de otra persona.
+    /// </summary>
+    public async Task<IReadOnlyList<HistorialTiqueteDto>> HistorialAsync(string codigo, CancellationToken cancellationToken)
+    {
+        var leido = await Visible(codigo, cancellationToken);
+        var cambios = await repositorio.HistorialAsync(leido.Tiquete.Id, cancellationToken);
+        return cambios.Select(HistorialTiqueteDto.Desde).ToList();
     }
 
     /// <summary>Tipos de falla activos del catálogo de la institución, para el formulario UI-009 (quien reporta no consulta /catalogos).</summary>
@@ -136,6 +141,17 @@ public sealed class GestionTiquetes(
         }
 
         return (datos.EquipoId!.Value, tipoFalla!, descripcion, criticidad!);
+    }
+
+    private async Task<TiqueteLeido> Visible(string codigo, CancellationToken cancellationToken)
+    {
+        var normalizado = Limpio(codigo)?.ToUpperInvariant();
+        if (Tiquete.Consecutivo(normalizado) is null)
+        {
+            throw new ErrorNoEncontrado("El tiquete");
+        }
+
+        return await repositorio.ObtenerAsync(normalizado!, SoloPropios(), cancellationToken) ?? throw new ErrorNoEncontrado("El tiquete");
     }
 
     private Guid? SoloPropios() => contexto.Rol == CodigosRol.PersonalClinico ? contexto.UsuarioId : null;

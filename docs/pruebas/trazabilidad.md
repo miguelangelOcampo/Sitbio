@@ -340,6 +340,22 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 - **Pantalla UI-009 Reportar falla:** resuelta en B1-03. Es la pantalla de inicio del Personal Clínico (AC-04) y también la usa AC-02. Los tipos de falla salen de `GET /tiquetes/tipos-falla` (AC-02 y AC-04), porque quien reporta no consulta `/catalogos`. «Ver seguimiento» de MSG-005 llega con HU-017 (UI-010); por ahora se ofrecen «Copiar código» y «Reportar otra falla».
 - **Tiquete abierto del mismo equipo (FLU-003, A2):** avisar el código existente y ofrecer agregar la observación queda pendiente; hoy se crea un tiquete nuevo.
 - **Notificación al panel (CA-HU-003-01):** hoy el Ingeniero ve los tiquetes recibidos al consultar `GET /tiquetes?estado=recibido`; la bandeja UI-011 y el aviso en su panel llegan con HU-004 (B1-07 a B1-09).
-- **Seguimiento por código e historial (HU-017):** `GET /tiquetes?mios=true` y `/tiquetes/{codigo}/historial` llegan con B1-04 a B1-06.
+- **Seguimiento por código e historial (HU-017):** la API está en B1-04 (ver HU-017); la pantalla UI-010 y «Ver seguimiento» de MSG-005 llegan con B1-06.
 - **Fin de RN-005:** el equipo vuelve a «Operativo» al cerrar o aprobar la orden con HU-021 (B1-16 a B1-18).
 - **HU-014:** este bloque trae del commit de HU-014 (rama sin fusionar) `HistorialEstadoEquipo` y los métodos de estado del equipo sin cambios, para que las dos ramas se fusionen sin conflictos nuevos.
+
+## HU-017 · Seguimiento de tiquetes
+
+Caso de uso CU-003 · RF-017 · RN-008 · SEC-003 · RNF-003 · Pantalla UI-010 · API-TIQ (`GET /api/v1/tiquetes?mios=true`, `GET /api/v1/tiquetes/{codigo}`, `GET /api/v1/tiquetes/{codigo}/historial`) · Tablas `tiquete` e `historial_tiquete` (script 01).
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-021 | CA-HU-017-01: con el código de un tiquete veo su estado (recibido, asignado, en ejecución o cerrado) y su historial de cambios. | RF-017 | Aplicación: `GestionTiquetesTests.Historial_*` (el código se normaliza y el historial trae estado anterior, nuevo estado, fecha y quién hizo el cambio; un código que no ve responde 404 sin leer el historial). API: `TiquetesEndpointTests.Historial_PorCodigo_TraeLosCambiosYSinTokenResponde401`. Infraestructura: `RepositorioTiquetesPostgresTests.Historial_EnOrdenConQuienHizoCadaCambio_YSoloDeLaInstitucion` (del más antiguo al más reciente; otra institución no lo lee). Integración: B1-05. | Pendiente (B1-05) |
+| CP-021 | CA-HU-017-02: el Personal Clínico solo ve los tiquetes que reportó. | RF-017, RNF-003 | Aplicación: `GestionTiquetesTests.Listar_PersonalClinico_SoloConsultaLosSuyos`, `Listar_Mios_ConsultaSoloLosQueReportoQuienConsulta`, `Obtener_NormalizaElCodigoYAplicaElAlcanceDelRol`. API: `TiquetesEndpointTests.Mios_ListaSoloLosQueReportoQuienConsulta`, `QuienHaceSeguimiento_Consulta`, `ObtenerPorCodigo_PersonalClinicoSoloLoSuyo`. Integración: B1-05. | Pendiente (B1-05) |
+
+- **Permisos:** según la matriz de permisos del DOC-03 (Seguimiento de Tiquetes), consultan AC-01, AC-02 y AC-03, AC-04 solo los propios y AC-07 en solo consulta; AC-05 y AC-06 reciben 403 (`TiquetesEndpointTests.OtrosRoles_NoConsultan`). B1-01 dejaba fuera a AC-01 y AC-07; se corrigió en B1-04.
+
+### Pendientes
+
+- **Pruebas de aceptación CA-HU-017 con API y bases reales (CP-021):** B1-05.
+- **Pantalla UI-010 Mis tiquetes / Seguimiento:** B1-06.

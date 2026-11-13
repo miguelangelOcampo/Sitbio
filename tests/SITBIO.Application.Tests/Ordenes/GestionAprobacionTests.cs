@@ -184,4 +184,30 @@ public class GestionAprobacionTests
     {
         await Assert.ThrowsAsync<ErrorNoEncontrado>(() => _caso.AprobarAsync(Guid.NewGuid(), new DatosAprobacion("Laura Gómez"), CancellationToken.None));
     }
+
+    [Fact]
+    public async Task Aprobar_Preventiva_ElPlanAvanza_UltimoHoyYProximoMasLaPeriodicidad()
+    {
+        var plan = new PlanPreventivo(Tenant, _equipo.Id, "Preventivo trimestral", 90, new DateOnly(2026, 11, 10), Ahora.AddDays(-100));
+        var orden = OrdenTrabajo.Preventiva(plan, _tecnico, Ahora.AddDays(-3));
+        orden.Iniciar(Ahora.AddHours(-3));
+        orden.EnlazarIntervencion(ObjectId);
+        orden.Cerrar(Ahora.AddHours(-1));
+        _ordenes.OrdenAsync(orden.Id, Arg.Any<CancellationToken>()).Returns(orden);
+        _ordenes.PlanAsync(plan.Id, Arg.Any<CancellationToken>()).Returns(plan);
+        _ordenes.EquipoAsync(orden.EquipoId, Arg.Any<CancellationToken>()).Returns(new EquipoDeLaOrden(_equipo, "Bomba de infusión", "UCI", new DateOnly(2027, 5, 1)));
+        _ordenes.ObtenerAsync(orden.Id, Arg.Any<Guid?>(), Arg.Any<CancellationToken>())
+            .Returns(new OrdenLeida(orden, "PL-001", "SN-1", "Bomba de infusión", "UCI", "Carlos Ruiz", null, null));
+        _intervenciones.ObtenerAsync(orden.Id, Arg.Any<CancellationToken>()).Returns(new IntervencionGuardada(ObjectId, new Intervencion(
+            Guid.NewGuid(), orden.Id, orden.EquipoId, _tecnico, TiposMantenimiento.Preventivo, "Revisión", "Limpieza y pruebas", [], null, 0m, 60,
+            EstadosSalidaEquipo.FueraDeServicio, new Dictionary<string, object>(), 2, Ahora.AddHours(-2), false)));
+
+        var dto = await _caso.AprobarAsync(orden.Id, new DatosAprobacion("Laura Gómez"), CancellationToken.None);
+
+        // Ahora es el 13/11/2026 a las 10:00 en Colombia.
+        Assert.Equal((EstadosOrden.Aprobada, (Guid?)plan.Id), (dto.Estado, dto.PlanId));
+        Assert.Equal(((DateOnly?)new DateOnly(2026, 11, 13), new DateOnly(2027, 2, 11)), (plan.UltimaEjecucion, plan.ProximaFecha));
+        await _ordenes.DidNotReceiveWithAnyArgs().TiqueteAsync(default, default);
+        await _ordenes.Received(1).GuardarAprobacionAsync(null, null, Arg.Any<CancellationToken>());
+    }
 }

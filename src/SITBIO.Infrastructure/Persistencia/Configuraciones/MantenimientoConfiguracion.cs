@@ -8,8 +8,8 @@ using Sitbio.Domain.Seguridad;
 namespace Sitbio.Infrastructure.Persistencia.Configuraciones;
 
 /// <summary>
-/// Tabla <c>orden_trabajo</c> (script 01; HU-004, HU-005, HU-021): asignación, ejecución (inicio y enlace
-/// con la intervención), cierre y aprobación con firma. El filtro por tenant lo agrega <see cref="SitbioDbContext"/>.
+/// Tabla <c>orden_trabajo</c> (script 01; HU-004, HU-005, HU-019, HU-021): asignación (o generación desde un
+/// plan preventivo), ejecución (inicio y enlace con la intervención), cierre y aprobación con firma. El filtro por tenant lo agrega <see cref="SitbioDbContext"/>.
 /// </summary>
 public sealed class OrdenTrabajoConfiguracion : IEntityTypeConfiguration<OrdenTrabajo>
 {
@@ -23,6 +23,7 @@ public sealed class OrdenTrabajoConfiguracion : IEntityTypeConfiguration<OrdenTr
         orden.Property(o => o.Id).HasColumnName("id_orden");
         orden.Property(o => o.EquipoId).HasColumnName("equipo_id");
         orden.Property(o => o.TiqueteId).HasColumnName("tiquete_id");
+        orden.Property(o => o.PlanId).HasColumnName("plan_id");
         orden.Property(o => o.TecnicoId).HasColumnName("tecnico_id");
         orden.Property(o => o.AsignadoPorId).HasColumnName("asignado_por_id");
         orden.Property(o => o.TipoMantenimiento).HasColumnName("tipo_mantenimiento").HasMaxLength(12).IsRequired();
@@ -41,6 +42,7 @@ public sealed class OrdenTrabajoConfiguracion : IEntityTypeConfiguration<OrdenTr
         orden.HasIndex(o => o.TiqueteId).IsUnique().HasFilter("tiquete_id IS NOT NULL").HasDatabaseName(IndiceTiquete);
         orden.HasOne<EquipoBiomedico>().WithMany().HasForeignKey(o => o.EquipoId).IsRequired();
         orden.HasOne<Tiquete>().WithMany().HasForeignKey(o => o.TiqueteId);
+        orden.HasOne<PlanPreventivo>().WithMany().HasForeignKey(o => o.PlanId);
         orden.HasOne<Usuario>().WithMany().HasForeignKey(o => o.TecnicoId).IsRequired();
         orden.HasOne<Usuario>().WithMany().HasForeignKey(o => o.AsignadoPorId);
         orden.HasOne<Usuario>().WithMany().HasForeignKey(o => o.AprobadoPorId);

@@ -69,4 +69,61 @@ public class TipoEquipoYPlanTests
         Assert.Throws<ArgumentException>(() =>
             new PlanPreventivo(Guid.NewGuid(), Guid.NewGuid(), "Preventivo", dias, Hoy, Creacion));
     }
+
+    // ---------- HU-019: ciclo del plan ----------
+
+    [Fact]
+    public void Plan_DebeGenerarOrden_DesdeElDiaDeSuProximaFecha_YSoloActivo()
+    {
+        var plan = new PlanPreventivo(Guid.NewGuid(), Guid.NewGuid(), "Preventivo", 30, Hoy, Creacion);
+
+        Assert.False(plan.DebeGenerarOrden(Hoy.AddDays(-1)));
+        Assert.True(plan.DebeGenerarOrden(Hoy));
+        Assert.False(plan.EstaVencido(Hoy));
+        Assert.True(plan.EstaVencido(Hoy.AddDays(1)));
+
+        plan.CambiarEstado(PlanPreventivo.Suspendido);
+        Assert.False(plan.DebeGenerarOrden(Hoy.AddDays(5)));
+        Assert.False(plan.EstaVencido(Hoy.AddDays(5)));
+    }
+
+    [Fact]
+    public void Plan_RegistrarEjecucion_UltimoEsLaFechaYProximoMasLaPeriodicidad()
+    {
+        var plan = new PlanPreventivo(Guid.NewGuid(), Guid.NewGuid(), "Preventivo", 30, Hoy, Creacion);
+
+        plan.RegistrarEjecucion(Hoy.AddDays(2));
+
+        Assert.Equal(((DateOnly?)Hoy.AddDays(2), Hoy.AddDays(32)), (plan.UltimaEjecucion, plan.ProximaFecha));
+
+        // Una fecha anterior o igual a la última no lo hace retroceder.
+        plan.RegistrarEjecucion(Hoy);
+        Assert.Equal(Hoy.AddDays(32), plan.ProximaFecha);
+    }
+
+    [Fact]
+    public void Plan_SuspendidoNoAvanzaAlRegistrarEjecucion()
+    {
+        var plan = new PlanPreventivo(Guid.NewGuid(), Guid.NewGuid(), "Preventivo", 30, Hoy, Creacion);
+        plan.CambiarEstado(PlanPreventivo.Suspendido);
+
+        plan.RegistrarEjecucion(Hoy);
+
+        Assert.Equal((null, Hoy), (plan.UltimaEjecucion, plan.ProximaFecha));
+    }
+
+    [Fact]
+    public void Plan_Finalizado_NoVuelveAActivarseNiCambiaSuDescripcion()
+    {
+        var plan = new PlanPreventivo(Guid.NewGuid(), Guid.NewGuid(), "Preventivo", 30, Hoy, Creacion);
+        plan.CambiarEstado(PlanPreventivo.Suspendido);
+        plan.CambiarEstado(PlanPreventivo.Activo);
+        plan.CambiarEstado(PlanPreventivo.Finalizado);
+
+        Assert.Throws<InvalidOperationException>(() => plan.CambiarEstado(PlanPreventivo.Activo));
+        Assert.Throws<InvalidOperationException>(() => plan.CambiarDescripcion("Otra"));
+        Assert.Throws<ArgumentException>(() => new PlanPreventivo(Guid.NewGuid(), Guid.NewGuid(), "P", 30, Hoy, Creacion).CambiarEstado("pausado"));
+        plan.CambiarEstado(PlanPreventivo.Finalizado);
+        Assert.Equal(PlanPreventivo.Finalizado, plan.Estado);
+    }
 }

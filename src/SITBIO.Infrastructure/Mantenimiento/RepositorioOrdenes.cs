@@ -119,9 +119,12 @@ public sealed class RepositorioOrdenes(SitbioDbContext contexto) : IRepositorioO
         return new EquipoDeLaOrden(leido.Equipo, leido.Tipo, leido.Ubicacion, vence);
     }
 
+    public Task<PlanPreventivo?> PlanAsync(Guid planId, CancellationToken cancellationToken) =>
+        contexto.PlanesPreventivos.SingleOrDefaultAsync(p => p.Id == planId, cancellationToken);
+
     public async Task GuardarAprobacionAsync(HistorialTiquete? cambioTiquete, HistorialEstadoEquipo? cambioEquipo, CancellationToken cancellationToken)
     {
-        // La orden, el tiquete y el equipo vienen con seguimiento: un solo SaveChanges los guarda en una transacción.
+        // La orden, el tiquete, el equipo y el plan vienen con seguimiento: un solo SaveChanges los guarda en una transacción.
         if (cambioTiquete is not null)
         {
             contexto.HistorialTiquetes.Add(cambioTiquete);

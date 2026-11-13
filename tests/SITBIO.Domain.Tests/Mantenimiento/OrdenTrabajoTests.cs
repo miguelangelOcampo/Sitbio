@@ -1,3 +1,4 @@
+using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Mantenimiento;
 using Sitbio.Domain.Peticiones;
 
@@ -218,5 +219,31 @@ public class OrdenTrabajoTests
         Assert.Equal((EstadosTiquete.Cerrado, (DateTimeOffset?)Ahora.AddHours(2)), (tiquete.Estado, tiquete.FechaCierre));
         Assert.Equal((EstadosTiquete.EnEjecucion, EstadosTiquete.Cerrado, _ingeniero), (cambio.EstadoAnterior, cambio.NuevoEstado, cambio.UsuarioId));
         Assert.Throws<InvalidOperationException>(() => tiquete.Cerrar(_ingeniero, "Otra vez", Ahora.AddHours(3)));
+    }
+
+    // ---------- HU-019: orden preventiva ----------
+
+    [Fact]
+    public void Preventiva_NaceAsignadaDelPlan_ProgramadaParaSuProximaFecha_SinQuienAsigna()
+    {
+        var proxima = new DateOnly(2026, 11, 13);
+        var plan = new PlanPreventivo(Tenant, Guid.NewGuid(), "Preventivo trimestral", 90, proxima, Reporte);
+
+        var orden = OrdenTrabajo.Preventiva(plan, _tecnico, Ahora);
+
+        Assert.Equal((Tenant, plan.EquipoId, (Guid?)plan.Id, (Guid?)null), (orden.TenantId, orden.EquipoId, orden.PlanId, orden.TiqueteId));
+        Assert.Equal((_tecnico, (Guid?)null), (orden.TecnicoId, orden.AsignadoPorId));
+        Assert.Equal((TiposMantenimiento.Preventivo, OrdenTrabajo.PrioridadPreventiva, EstadosOrden.Asignada), (orden.TipoMantenimiento, orden.Prioridad, orden.Estado));
+        Assert.Equal(((DateOnly?)proxima, (DateTimeOffset?)Ahora), (orden.FechaProgramada, orden.FechaAsignacion));
+    }
+
+    [Fact]
+    public void Preventiva_DeUnPlanQueNoEstaActivo_NoSeGenera()
+    {
+        var plan = new PlanPreventivo(Tenant, Guid.NewGuid(), "Preventivo", 90, new DateOnly(2026, 11, 13), Reporte);
+        plan.CambiarEstado(PlanPreventivo.Suspendido);
+
+        Assert.Throws<InvalidOperationException>(() => OrdenTrabajo.Preventiva(plan, _tecnico, Ahora));
+        Assert.Throws<ArgumentException>(() => OrdenTrabajo.Preventiva(new PlanPreventivo(Tenant, Guid.NewGuid(), "P", 9, new DateOnly(2026, 11, 13), Reporte), Guid.Empty, Ahora));
     }
 }

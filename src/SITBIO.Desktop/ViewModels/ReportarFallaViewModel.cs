@@ -206,7 +206,9 @@ public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServici
             return;
         }
 
-        var cancelacion = _cancelacionBusqueda = new CancellationTokenSource();
+        // La búsqueda anterior se cancela arriba y libera su propia fuente al terminar.
+        using var cancelacion = new CancellationTokenSource();
+        _cancelacionBusqueda = cancelacion;
         Buscando = true;
         try
         {
@@ -238,6 +240,7 @@ public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServici
         {
             if (cancelacion == _cancelacionBusqueda)
             {
+                _cancelacionBusqueda = null;
                 Buscando = false;
             }
         }

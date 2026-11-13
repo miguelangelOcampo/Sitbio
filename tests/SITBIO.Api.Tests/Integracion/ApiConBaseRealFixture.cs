@@ -78,6 +78,25 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"INSERT INTO sitbio.tipo_falla (tenant_id, nombre) VALUES ({tenant}, {nombre})"));
 
+    /// <summary>
+    /// Pasa un tiquete a otro estado directamente en la base y deja el cambio en su historial, como lo
+    /// harán la asignación (HU-004), la ejecución (HU-005) y el cierre (HU-021). Al cerrar fija la fecha de cierre.
+    /// </summary>
+    public Task CambiarEstadoTiqueteAsync(Guid tenant, string codigo, Guid usuarioId, string nuevoEstado, string comentario, DateTimeOffset fecha) =>
+        EjecutarSqlAsync(async contexto =>
+        {
+            await contexto.Database.ExecuteSqlAsync($"""
+                INSERT INTO sitbio.historial_tiquete (tenant_id, tiquete_id, usuario_id, estado_anterior, nuevo_estado, comentario, fecha_cambio)
+                SELECT tenant_id, id_tiquete, {usuarioId}, estado, {nuevoEstado}, {comentario}, {fecha}
+                FROM sitbio.tiquete WHERE tenant_id = {tenant} AND codigo = {codigo}
+                """);
+            await contexto.Database.ExecuteSqlAsync($"""
+                UPDATE sitbio.tiquete
+                SET estado = {nuevoEstado}, fecha_cierre = CASE WHEN {nuevoEstado} = {EstadosTiquete.Cerrado} THEN {fecha} ELSE fecha_cierre END
+                WHERE tenant_id = {tenant} AND codigo = {codigo}
+                """);
+        });
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("ConnectionStrings:Postgres", _cadena);

@@ -304,7 +304,7 @@ Caso de uso CU-006 · RF-006 · RN-008 · SEC-003 · RNF-003 · Pantalla UI-018 
 
 | CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
 |---|---|---|---|---|
-| CP-009 | CA-HU-006-01: un campo nuevo (por ejemplo «Tasa de goteo») aparece en el formulario de mantenimiento de ese tipo de equipo y su valor se guarda en `camposDinamicos`. | RF-006 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu006Tests.CA_HU_006_01_*` (3): el Técnico recibe nombre, etiqueta, tipo de dato, obligatoriedad y unidad solo para ese tipo; el documento pasa el `$jsonSchema` del script 02; una versión nueva reemplaza la activa y la anterior queda histórica sin editarse; publicar lo mismo o campos inválidos responde 400 sin guardar; la publicación queda en la bitácora. Aplicación: `GestionConfiguracionCamposTests`. Dominio: `ReglasCamposDinamicosTests`. Infraestructura: `ConfiguracionCamposMongoTests`. Escritorio (UI-018): `CamposDinamicosViewModelTests` (borrador por tipo, publicación de la versión nueva y conflicto CFG-001) y `ServicioConfiguracionCamposHttpTests`. El guardado del valor en la intervención: `CriteriosHu005Tests.CA_HU_005_02_*` (HU-005); el formulario UI-013 llega en B1-12. | Aprobado (parcial: formulario UI-013 en B1-12) |
+| CP-009 | CA-HU-006-01: un campo nuevo (por ejemplo «Tasa de goteo») aparece en el formulario de mantenimiento de ese tipo de equipo y su valor se guarda en `camposDinamicos`. | RF-006 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu006Tests.CA_HU_006_01_*` (3): el Técnico recibe nombre, etiqueta, tipo de dato, obligatoriedad y unidad solo para ese tipo; el documento pasa el `$jsonSchema` del script 02; una versión nueva reemplaza la activa y la anterior queda histórica sin editarse; publicar lo mismo o campos inválidos responde 400 sin guardar; la publicación queda en la bitácora. Aplicación: `GestionConfiguracionCamposTests`. Dominio: `ReglasCamposDinamicosTests`. Infraestructura: `ConfiguracionCamposMongoTests`. Escritorio (UI-018): `CamposDinamicosViewModelTests` (borrador por tipo, publicación de la versión nueva y conflicto CFG-001) y `ServicioConfiguracionCamposHttpTests`. El guardado del valor en la intervención: `CriteriosHu005Tests.CA_HU_005_02_*` (HU-005). Formulario (UI-013): `IntervencionViewModelTests.Cargar_ArmaUnControlPorTipoDeDato` (texto, número, decimal, fecha, sí/no y selección con su unidad y obligatoriedad) y `Guardar_EnviaCadaValorConSuTipo_YVuelveALaLista`. | Aprobado |
 | CP-010 | CA-HU-006-02: un usuario de otra institución no ve los campos definidos en la mía. | RN-008, SEC-003 | Integración: `CriteriosHu006Tests.CA_HU_006_02_OtraInstitucion_NoVeNiModificaLosCampos`: el tipo ajeno responde 404 al consultar y al publicar; su propio tipo con el mismo nombre no trae campos; en MongoDB cada institución solo tiene sus versiones. Infraestructura: `ConfiguracionCamposMongoTests.CA_HU_006_02_*`. | Aprobado |
 | CP-010 | CA-HU-006-03: el Administrador del Sistema solo consulta; definir y publicar versiones corresponde al Ingeniero Biomédico. | RNF-003 | Integración: `CriteriosHu006Tests.CA_HU_006_03_Administrador_SoloConsulta` (consulta 200, publicar 403 sin cambios) y `Permisos_OtrosRolesReciben403YSinToken401` (Técnico no publica; AC-04, AC-05 y AC-06 no consultan; sin token 401). API: `ConfiguracionCamposEndpointTests`. Escritorio: `CamposDinamicosViewModelTests.Administrador_SoloConsulta` (UI-018 sin agregar, quitar ni publicar). | Aprobado |
 
@@ -314,7 +314,7 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 
 ### Pendientes
 
-- **Formulario de intervención (CA-HU-006-01):** UI-013 genera los controles según `tipoDato` y la API valida `camposDinamicos` contra la versión activa con HU-005 (Steven, B1-10 a B1-12).
+- **Formulario de intervención (CA-HU-006-01):** resuelto en B1-12. UI-013 genera los controles según `tipoDato` y la API valida `camposDinamicos` contra la versión activa (HU-005).
 - **IDX-004 (DT-004):** el índice `camposDinamicos.tipo` de `intervenciones` no sirve porque las claves varían; sigue pendiente en el DOC-06.
 
 ## HU-003 y HU-018 · Reporte de falla con tiquete único y criticidad
@@ -387,7 +387,7 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 
 - **Criterios de punta a punta (CP-007):** resueltos en B1-08 (`CriteriosHu004Tests`).
 - **Pantalla UI-011 (bandeja y asignación):** resuelta en B1-09. Lista de tiquetes por asignar, panel lateral con técnicos activos y su carga, prioridad sugerida editable, fecha programada opcional y «Asignar y crear orden».
-- **Panel del técnico (UI-012):** la orden ya se consulta con `?asignadas=me`; la pantalla «Mis órdenes» llega con HU-005 (B1-12).
+- **Panel del técnico (UI-012):** resuelto en B1-12 con la pantalla «Mis órdenes» (HU-005).
 - **Preventivas:** las órdenes de un plan (`plan_id`) llegan con el mantenimiento preventivo; por ahora solo se crean correctivas desde un tiquete.
 
 ## HU-005 · Ejecución de la orden y registro de la intervención
@@ -402,15 +402,16 @@ Caso de uso CU-005 · RF-005 · RF-006 · RN-004 · RN-008 · RT-002 · SEC-003 
 
 - **Firmada no se modifica (RN-004):** una intervención con `cerrada_firmada` o una orden aprobada responde 409 `RN-004`; el reemplazo en MongoDB exige `cerrada_firmada` en falso (`GestionEjecucionTests.Registrar_SobreUnaIntervencionFirmada_Responde409Rn004`, `IntervencionesMongoTests.Reemplazar_UnaIntervencionFirmada_SeRechazaRn004`). Integración: `CriteriosHu005Tests.IntervencionFirmada_NoSeModifica_Rn004` (la prueba firma el documento como lo hará HU-021). Una orden cerrada que espera aprobación responde 409 `OT-003`.
 - **Permisos:** solo el Técnico de Mantenimiento (AC-03) inicia, pausa y registra, y solo en sus órdenes (otra orden responde 404); consultan la intervención AC-01, AC-02, AC-03 (solo las suyas) y AC-07; los demás roles reciben 403 y sin token 401 (`EjecucionOrdenesEndpointTests.SoloElTecnico_IniciaPausaYRegistra`, `ConsultarIntervencion_PorRol`, `SinToken_Responde401`, `Tecnico_IniciaYRegistraLaIntervencion`). Integración: `CriteriosHu005Tests.Permisos_SoloElTecnicoAsignadoEjecuta_YOtraInstitucionNoLaVe`: otro técnico de la institución o de otra recibe 404; el Ingeniero no inicia ni registra (403) y el Personal Clínico no consulta la intervención (403); la otra institución no tiene documentos.
+- **Cliente (UI-012 «Mis órdenes» y UI-013 «Intervención»):** `OrdenesViewModelTests` (el técnico ve sus órdenes con `?asignadas=me` y los demás roles las consultan todas sin ejecutar; cada estado ofrece Iniciar, Reanudar, Pausar y Registrar, Editar o Ver intervención; filtro por estado desde la primera página; OT-002 sin cambiar la fila; sin conexión con reintento; al guardar vuelve a la lista con la fila marcada), `IntervencionViewModelTests` (un control por `tipoDato` de la versión activa; cada valor viaja con su tipo JSON; validación del cliente junto a cada campo sin llamar a la API; errores `camposDinamicos.{nombre}` de la API junto a su campo; RT-002 avisa que la orden no cambió y deja reintentar; una intervención existente se precarga y avisa si cambió la versión; firmada queda en solo lectura con RN-004; pesos con puntos de miles y coma decimal), `ServicioOrdenesHttpTests` (`Listar_*`, `CambiarEstado_EnviaLaAccion`, `ObtenerIntervencion_*`, `Registrar_*`).
 
 ### Cómo reproducir
 
-Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test SITBIO.sln --filter "FullyQualifiedName~Ejecucion|FullyQualifiedName~Intervenciones|FullyQualifiedName~ValoresCamposDinamicos|FullyQualifiedName~OrdenTrabajoTests|FullyQualifiedName~CriteriosHu005Tests"`.
+Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test SITBIO.sln --filter "FullyQualifiedName~Ejecucion|FullyQualifiedName~Intervenciones|FullyQualifiedName~ValoresCamposDinamicos|FullyQualifiedName~OrdenTrabajoTests|FullyQualifiedName~CriteriosHu005Tests|FullyQualifiedName~OrdenesViewModelTests|FullyQualifiedName~IntervencionViewModelTests|FullyQualifiedName~ServicioOrdenesHttpTests"`.
 
 ### Pendientes
 
 - **Criterios de punta a punta (CP-008):** resueltos en B1-11 (`CriteriosHu005Tests`).
-- **Pantallas UI-012 (Mis órdenes) y UI-013 (Intervención):** B1-12; UI-013 genera los controles según `tipoDato` de la versión activa.
+- **Pantallas UI-012 (Mis órdenes) y UI-013 (Intervención):** resueltas en B1-12. UI-013 genera los controles según `tipoDato` de la versión activa.
 - **Cierre, firma y aprobación:** con HU-021 (Esteban, B1-16), que fija `cerrada_firmada` y pasa la orden a «cerrada» y «aprobada».
 
 ## HU-021 · Cierre y firma de órdenes de trabajo

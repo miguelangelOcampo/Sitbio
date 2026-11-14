@@ -518,3 +518,24 @@ RF-023 · RN-008 · API-EQ-HV (`GET /api/v1/equipos/{id}/linea-tiempo`) · UI-00
 ### Pendientes
 
 - Sin paginación: con historias muy largas habrá que paginar o filtrar por tipo.
+
+## HU-007 y HU-027 · Reportes PDF y Excel, y hoja de vida en PDF
+
+RF-008 · RF-027 · RNF-007 · RN-008 · API-REP (`GET /api/v1/reportes/ordenes?desde&hasta&formato=pdf|xlsx`, `GET /api/v1/equipos/{id}/hoja-vida.pdf`) · ADR-009 (QuestPDF Community y ClosedXML)
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-013 | CA-HU-007-01: con un rango de fechas y PDF, se genera el historial de órdenes en menos de 10 s para hasta 1 000 registros. | RF-008, RNF-007 | Integración: `CriteriosHu007Tests.CA_HU_007_01_HistorialDelRango_SaleEnPdf`, `CA_HU_007_01_RangoOFormatoInvalidos_Responden400_YElTecnicoNoExporta`. Infraestructura: `GeneradorReportesTests.HistorialPdf_ConMilRegistros_SeGeneraEnMenosDeDiezSegundos`. Aplicación: `ExportacionReportesTests`. API: `ReportesEndpointTests` (AC-01, AC-02 y AC-05; los demás 403, sin token 401). | Aprobado |
+| CP-013 | CA-HU-007-02: en Excel, un .xlsx con las mismas columnas del historial. | RF-008 | Integración: `CriteriosHu007Tests.CA_HU_007_02_Excel_TieneLasMismasColumnas_YSoloLasOrdenesDelRangoYLaInstitucion` (solo el rango y la institución; rango vacío con títulos). Infraestructura: `GeneradorReportesTests.HistorialExcel_*`. | Aprobado |
+| CP-031 | CA-HU-027-01: la hoja de vida en PDF con datos técnicos e historial de intervenciones. | RF-027, RN-008 | Integración (con MongoDB): `CriteriosHu007Tests.CA_HU_027_01_HojaDeVida_SaleEnPdf_ParaElAuditor_YNoParaOtraInstitucion` (AC-07 la descarga; otra institución 404; Técnico 403). Infraestructura: `GeneradorReportesTests.HojaVida_*`. | Aprobado |
+| CP-031 | CA-HU-027-02: con muchas intervenciones, el PDF sale en menos de 10 s. | RNF-007 | Infraestructura: `GeneradorReportesTests.HojaVida_ConMuchasIntervenciones_*` (1 000 eventos). | Aprobado |
+
+### Decisiones
+
+- Rango obligatorio, de máximo un año, en fechas de Colombia con el día final incluido; tope de 5 000 filas por archivo.
+- Columnas del historial: fecha, placa, equipo, ubicación, tipo, tiquete, técnico, estado, cierre y aprobada por. Los costos (en MongoDB) no van todavía.
+
+### Pendientes
+
+- Pantalla de exportación UI-022 y botón «Generar PDF» en UI-006: llegan con B2-11.
+- Costos de la intervención en el historial exportado.

@@ -10,8 +10,11 @@ public sealed class RepositorioReportes(SitbioDbContext contexto) : IRepositorio
 {
     public async Task<IReadOnlyList<FilaHistorialOrden>> HistorialOrdenesAsync(DateTimeOffset desde, DateTimeOffset hasta, int maximo, CancellationToken cancellationToken)
     {
+        // Npgsql solo acepta DateTimeOffset en UTC para timestamptz.
+        var inicio = desde.ToUniversalTime();
+        var fin = hasta.ToUniversalTime();
         var filas = await (from o in contexto.Ordenes.AsNoTracking()
-                           where o.FechaCreacion >= desde && o.FechaCreacion < hasta
+                           where o.FechaCreacion >= inicio && o.FechaCreacion < fin
                            join e in contexto.Equipos on o.EquipoId equals e.Id
                            join tipo in contexto.TiposEquipo on e.TipoEquipoId equals tipo.Id
                            join u in contexto.Ubicaciones on e.UbicacionId equals u.Id

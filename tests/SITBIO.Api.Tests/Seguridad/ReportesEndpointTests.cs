@@ -6,7 +6,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Sitbio.Application.Auditoria;
+using Sitbio.Application.Equipos;
 using Sitbio.Application.Instituciones;
+using Sitbio.Application.Ordenes;
 using Sitbio.Application.Reportes;
 using Sitbio.Application.Seguridad;
 using Sitbio.Domain.Seguridad;
@@ -16,7 +18,8 @@ namespace Sitbio.Api.Tests.Seguridad;
 
 /// <summary>
 /// Contrato HTTP de API-REP (HU-007, HU-027): el historial de órdenes lo exportan AC-01, AC-02 y AC-05 en PDF o
-/// Excel; la hoja de vida en PDF además el Ente Regulador (AC-07). Sin base de datos.
+/// Excel; la hoja de vida en PDF además el Ente Regulador (AC-07). Sin base de datos: todo repositorio que
+/// ExportacionReportes resuelve es un sustituto, para que en CI (sin cadenas de conexión) no responda 500.
 /// </summary>
 public class ReportesEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
@@ -26,6 +29,10 @@ public class ReportesEndpointTests : IClassFixture<WebApplicationFactory<Program
     private readonly IRepositorioInstitucion _instituciones = Substitute.For<IRepositorioInstitucion>();
     private readonly IRepositorioSesiones _sesiones = Substitute.For<IRepositorioSesiones>();
     private readonly IBitacoraAuditoria _bitacora = Substitute.For<IBitacoraAuditoria>();
+    private readonly IRepositorioLineaTiempo _lineaTiempo = Substitute.For<IRepositorioLineaTiempo>();
+    private readonly IRepositorioIntervenciones _intervenciones = Substitute.For<IRepositorioIntervenciones>();
+    private readonly IRepositorioEquipos _equipos = Substitute.For<IRepositorioEquipos>();
+    private readonly IRegistroAuditoria _auditoria = Substitute.For<IRegistroAuditoria>();
     private readonly Usuario _usuario = new(Guid.NewGuid(), 1, "Laura", "Gómez", "laura@demo.co", "hash");
     private readonly WebApplicationFactory<Program> _fabrica;
 
@@ -44,7 +51,11 @@ public class ReportesEndpointTests : IClassFixture<WebApplicationFactory<Program
                     .AddScoped(_ => _repositorio)
                     .AddScoped(_ => _instituciones)
                     .AddScoped(_ => _sesiones)
-                    .AddScoped(_ => _bitacora)))
+                    .AddScoped(_ => _bitacora)
+                    .AddScoped(_ => _lineaTiempo)
+                    .AddScoped(_ => _intervenciones)
+                    .AddScoped(_ => _equipos)
+                    .AddScoped(_ => _auditoria)))
             .CreateClient();
 
         if (codigoRol is not null)

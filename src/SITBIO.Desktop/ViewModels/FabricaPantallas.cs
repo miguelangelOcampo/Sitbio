@@ -41,6 +41,16 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var bandeja = servicios.GetRequiredService<BandejaViewModel>();
                 bandeja.CargarCommand.Execute(null);
                 return bandeja;
+            // UI-015 Mantenimientos (HU-019): planes preventivos; crea y edita AC-02, consultan AC-01, AC-03, AC-05 y AC-07.
+            case MantenimientosViewModel.IdPantalla:
+                var mantenimientos = servicios.GetRequiredService<MantenimientosViewModel>();
+                mantenimientos.CargarCommand.Execute(null);
+                return mantenimientos;
+            // UI-016 Centro de alertas (HU-020): lo crea el marco al iniciar la sesión de AC-02 y AC-03.
+            case CentroAlertasViewModel.IdPantalla:
+                var alertas = servicios.GetRequiredService<CentroAlertasViewModel>();
+                alertas.CargarCommand.Execute(null);
+                return alertas;
             case "UI-019":
                 var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
                 catalogos.CargarCommand.Execute(null);

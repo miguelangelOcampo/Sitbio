@@ -64,6 +64,8 @@ public class SitbioDbContext : DbContext
 
     public DbSet<PlanPreventivo> PlanesPreventivos => Set<PlanPreventivo>();
 
+    public DbSet<RegistroCalibracion> Calibraciones => Set<RegistroCalibracion>();
+
     public DbSet<HistorialEstadoEquipo> HistorialEstados => Set<HistorialEstadoEquipo>();
 
     /// <summary>Tenant del token; EF Core lo evalúa en cada consulta.</summary>

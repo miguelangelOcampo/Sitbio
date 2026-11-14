@@ -189,6 +189,7 @@
           <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
             <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Resumen" IsChecked="{Binding EnResumen}" />
             <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Información técnica" IsChecked="{Binding EnTecnica}" />
+            <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Historial" IsChecked="{Binding EnHistorial}" />
           </StackPanel>
           <Border Height="1" Background="{DynamicResource Brush.Border}" />
 
@@ -287,6 +288,56 @@
                       <UniformGrid Columns="2" />
                     </ItemsPanelTemplate>
                   </ItemsControl.ItemsPanel>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Historial: línea de tiempo (HU-023, CMP-UI-014) -->
+          <StackPanel Visibility="{Binding EnHistorial, Converter={StaticResource Visible}}" Margin="0,22,0,0">
+            <ContentControl Content="{Binding AvisoHistorial}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+            <Button Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarHistorialCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"
+                    Visibility="{Binding AvisoHistorial, Converter={StaticResource NuloVisible}}" />
+            <Border Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,14"
+                    Visibility="{Binding HistorialIncompleto, Converter={StaticResource NuloVisible}}">
+              <StackPanel>
+                <TextBlock Text="{Binding HistorialIncompleto.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                <TextBlock Text="{Binding HistorialIncompleto.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource Section}">
+              <StackPanel>
+                <DockPanel Margin="0,0,0,14">
+                  <TextBlock DockPanel.Dock="Right" Text="HU-023 · RF-023" Style="{StaticResource Overline}" VerticalAlignment="Center" />
+                  <TextBlock Text="Línea de tiempo" Style="{StaticResource SectionTitle}" />
+                </DockPanel>
+                <TextBlock Text="Cargando el historial…" Style="{StaticResource Muted}"
+                           Visibility="{Binding CargandoHistorial, Converter={StaticResource Visible}}" />
+                <TextBlock Text="Este equipo aún no tiene eventos registrados." Style="{StaticResource Muted}"
+                           Visibility="{Binding SinEventos, Converter={StaticResource Visible}}" />
+                <ItemsControl ItemsSource="{Binding Eventos}" Focusable="False" AutomationProperties.Name="Línea de tiempo del equipo">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:FilaEvento}">
+                      <Grid Margin="0,0,0,4">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="150" />
+                          <ColumnDefinition Width="28" />
+                          <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Fecha}" Style="{StaticResource Muted}" FontSize="13" Margin="0,2,0,0" />
+                        <Border Grid.Column="1" Width="2" Background="{DynamicResource Brush.Border}" HorizontalAlignment="Center" />
+                        <Ellipse Grid.Column="1" Style="{StaticResource PuntoEstado}" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                        <StackPanel Grid.Column="2" Margin="0,0,0,14">
+                          <TextBlock Text="{Binding Tipo}" Style="{StaticResource Overline}" />
+                          <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" FontSize="15" TextWrapping="Wrap" Margin="0,2,0,0" />
+                          <TextBlock Text="{Binding Detalle}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                     Visibility="{Binding Detalle, Converter={StaticResource NuloVisible}}" />
+                          <TextBlock Text="{Binding Responsable}" Style="{StaticResource Muted}" FontSize="13" Margin="0,2,0,0"
+                                     Visibility="{Binding Responsable, Converter={StaticResource NuloVisible}}" />
+                        </StackPanel>
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
                 </ItemsControl>
               </StackPanel>
             </Border>

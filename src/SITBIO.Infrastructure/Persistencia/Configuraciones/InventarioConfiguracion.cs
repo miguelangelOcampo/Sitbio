@@ -163,6 +163,33 @@ public sealed class PlanPreventivoConfiguracion : IEntityTypeConfiguration<PlanP
     }
 }
 
+/// <summary>Tabla <c>calibracion</c> (script 01; HU-022). El certificado en documento_equipo llega con los documentos.</summary>
+public sealed class RegistroCalibracionConfiguracion : IEntityTypeConfiguration<RegistroCalibracion>
+{
+    public void Configure(EntityTypeBuilder<RegistroCalibracion> calibracion)
+    {
+        calibracion.ToTable("calibracion");
+        calibracion.HasKey(c => c.Id);
+        calibracion.Property(c => c.Id).HasColumnName("id_calibracion");
+        calibracion.Property(c => c.EquipoId).HasColumnName("equipo_id");
+        calibracion.Property(c => c.ProveedorId).HasColumnName("proveedor_id");
+        calibracion.Property(c => c.OrdenId).HasColumnName("orden_id");
+        calibracion.Property(c => c.RegistradoPorId).HasColumnName("registrado_por_id");
+        calibracion.Property(c => c.AprobadoPorId).HasColumnName("aprobado_por_id");
+        calibracion.Property(c => c.FechaCalibracion).HasColumnName("fecha_calibracion");
+        calibracion.Property(c => c.PatronReferencia).HasColumnName("patron_referencia").HasMaxLength(RegistroCalibracion.LongitudMaximaPatron).IsRequired();
+        calibracion.Property(c => c.Resultado).HasColumnName("resultado").HasMaxLength(15).IsRequired();
+        calibracion.Property(c => c.NumeroCertificado).HasColumnName("numero_certificado").HasMaxLength(RegistroCalibracion.LongitudMaximaCertificado);
+        calibracion.Property(c => c.FechaVencimiento).HasColumnName("fecha_vencimiento");
+        calibracion.Ignore(c => c.Aprobada);
+
+        calibracion.HasOne<EquipoBiomedico>().WithMany().HasForeignKey(c => c.EquipoId).IsRequired();
+        calibracion.HasOne<Proveedor>().WithMany().HasForeignKey(c => c.ProveedorId);
+        calibracion.HasOne<Usuario>().WithMany().HasForeignKey(c => c.RegistradoPorId).IsRequired();
+        calibracion.HasOne<Usuario>().WithMany().HasForeignKey(c => c.AprobadoPorId);
+    }
+}
+
 /// <summary>Historial de estados (script 01; RF-014). Solo inserciones.</summary>
 public sealed class HistorialEstadoEquipoConfiguracion : IEntityTypeConfiguration<HistorialEstadoEquipo>
 {

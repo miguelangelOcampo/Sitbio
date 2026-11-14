@@ -7,7 +7,9 @@ using Sitbio.Api.Modules.Catalogos;
 using Sitbio.Api.Modules.ConfiguracionCampos;
 using Sitbio.Api.Modules.Equipos;
 using Sitbio.Api.Modules.Instituciones;
+using Sitbio.Api.Modules.Mantenimiento;
 using Sitbio.Api.Modules.Ordenes;
+using Sitbio.Api.Modules.Reportes;
 using Sitbio.Api.Modules.Salud;
 using Sitbio.Api.Modules.Tiquetes;
 using Sitbio.Api.Modules.Usuarios;
@@ -38,6 +40,8 @@ builder.Services.AddModuloInstituciones();
 builder.Services.AddModuloConfiguracionCampos();
 builder.Services.AddModuloTiquetes();
 builder.Services.AddModuloOrdenes();
+builder.Services.AddModuloMantenimiento();
+builder.Services.AddModuloReportes();
 
 var app = builder.Build();
 
@@ -63,6 +67,8 @@ api.MapInstitucion();
 api.MapConfiguracionCampos();
 api.MapTiquetes();
 api.MapOrdenes();
+api.MapMantenimiento();
+api.MapReportes();
 
 app.Run();
 

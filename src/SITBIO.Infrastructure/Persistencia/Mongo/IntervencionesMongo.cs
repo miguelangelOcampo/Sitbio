@@ -141,6 +141,21 @@ public sealed class IntervencionesMongo(IMongoDatabase baseDatos, IContextoUsuar
         }
     }
 
+    public async Task<IReadOnlyList<Intervencion>> DelEquipoAsync(Guid equipoId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // IDX-003 (tenant_id, equipo_id, fecha_intervencion).
+            var opciones = new FindOptions<DocumentoIntervencion, DocumentoIntervencion> { Sort = Builders<DocumentoIntervencion>.Sort.Ascending(d => d.FechaIntervencion) };
+            var documentos = await BuscarAsync(Filtro.Eq(d => d.EquipoId, equipoId.ToString()), opciones, cancellationToken);
+            return documentos.Select(Intervencion).ToList();
+        }
+        catch (Exception error) when (error is MongoException or TimeoutException)
+        {
+            throw new ErrorServicioNoDisponible(error);
+        }
+    }
+
     public async Task<string> GuardarAsync(Intervencion intervencion, string? objectIdExistente, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(intervencion);

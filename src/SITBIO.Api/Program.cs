@@ -1,6 +1,7 @@
 using Sitbio.Api;
 using Microsoft.AspNetCore.Authorization;
 using Sitbio.Api.Errores;
+using Sitbio.Api.Modules.Analitica;
 using Sitbio.Api.Modules.Auditoria;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Api.Modules.Catalogos;
@@ -38,6 +39,7 @@ builder.Services.AddModuloInstituciones();
 builder.Services.AddModuloConfiguracionCampos();
 builder.Services.AddModuloTiquetes();
 builder.Services.AddModuloOrdenes();
+builder.Services.AddModuloAnalitica();
 
 var app = builder.Build();
 
@@ -63,6 +65,7 @@ api.MapInstitucion();
 api.MapConfiguracionCampos();
 api.MapTiquetes();
 api.MapOrdenes();
+api.MapAnalitica();
 
 app.Run();
 

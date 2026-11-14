@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
+using Sitbio.Application.Analitica;
 using Sitbio.Application.Auditoria;
 using Sitbio.Application.Catalogos;
 using Sitbio.Application.ConfiguracionCampos;
@@ -93,6 +94,10 @@ public static class DependencyInjection
 
         // Intervenciones (HU-005).
         services.AddScoped<IRepositorioIntervenciones, IntervencionesMongo>();
+
+        // Analítica (HU-009, ADR-006): resultados del lote de Python.
+        services.AddScoped<IRepositorioAnalitica, AnaliticaMongo>();
+        services.AddScoped<IPlacasEquipos, PlacasEquipos>();
 
         return services;
     }

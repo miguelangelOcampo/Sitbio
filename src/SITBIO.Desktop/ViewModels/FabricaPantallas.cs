@@ -41,6 +41,11 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var bandeja = servicios.GetRequiredService<BandejaViewModel>();
                 bandeja.CargarCommand.Execute(null);
                 return bandeja;
+            // UI-023 Analítica (HU-008, HU-009): AC-02, AC-05, AC-06 y AC-07; resultados del lote K-Means.
+            case AnaliticaViewModel.IdPantalla:
+                var analitica = servicios.GetRequiredService<AnaliticaViewModel>();
+                analitica.CargarCommand.Execute(null);
+                return analitica;
             // UI-015 Mantenimientos (HU-019): planes preventivos; crea y edita AC-02, consultan AC-01, AC-03, AC-05 y AC-07.
             case MantenimientosViewModel.IdPantalla:
                 var mantenimientos = servicios.GetRequiredService<MantenimientosViewModel>();

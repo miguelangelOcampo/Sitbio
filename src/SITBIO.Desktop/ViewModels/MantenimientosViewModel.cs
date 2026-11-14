@@ -10,8 +10,8 @@ namespace Sitbio.Desktop.ViewModels;
 /// próxima fecha más cercana a la más lejana, y un panel lateral para definir la periodicidad y la próxima fecha
 /// del equipo (CA-HU-019-01). Si se indica el último preventivo y no el próximo, el próximo es último +
 /// periodicidad. Solo el Ingeniero Biomédico (AC-02) crea, edita, suspende, reactiva o finaliza; AC-01, AC-03,
-/// AC-05 y AC-07 consultan. La pestaña «Calibraciones» es UI-017 (HU-022). Desde una alerta (UI-016, NAV-011)
-/// llega «plan:{id}» o «calibracion:{equipo}».
+/// AC-05 y AC-07 consultan. La pestaña «Calibraciones» es UI-017 (HU-022, <see cref="CalibracionesViewModel"/>).
+/// Desde una alerta (UI-016, NAV-011) llega «plan:{id}» o «calibracion:{equipo}».
 /// </summary>
 public partial class MantenimientosViewModel(IServicioMantenimiento servicio, IServicioEquipos equipos, SesionActual sesion, TimeProvider tiempo)
     : ObservableObject, IRecibeParametro
@@ -50,13 +50,19 @@ public partial class MantenimientosViewModel(IServicioMantenimiento servicio, IS
 
     public bool SoloConsulta => !PuedeGestionar;
 
+    /// <summary>Pestaña «Calibraciones» (UI-017).</summary>
+    public CalibracionesViewModel Calibraciones { get; } = new(servicio, equipos, sesion, tiempo);
+
     // ---------- Pestañas ----------
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EnPlanes))]
+    [NotifyPropertyChangedFor(nameof(EnPlanes), nameof(PuedeCrearPlan))]
     private bool _enCalibraciones;
 
     public bool EnPlanes => !EnCalibraciones;
+
+    /// <summary>«Nuevo plan» solo en la pestaña de planes.</summary>
+    public bool PuedeCrearPlan => PuedeGestionar && EnPlanes;
 
     [RelayCommand]
     private void MostrarPlanes() => EnCalibraciones = false;
@@ -66,6 +72,10 @@ public partial class MantenimientosViewModel(IServicioMantenimiento servicio, IS
     {
         EnCalibraciones = true;
         CerrarPanel();
+        if (!Calibraciones.Cargado && !Calibraciones.Cargando)
+        {
+            Calibraciones.CargarCommand.Execute(null);
+        }
     }
 
     // ---------- Lista ----------
@@ -252,7 +262,17 @@ public partial class MantenimientosViewModel(IServicioMantenimiento servicio, IS
     {
         if (parametro.StartsWith(PrefijoCalibracion, StringComparison.Ordinal))
         {
-            MostrarCalibraciones();
+            EnCalibraciones = true;
+            CerrarPanel();
+            if (Guid.TryParse(parametro[PrefijoCalibracion.Length..], out var equipo))
+            {
+                _ = Calibraciones.MostrarEquipoAsync(equipo);
+            }
+            else
+            {
+                Calibraciones.CargarCommand.Execute(null);
+            }
+
             return;
         }
 

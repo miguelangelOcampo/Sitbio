@@ -26,6 +26,8 @@ public class MantenimientosViewModelTests
             _consultas.Add(llamada.ArgAt<FiltroPlanes>(0));
             return new PaginaPlanes(_planes, 1, MantenimientosViewModel.TamanoPagina, _planes.Count);
         });
+        _servicio.ListarCalibracionesAsync(Arg.Any<FiltroCalibraciones>(), Arg.Any<CancellationToken>())
+            .Returns(new PaginaCalibraciones([], 1, CalibracionesViewModel.TamanoPagina, 0));
     }
 
     private static PlanMantenimiento Plan(
@@ -243,13 +245,16 @@ public class MantenimientosViewModelTests
     }
 
     [Fact]
-    public async Task DesdeUnaAlertaDeCalibracion_AbreLaPestanaDeCalibraciones()
+    public async Task DesdeUnaAlertaDeCalibracion_AbreLaPestanaDeCalibraciones_ConElHistorialDelEquipo()
     {
         var vm = await AbrirAsync("AC-03");
+        var equipo = Guid.NewGuid();
 
-        vm.Recibir($"{MantenimientosViewModel.PrefijoCalibracion}{Guid.NewGuid()}");
+        vm.Recibir($"{MantenimientosViewModel.PrefijoCalibracion}{equipo}");
 
-        Assert.Equal((true, false), (vm.EnCalibraciones, vm.EnPlanes));
+        Assert.Equal((true, false, false), (vm.EnCalibraciones, vm.EnPlanes, vm.PuedeCrearPlan));
+        await _servicio.Received(1).ListarCalibracionesAsync(Arg.Is<FiltroCalibraciones>(f => f.EquipoId == equipo), Arg.Any<CancellationToken>());
+        Assert.True(vm.Calibraciones.HayFiltroEquipo);
         vm.MostrarPlanesCommand.Execute(null);
         Assert.True(vm.EnPlanes);
     }

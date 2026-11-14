@@ -100,4 +100,44 @@ public class ServicioMantenimientoHttpTests
         var (sinRol, _) = Crear(_ => Json(HttpStatusCode.Forbidden, """{"title":"Forbidden","status":403}"""));
         Assert.Equal("Tu rol no recibe alertas de vencimiento.", (await Assert.ThrowsAsync<ErrorApi>(() => sinRol.AlertasAsync(CancellationToken.None))).Message);
     }
+
+    [Fact]
+    public async Task Calibraciones_ArmanLasRutas_YLeenLaCalibracion()
+    {
+        var id = Guid.Parse("33333333-3333-3333-3333-333333333333");
+        var calibracion = $$"""{"id":"{{id}}","equipoId":"{{Equipo}}","placaInventario":"MON-07","tipoEquipo":"Monitor","ubicacion":"UCI","proveedorId":null,"proveedor":null,"fechaCalibracion":"2026-11-04","patronReferencia":"Analizador","resultado":"conforme","numeroCertificado":null,"fechaVencimiento":"2027-11-04","vigente":true,"registradoPorId":"{{Guid.Empty}}","registradoPor":"Ana Mora","aprobadoPorId":null,"aprobadoPor":null,"aprobada":false}""";
+        var (servicio, manejador) = Crear(r => r.Method == HttpMethod.Get
+            ? Json(HttpStatusCode.OK, $$"""{"items":[{{calibracion}}],"page":1,"pageSize":20,"total":1}""")
+            : Json(HttpStatusCode.OK, calibracion));
+
+        var pagina = await servicio.ListarCalibracionesAsync(new FiltroCalibraciones(Equipo), CancellationToken.None);
+        Assert.Equal($"GET /api/v1/calibraciones?page=1&pageSize=20&equipoId={Equipo}", manejador.Rutas[^1]);
+        Assert.Equal(("MON-07", new DateOnly(2027, 11, 4), true), (pagina.Items[0].PlacaInventario, pagina.Items[0].FechaVencimiento, pagina.Items[0].Vigente));
+
+        await servicio.RegistrarCalibracionAsync(new DatosCalibracion(Equipo, new DateOnly(2026, 11, 4), "Analizador", ResultadosCalibracion.Conforme, null, null), CancellationToken.None);
+        Assert.Equal("POST /api/v1/calibraciones", manejador.Rutas[^1]);
+        using (var cuerpo = JsonDocument.Parse(manejador.Cuerpo!))
+        {
+            Assert.Equal(("2026-11-04", "conforme", JsonValueKind.Null), (cuerpo.RootElement.GetProperty("fechaCalibracion").GetString(), cuerpo.RootElement.GetProperty("resultado").GetString(), cuerpo.RootElement.GetProperty("fechaVencimiento").ValueKind));
+        }
+
+        await servicio.CorregirCalibracionAsync(id, new DatosCorreccionCalibracion(NumeroCertificado: "CERT-1"), CancellationToken.None);
+        Assert.Equal($"PATCH /api/v1/calibraciones/{id}", manejador.Rutas[^1]);
+        await servicio.AprobarCalibracionAsync(id, CancellationToken.None);
+        Assert.Equal(($"PATCH /api/v1/calibraciones/{id}/aprobacion", (string?)null), (manejador.Rutas[^1], manejador.Cuerpo));
+    }
+
+    [Fact]
+    public async Task Calibraciones_Errores_ConMensajeEnEspanol()
+    {
+        var (prohibido, _) = Crear(_ => Json(HttpStatusCode.Forbidden, """{"title":"Forbidden","status":403}"""));
+        Assert.Equal(
+            "Solo el Técnico de Mantenimiento registra y corrige las calibraciones.",
+            (await Assert.ThrowsAsync<ErrorApi>(() => prohibido.RegistrarCalibracionAsync(new DatosCalibracion(Equipo, new DateOnly(2026, 11, 4), "Patrón", ResultadosCalibracion.Conforme, null, null), CancellationToken.None))).Message);
+        Assert.Equal("Solo el Ingeniero Biomédico aprueba las calibraciones.", (await Assert.ThrowsAsync<ErrorApi>(() => prohibido.AprobarCalibracionAsync(Guid.NewGuid(), CancellationToken.None))).Message);
+
+        var (conflicto, _) = Crear(_ => Json(HttpStatusCode.Conflict, """{"title":"Conflicto","status":409,"detail":"El equipo EST-01 no requiere calibración (RN-010).","codigo":"CAL-001"}"""));
+        var error = await Assert.ThrowsAsync<ErrorApi>(() => conflicto.RegistrarCalibracionAsync(new DatosCalibracion(Equipo, new DateOnly(2026, 11, 4), "Patrón", ResultadosCalibracion.Conforme, null, null), CancellationToken.None));
+        Assert.Equal(("CAL-001", "El equipo EST-01 no requiere calibración (RN-010)."), (error.Codigo, error.Message));
+    }
 }

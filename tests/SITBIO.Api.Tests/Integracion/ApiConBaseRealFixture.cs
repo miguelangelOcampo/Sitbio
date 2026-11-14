@@ -115,6 +115,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         builder.UseSetting("Mongo:Database", BaseMongo);
         builder.UseSetting("Jwt:Clave", ClaveJwt);
         builder.UseSetting(AutenticacionEndpoints.SeccionLimite, "1000");
+        builder.UseSetting(Sitbio.Api.Modules.Instituciones.SolicitudesServicioEndpoints.SeccionLimite, "1000");
     }
 
     /// <summary>
@@ -314,6 +315,22 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"UPDATE sitbio.tenant SET vigente_hasta = {vigenteHasta} WHERE id_tenant = {tenant}"));
 
+    /// <summary>Solicitud del servicio tal como quedó en la base (HU-028), o null si no se guardó.</summary>
+    public async Task<SolicitudServicio?> LeerSolicitudAsync(string codigo)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.SolicitudesServicio.AsNoTracking().SingleOrDefaultAsync(s => s.Codigo == codigo);
+    }
+
+    /// <summary>Solicitudes del servicio enviadas con los correos de esta ejecución.</summary>
+    public async Task<int> ContarSolicitudesAsync(string correo)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.SolicitudesServicio.CountAsync(s => s.Correo == correo);
+    }
+
     public async Task<bool> ExisteSesionAsync(string jti)
     {
         using var alcance = Services.CreateScope();
@@ -376,6 +393,8 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.ubicacion WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.sesion_token WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.usuario WHERE tenant_id = ANY({tenants})");
+                var correos = $"%.{_sufijo}@demo.co";
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.solicitud_servicio WHERE tenant_id = ANY({tenants}) OR correo LIKE {correos}");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tenant WHERE id_tenant = ANY({tenants})");
             });
         }

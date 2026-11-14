@@ -38,6 +38,9 @@ public class SitbioDbContext : DbContext
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
 
+    /// <summary>Solicitudes del servicio (V002): sin filtro por tenant, muchas llegan sin sesión (HU-028).</summary>
+    public DbSet<SolicitudServicio> SolicitudesServicio => Set<SolicitudServicio>();
+
     public DbSet<Rol> Roles => Set<Rol>();
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
@@ -108,10 +111,18 @@ public class SitbioDbContext : DbContext
     /// <summary>Impide insertar o modificar registros de otro tenant (defensa adicional al filtro).</summary>
     private void VerificarTenantDeLosCambios()
     {
+        var cambios = ChangeTracker.Entries<EntidadTenant>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .ToList();
+
+        // Sin cambios con tenant (p. ej. una solicitud del servicio sin sesión, HU-028) no se lee el token.
+        if (cambios.Count == 0)
+        {
+            return;
+        }
+
         var tenant = TenantActual;
-        var ajenos = ChangeTracker.Entries<EntidadTenant>()
-            .Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
-                && e.Entity.TenantId != tenant);
+        var ajenos = cambios.Any(e => e.Entity.TenantId != tenant);
 
         if (ajenos)
         {

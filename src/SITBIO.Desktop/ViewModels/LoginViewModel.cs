@@ -11,10 +11,12 @@ namespace Sitbio.Desktop.ViewModels;
 public partial class LoginViewModel : ObservableObject
 {
     private readonly IServicioAutenticacion _servicio;
+    private readonly Func<SolicitudServicioViewModel>? _fabricaSolicitud;
 
-    public LoginViewModel(IServicioAutenticacion servicio)
+    public LoginViewModel(IServicioAutenticacion servicio, Func<SolicitudServicioViewModel>? fabricaSolicitud = null)
     {
         _servicio = servicio;
+        _fabricaSolicitud = fabricaSolicitud;
     }
 
     /// <summary>Se dispara al iniciar sesión; la ventana principal cambia de vista.</summary>
@@ -46,6 +48,12 @@ public partial class LoginViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _mostrarAyudaClave;
+
+    /// <summary>«Conoce los planes» abierto sobre el inicio de sesión (HU-028); null si está cerrado.</summary>
+    [ObservableProperty]
+    private SolicitudServicioViewModel? _solicitud;
+
+    public bool PuedeConocerPlanes => _fabricaSolicitud is not null;
 
     public bool TieneErrorCorreo => ErrorCorreo is not null;
 
@@ -94,6 +102,21 @@ public partial class LoginViewModel : ObservableObject
                 Aviso = new Aviso("No pudimos iniciar sesión", "Ocurrió un error inesperado. Intente de nuevo en unos minutos.", null);
                 break;
         }
+    }
+
+    /// <summary>CA-HU-028-01: abre «Conoce los planes» sin sesión y carga los planes vigentes.</summary>
+    [RelayCommand]
+    private async Task ConocerPlanesAsync()
+    {
+        if (_fabricaSolicitud is null)
+        {
+            return;
+        }
+
+        var solicitud = _fabricaSolicitud();
+        solicitud.CierreSolicitado += (_, _) => Solicitud = null;
+        Solicitud = solicitud;
+        await solicitud.CargarCommand.ExecuteAsync(null);
     }
 
     [RelayCommand]

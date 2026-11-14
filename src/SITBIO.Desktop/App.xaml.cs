@@ -46,7 +46,10 @@ public partial class App : Application
         servicios.AddSingleton(TimeProvider.System);
         servicios.AddSingleton<ControlSesion>(sp => new ControlSesion(
             sp.GetRequiredService<IServicioSesion>(), sp.GetRequiredService<SesionActual>(), sp.GetRequiredService<TimeProvider>()));
-        servicios.AddTransient<LoginViewModel>();
+        servicios.AddTransient<IServicioSolicitudesServicio, ServicioSolicitudesServicioHttp>();
+        servicios.AddTransient<SolicitudServicioViewModel>();
+        servicios.AddTransient<LoginViewModel>(sp => new LoginViewModel(
+            sp.GetRequiredService<IServicioAutenticacion>(), () => sp.GetRequiredService<SolicitudServicioViewModel>()));
         servicios.AddSingleton<Func<LoginViewModel>>(sp => () => sp.GetRequiredService<LoginViewModel>());
         servicios.AddSingleton<MainViewModel>();
         _servicios = servicios.BuildServiceProvider();

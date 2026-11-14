@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Sitbio.Domain.Comun;
+using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Peticiones;
 
 namespace Sitbio.Domain.Mantenimiento;
@@ -40,7 +41,8 @@ public static class AccionesOrden
 /// Orden de trabajo (tabla <c>orden_trabajo</c>, script 01; HU-004, RF-007). La correctiva nace de un
 /// tiquete «recibido» al asignarla a un Técnico de Mantenimiento activo (RN-003, lo valida la
 /// aplicación); queda «asignada» y el tiquete pasa a «asignado». Un tiquete tiene a lo sumo una orden
-/// (<c>uq_orden_tiquete</c>).
+/// (<c>uq_orden_tiquete</c>). La preventiva nace de un plan cuando llega su próxima fecha (HU-019); la
+/// genera el sistema, sin quién la asigna.
 /// </summary>
 public sealed partial class OrdenTrabajo : EntidadTenant
 {
@@ -57,8 +59,9 @@ public sealed partial class OrdenTrabajo : EntidadTenant
         Guid tenantId,
         Guid equipoId,
         Guid? tiqueteId,
+        Guid? planId,
         Guid tecnicoId,
-        Guid asignadoPorId,
+        Guid? asignadoPorId,
         string tipoMantenimiento,
         string prioridad,
         DateOnly? fechaProgramada,
@@ -67,6 +70,7 @@ public sealed partial class OrdenTrabajo : EntidadTenant
     {
         EquipoId = equipoId != Guid.Empty ? equipoId : throw new ArgumentException("La orden debe tener un equipo.", nameof(equipoId));
         TiqueteId = tiqueteId;
+        PlanId = planId;
         TecnicoId = tecnicoId != Guid.Empty ? tecnicoId : throw new ArgumentException("Selecciona el técnico que ejecutará la orden.", nameof(tecnicoId));
         AsignadoPorId = asignadoPorId != Guid.Empty ? asignadoPorId : throw new ArgumentException("La orden debe tener quién la asigna.", nameof(asignadoPorId));
         TipoMantenimiento = tipoMantenimiento;
@@ -84,10 +88,13 @@ public sealed partial class OrdenTrabajo : EntidadTenant
     /// <summary>Tiquete de origen (correctiva); null en una preventiva.</summary>
     public Guid? TiqueteId { get; private set; }
 
+    /// <summary>Plan de origen (preventiva); null en una correctiva.</summary>
+    public Guid? PlanId { get; private set; }
+
     /// <summary>Técnico de Mantenimiento (AC-03) que ejecuta la intervención.</summary>
     public Guid TecnicoId { get; private set; }
 
-    /// <summary>Quién asignó la orden (sale del token).</summary>
+    /// <summary>Quién asignó la orden (sale del token); null en la preventiva que genera el sistema.</summary>
     public Guid? AsignadoPorId { get; private set; }
 
     public string TipoMantenimiento { get; private set; } = string.Empty;
@@ -222,6 +229,7 @@ public sealed partial class OrdenTrabajo : EntidadTenant
             tiquete.TenantId,
             tiquete.EquipoId,
             tiquete.Id,
+            null,
             tecnicoId,
             asignadoPorId,
             TiposMantenimiento.Correctivo,
@@ -230,6 +238,34 @@ public sealed partial class OrdenTrabajo : EntidadTenant
             ahora);
         var cambio = tiquete.Asignar(asignadoPorId, "Orden de trabajo asignada al técnico.", ahora);
         return (orden, cambio);
+    }
+
+    /// <summary>Prioridad de la orden preventiva generada.</summary>
+    public const string PrioridadPreventiva = Criticidades.Media;
+
+    /// <summary>
+    /// CA-HU-019-02: llegó la próxima fecha del plan activo; el sistema genera la orden preventiva para
+    /// el técnico elegido, programada para esa fecha.
+    /// </summary>
+    public static OrdenTrabajo Preventiva(PlanPreventivo plan, Guid tecnicoId, DateTimeOffset ahora)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        if (plan.Estado != PlanPreventivo.Activo)
+        {
+            throw new InvalidOperationException("Solo un plan activo genera órdenes preventivas.");
+        }
+
+        return new OrdenTrabajo(
+            plan.TenantId,
+            plan.EquipoId,
+            null,
+            plan.Id,
+            tecnicoId,
+            null,
+            TiposMantenimiento.Preventivo,
+            PrioridadPreventiva,
+            plan.ProximaFecha,
+            ahora);
     }
 
     [GeneratedRegex("^[0-9a-fA-F]{24}$")]

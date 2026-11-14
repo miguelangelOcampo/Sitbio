@@ -52,9 +52,12 @@ public interface IRepositorioOrdenes
     /// </summary>
     Task<EquipoDeLaOrden?> EquipoAsync(Guid equipoId, CancellationToken cancellationToken);
 
+    /// <summary>Plan preventivo de origen con seguimiento de cambios (la aprobación lo hace avanzar); null si no existe.</summary>
+    Task<PlanPreventivo?> PlanAsync(Guid planId, CancellationToken cancellationToken);
+
     /// <summary>
-    /// HU-021: guarda en una transacción la orden aprobada, el tiquete cerrado con su historial y el nuevo
-    /// estado del equipo con su historial (los que haya).
+    /// HU-021: guarda en una transacción la orden aprobada, el tiquete cerrado con su historial, el nuevo
+    /// estado del equipo con su historial y el plan preventivo que avanzó (los que haya).
     /// </summary>
     Task GuardarAprobacionAsync(HistorialTiquete? cambioTiquete, HistorialEstadoEquipo? cambioEquipo, CancellationToken cancellationToken);
 }

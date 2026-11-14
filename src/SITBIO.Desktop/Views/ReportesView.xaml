@@ -1,0 +1,113 @@
+<!-- UI-021 Reportes e indicadores (HU-026): cinco indicadores de la institución en franja; solo consulta. -->
+<UserControl x:Class="Sitbio.Desktop.Views.ReportesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+    <StackPanel Margin="40,32,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+      <TextBlock Text="ANÁLISIS" Style="{StaticResource Overline}" />
+      <TextBlock Text="Reportes e indicadores" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
+      <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,24" TextWrapping="Wrap"
+                 Text="Indicadores del mantenimiento calculados con los datos de tu institución. Sin fechas, muestra los últimos 30 días." />
+
+      <!-- Periodo -->
+      <Grid Margin="0,0,0,8">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="180" />
+          <ColumnDefinition Width="12" />
+          <ColumnDefinition Width="180" />
+          <ColumnDefinition Width="16" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <StackPanel>
+          <TextBlock Text="Desde (dd/mm/aaaa)" Style="{StaticResource FieldLabel}" />
+          <Border Style="{StaticResource FieldBox}">
+            <TextBox Style="{StaticResource FieldInput}" Text="{Binding Desde, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Desde" />
+          </Border>
+        </StackPanel>
+        <StackPanel Grid.Column="2">
+          <TextBlock Text="Hasta (dd/mm/aaaa)" Style="{StaticResource FieldLabel}" />
+          <Border Style="{StaticResource FieldBox}">
+            <TextBox Style="{StaticResource FieldInput}" Text="{Binding Hasta, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hasta" />
+          </Border>
+        </StackPanel>
+        <Button Grid.Column="4" Style="{StaticResource PrimaryButton}" Content="Consultar" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
+        <TextBlock Grid.Column="5" Text="Calculando…" Style="{StaticResource Muted}" VerticalAlignment="Bottom" Margin="16,0,0,10"
+                   Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+      </Grid>
+      <TextBlock Text="{Binding ErrorFechas}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorFechas, Converter={StaticResource TextoVisible}}" />
+
+      <!-- Error -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,16,0,0"
+              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
+          <StackPanel>
+            <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+            <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- Costos incompletos -->
+      <Border Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,16,0,0"
+              Visibility="{Binding AvisoCostos, Converter={StaticResource NuloVisible}}">
+        <StackPanel>
+          <TextBlock Text="{Binding AvisoCostos.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+          <TextBlock Text="{Binding AvisoCostos.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+        </StackPanel>
+      </Border>
+
+      <!-- Los cinco indicadores -->
+      <StackPanel Visibility="{Binding HayDatos, Converter={StaticResource Visible}}" Margin="0,24,0,0">
+        <TextBlock Text="{Binding Periodo}" Style="{StaticResource Muted}" Margin="0,0,0,10" />
+        <Border Style="{StaticResource KpiStrip}">
+          <UniformGrid Columns="5">
+            <Border Style="{StaticResource KpiItem}" BorderThickness="0" Padding="0,14,20,14">
+              <StackPanel>
+                <TextBlock Text="CUMPLIMIENTO PREVENTIVO" Style="{StaticResource Overline}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding Cumplimiento}" Style="{StaticResource KpiValue}" />
+                <TextBlock Text="{Binding DetalleCumplimiento}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource KpiItem}">
+              <StackPanel>
+                <TextBlock Text="MTTR" Style="{StaticResource Overline}" />
+                <TextBlock Text="{Binding Mttr}" Style="{StaticResource KpiValue}" />
+                <TextBlock Text="Tiempo medio de reparación" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource KpiItem}">
+              <StackPanel>
+                <TextBlock Text="MTBF" Style="{StaticResource Overline}" />
+                <TextBlock Text="{Binding Mtbf}" Style="{StaticResource KpiValue}" />
+                <TextBlock Text="Tiempo medio entre fallas" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource KpiItem}">
+              <StackPanel>
+                <TextBlock Text="COSTO POR EQUIPO" Style="{StaticResource Overline}" />
+                <TextBlock Text="{Binding Costo}" Style="{StaticResource KpiValue}" />
+                <TextBlock Text="{Binding DetalleCosto}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+            <Border Style="{StaticResource KpiItem}">
+              <StackPanel>
+                <TextBlock Text="FUERA DE SERVICIO" Style="{StaticResource Overline}" />
+                <TextBlock Text="{Binding Fuera}" Style="{StaticResource KpiValue}" />
+                <TextBlock Text="{Binding DetalleFuera}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </UniformGrid>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

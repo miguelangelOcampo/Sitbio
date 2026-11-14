@@ -273,7 +273,7 @@ Caso de uso CU-024 · RF-024 · RN-008 · RN-009 · SEC-003 · Pantalla UI-019 �
 
 | CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
 |---|---|---|---|---|
-| CP-027 | CA-HU-024-01: al guardar los días de anticipación de las alertas, las alertas de vencimiento de la institución usan el nuevo valor. | RF-024, RF-020 | Integración (API + PostgreSQL): `CriteriosHu024Tests.CA_HU_024_01_*` (2): el valor queda en `tenant.dias_anticipacion_alerta` y la consulta lo devuelve; fuera de 7 a 90 días responde 400 en el campo sin cambiar nada. Aplicación: `GestionInstitucionTests`. Dominio: `TenantTests`. Cliente: `MiInstitucionViewModelTests`. El uso del valor en el cálculo de las alertas se prueba con HU-020. | Aprobado (parcial: alertas con HU-020) |
+| CP-027 | CA-HU-024-01: al guardar los días de anticipación de las alertas, las alertas de vencimiento de la institución usan el nuevo valor. | RF-024, RF-020 | Integración (API + PostgreSQL): `CriteriosHu024Tests.CA_HU_024_01_*` (2): el valor queda en `tenant.dias_anticipacion_alerta` y la consulta lo devuelve; fuera de 7 a 90 días responde 400 en el campo sin cambiar nada. Aplicación: `GestionInstitucionTests`. Dominio: `TenantTests`. Cliente: `MiInstitucionViewModelTests`. Uso del valor en las alertas (HU-020): `CriteriosHu019Tests.CA_HU_020_01_DentroDelPeriodoDeAnticipacion_VeLaAlerta_ConLosDiasDeLaInstitucion` (con 20 días el plan de dentro de 25 no alerta; con 30, sí). | Aprobado |
 | CP-027 | CA-HU-024-02: el Administrador solo ve y edita los datos de su propio tenant; el alta, la suspensión y la desactivación las hace el proveedor. | RN-008, SEC-003, RNF-003 | Integración: `CriteriosHu024Tests.CA_HU_024_02_*` (2): el cuerpo no elige la institución ni cambia el plan o sus límites, la otra institución no cambia, no hay ruta `/tenant/{id}`; Ingeniero, Gerente y Técnico reciben 403 y sin token 401. API: `InstitucionEndpointTests`. Infraestructura: `RepositorioInstitucionPostgresTests`. | Aprobado |
 | CP-027 | CA-HU-024-03: se ven el plan, su vigencia y el consumo de usuarios de gestión, equipos activos y almacenamiento, con aviso desde el 80 %. | RN-009, RF-024 | Integración: `CriteriosHu024Tests.CA_HU_024_03_MuestraPlanVigenciaYConsumo_ConAvisoDesdeEl80PorCiento` (plan Consultorio: 3 de 3 usuarios con aviso y límite, AC-04 no cuenta; 239 de 300 equipos = 79 % sin aviso y 240 = 80 % con aviso). Aplicación: `GestionInstitucionTests`. Cliente: `MiInstitucionViewModelTests`, `ServicioInstitucionHttpTests`. | Aprobado |
 
@@ -295,7 +295,7 @@ Con `SITBIO_PRUEBAS_POSTGRES` definida y V009 aplicada: `dotnet test SITBIO.sln 
 
 ### Pendientes
 
-- **Alertas con los días de anticipación (CA-HU-024-01):** el cálculo de las alertas de vencimiento llega con HU-020 (Bloque 2); entonces se agrega la prueba de que usa el valor guardado.
+- **Alertas con los días de anticipación (CA-HU-024-01):** resuelto con HU-020 (B2-02, `CriteriosHu019Tests`).
 - **Pantalla UI-020:** resuelta en el commit 43 como pestaña «Catálogos» de UI-019 Configuración (AC-01 y AC-02). AC-02 gestiona los cuatro catálogos y edita la clase de riesgo y la calibración por defecto de los tipos de equipo; AC-01 gestiona solo ubicaciones y consulta el resto. Pruebas de cliente en `CatalogosViewModelTests` y `ServicioCatalogosHttpTests`.
 
 ## HU-006 · Motor de campos dinámicos
@@ -422,7 +422,7 @@ Caso de uso CU-004 · RF-021 · RN-004 · RN-005 · RN-007 · RN-010 · API-OT-E
 | CP-025 | CA-HU-021-01: con el diagnóstico y las acciones registrados, el técnico cierra la orden y queda pendiente de aprobación del Ingeniero. | RF-021 | Aplicación: `GestionEjecucionTests.Cerrar_ConLaIntervencionRegistrada_QuedaCerradaPendienteDeAprobacion` (estado «cerrada» con fecha de cierre, bitácora `ACTUALIZAR` con la acción; otro cierre responde 409 `OT-003` y la intervención ya no se edita), `Cerrar_SinIntervencionOSinIniciar_Responde409SinGuardar` (`OT-002`), `Cerrar_SinEstadoDeSalida_Responde400JuntoAlCampo`. Dominio: `OrdenTrabajoTests.Cerrar_*`. API: `EjecucionOrdenesEndpointTests.Tecnico_CierraSuOrden_YElIngenieroLaApruebaConSuFirma`. Infraestructura: `RepositorioOrdenesPostgresTests.GuardarAprobacion_*` (la fecha de cierre se guarda). Integración (API + PostgreSQL + MongoDB): `CriteriosHu021Tests.CA_HU_021_01_ConDiagnosticoYAcciones_ElTecnicoCierra_YQuedaPendienteDeAprobacion`: sin intervención responde 409 `OT-002`; con ella la orden queda «cerrada» con fecha de cierre y sin firma, el Ingeniero la ve con `?estado=cerrada`, el técnico ya no la corrige (409 `OT-003`) ni la reanuda, el tiquete sigue «en ejecución» y el cierre queda en la bitácora a nombre del técnico. `CA_HU_021_01_SinEstadoDeSalidaDelEquipo_NoSeCierra` (400 junto a `estadoEquipoSalida`). | Aprobado |
 | CP-025 | CA-HU-021-02: el Ingeniero aprueba con su firma la orden cerrada; la orden y su intervención quedan inalterables (RN-004). | RF-021, RN-004 | Aplicación: `GestionAprobacionTests.Aprobar_FirmaLaIntervencion_LaOrdenQuedaAprobada_ElTiqueteCerrado_YElEquipoConSuEstadoDeSalida` (primero se firma el documento en MongoDB con la copia del equipo; luego, en una transacción, la orden «aprobada» con firma, fecha y quién aprueba, el tiquete «cerrado» con su historial y el equipo con su estado de salida; bitácora `CIERRE_OT`), `Aprobar_OrdenQueNoEstaCerrada_Responde409_YLaYaAprobadaRn004`, `Aprobar_SinFirmaOMuyLarga_Responde400SinTocarNada`, `Aprobar_SiMongoNoResponde_LaOrdenSigueCerrada_YNoSeGuardaNada`, `Aprobar_EquipoYaEnSuEstadoDeSalida_NoCambiaElEquipo`. Infraestructura: `IntervencionesMongoTests.Firmar_MarcaCerradaFirmadaConSalidaYCopiaDelEquipo_YYaNoSeModifica` (pasa el validador del script 02; repetir la firma no cambia nada; el reemplazo posterior responde `RN-004`), `RepositorioOrdenesPostgresTests.GuardarAprobacion_LaOrdenAprobadaElTiqueteCerradoYElEstadoDelEquipoQuedanJuntos`. Dominio: `OrdenTrabajoTests.Aprobar_*`, `Tiquete_Cerrar_DesdeAsignadoOEnEjecucion_GuardaLaFechaDeCierre`. API: `EjecucionOrdenesEndpointTests.Tecnico_CierraSuOrden_YElIngenieroLaApruebaConSuFirma` (409 con código `RN-004` al aprobar de nuevo). Integración: `CriteriosHu021Tests.CA_HU_021_02_ElIngenieroApruebaConSuFirma_YLaOrdenYSuIntervencionQuedanInalterables`: tras una falla crítica (equipo «Fuera de servicio», RN-005) el Ingeniero aprueba con su firma; la orden queda «aprobada» con firma, fecha y quién aprueba; el documento de `intervenciones` queda con `cerrada_firmada`, el estado de salida y `equipo_snapshot`; el tiquete pasa a «cerrado» a nombre del Ingeniero y el equipo vuelve a «Operativo» con su historial; la bitácora guarda `CIERRE_OT` con el ObjectId; corregir la intervención, cerrar de nuevo o volver a aprobar responden 409 `RN-004` y el documento no cambia. `CA_HU_021_02_SoloSeApruebaUnaOrdenCerrada_YConFirma` (409 `OT-002` sin cerrar; 400 sin firma; nada se firma). | Aprobado |
 
-- **Calibración vencida (RN-007, MSG-013):** un equipo que requiere calibración, con la última `fecha_vencimiento` anterior a hoy (hora de Colombia), no se cierra ni se aprueba como «Operativo»; responde 409 `RN-007` con el texto de MSG-013. Con otro estado de salida, o si el equipo no requiere calibración (RN-010), sí se cierra (`GestionEjecucionTests.Cerrar_ComoOperativoConLaCalibracionVencida_SeImpideConRn007`, `Cerrar_CalibracionVencidaPeroSaleFueraDeServicio_OEquipoQueNoRequiereCalibracion_SiCierra`, `GestionAprobacionTests.Aprobar_ComoOperativoConLaCalibracionVencida_SeImpideConRn007`). La vigencia se lee de `calibracion` con el tenant del equipo (`RepositorioOrdenesPostgresTests.Equipo_TraeTipoUbicacionYElVencimientoDeLaUltimaCalibracion_SoloDeLaInstitucion`). Integración: `CriteriosHu021Tests.Rn007_ConLaCalibracionVencida_NoSaleOperativo_PeroSiConOtroEstado` (409 `RN-007` con la fecha de vencimiento; con «Fuera de servicio» se cierra, se aprueba y el equipo queda así) y `Rn007_ConLaCalibracionVigente_SaleOperativo`; la calibración se inserta en la base con `ApiConBaseRealFixture.RegistrarCalibracionAsync` mientras llega HU-022.
+- **Calibración vencida (RN-007, MSG-013):** un equipo que requiere calibración, con la última `fecha_vencimiento` anterior a hoy (hora de Colombia), no se cierra ni se aprueba como «Operativo»; responde 409 `RN-007` con el texto de MSG-013. Con otro estado de salida, o si el equipo no requiere calibración (RN-010), sí se cierra (`GestionEjecucionTests.Cerrar_ComoOperativoConLaCalibracionVencida_SeImpideConRn007`, `Cerrar_CalibracionVencidaPeroSaleFueraDeServicio_OEquipoQueNoRequiereCalibracion_SiCierra`, `GestionAprobacionTests.Aprobar_ComoOperativoConLaCalibracionVencida_SeImpideConRn007`). La vigencia se lee de `calibracion` con el tenant del equipo (`RepositorioOrdenesPostgresTests.Equipo_TraeTipoUbicacionYElVencimientoDeLaUltimaCalibracion_SoloDeLaInstitucion`). Integración: `CriteriosHu021Tests.Rn007_ConLaCalibracionVencida_NoSaleOperativo_PeroSiConOtroEstado` (409 `RN-007` con la fecha de vencimiento; con «Fuera de servicio» se cierra, se aprueba y el equipo queda así) y `Rn007_ConLaCalibracionVigente_SaleOperativo`; la calibración se insertaba en la base con `ApiConBaseRealFixture.RegistrarCalibracionAsync`; desde HU-022 se registra por la API (`CriteriosHu022Tests.CA_HU_022_02_*`).
 - **Permisos:** solo el Técnico asignado cierra (AC-03; la orden de otro responde 404); solo el Ingeniero Biomédico (AC-02) aprueba; AC-01, AC-03, AC-04 y AC-07 reciben 403 y sin token 401 (`EjecucionOrdenesEndpointTests.SoloElIngeniero_ApruebaYFirma`). Integración: `CriteriosHu021Tests.Permisos_SoloElTecnicoCierraYSoloElIngenieroAprueba_YOtraInstitucionNoLaVe` (otro técnico 404 al cerrar, el Ingeniero 403; el técnico y el Personal Clínico 403 al aprobar; el Ingeniero de otra institución 404; la orden sigue «cerrada» sin firmar).
 - **Si falla PostgreSQL después de firmar en MongoDB:** la orden sigue «cerrada» con la intervención ya firmada; repetir la aprobación termina el cambio porque la firma en MongoDB no toca un documento ya firmado.
 
@@ -434,5 +434,127 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 
 - **Criterios de punta a punta (CP-025):** resueltos en B1-17 (`CriteriosHu021Tests`).
 - **Pantalla UI-014 (Revisión y firma):** B1-18; confirmación MSG-018 antes de firmar y MSG-013 cuando la calibración está vencida. El botón «Cerrar orden» de UI-013 llega con ella.
-- **Equipo que requiere calibración sin ningún registro:** hoy no bloquea el cierre (RN-007 habla de calibración vencida). Decidir con HU-022 (B2-04) si debe bloquearse.
+- **Equipo que requiere calibración sin ningún registro:** no bloquea el cierre (RN-007 habla de calibración vencida). Sigue igual con HU-022; ver sus pendientes.
 - **Aprobaciones simultáneas:** dos ingenieros que aprueban la misma orden a la vez pueden pasar ambos la revisión de estado; la última firma gana. Pendiente un control de concurrencia en `orden_trabajo`.
+
+## HU-019 y HU-020 · Planes de mantenimiento preventivo y alertas de vencimiento
+
+RF-019 · RF-020 · RF-024 · RN-008 · API-PLAN (`GET`/`POST /api/v1/planes-preventivos`, `GET`/`PUT /api/v1/planes-preventivos/{id}`) · API-ALERTAS (`GET /api/v1/alertas`) · Tablas `plan_preventivo`, `orden_trabajo` (`plan_id`), `calibracion` y `tenant` (`dias_anticipacion_alerta`)
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-023 | CA-HU-019-01: al guardar un plan con periodicidad en días y próxima fecha, el plan queda asociado al equipo. | RF-019 | Integración (API + PostgreSQL): `CriteriosHu019Tests.CA_HU_019_01_ConPeriodicidadYProximaFecha_ElPlanQuedaAsociadoAlEquipo`: el Ingeniero crea el plan con el último preventivo y la periodicidad; responde 201 con el próximo = último + periodicidad, «activo» y sin vencer; en la base queda del equipo y de la institución, se consulta con `?equipoId=` y la bitácora guarda `CREAR` en `plan_preventivo` a su nombre. `CA_HU_019_01_SinPeriodicidadOSinEquipoValido_NoSeGuarda_YSoloElIngenieroLoDefine` (400 en `periodicidadDias`, 409 `PLN-001` con un equipo dado de baja, 403 para el Técnico, que sí consulta). Aplicación: `GestionPlanesTests` (próximo calculado o indicado, nace vencido, validaciones, reprogramación al cambiar la periodicidad, suspender, reactivar y finalizar con 409 `PLN-002`). Dominio: `TipoEquipoYPlanTests.Plan_*`. API: `MantenimientoEndpointTests` (permisos de AC-01 a AC-07). Infraestructura: `RepositorioPlanesPostgresTests`. Cliente (UI-015): `MantenimientosViewModelTests` (lista de activos con el vencimiento en texto, búsqueda del equipo, próximo calculado y aviso de plan que nace vencido, validaciones junto al campo sin llamar a la API, edición, suspender, reactivar y finalizar con confirmación; AC-01, AC-03, AC-05 y AC-07 solo consultan), `ServicioMantenimientoHttpTests`. | Aprobado |
+| CP-023 | CA-HU-019-02: al llegar la fecha programada, el sistema evalúa los planes y genera la orden de trabajo preventiva. | RF-019 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu019Tests.CA_HU_019_02_AlLlegarLaFecha_SeGeneraLaOrdenPreventiva_YAlAprobarlaElPlanAvanza`: al consultar las alertas solo el plan que llegó a su fecha genera la orden, «asignada» al técnico activo, preventiva, con el plan y la fecha programada, sin tiquete ni quién asignó; la alerta trae la orden; consultar de nuevo no la repite; la bitácora guarda `CREAR` en `orden_trabajo`; el técnico la ejecuta y la cierra y, al aprobarla el Ingeniero, el plan queda con el último = hoy y el próximo = hoy + periodicidad. `CA_HU_019_02_UnPlanSuspendidoOUnEquipoDeBaja_NoGeneranOrden`. Aplicación: `GestionAlertasTests.Consultar_GeneraLasOrdenes*`, `Repartir_*` (2: del más atrasado al más reciente, siempre al técnico menos ocupado; sin técnicos no se genera), `GestionAprobacionTests.Aprobar_Preventiva_ElPlanAvanza_UltimoHoyYProximoMasLaPeriodicidad`. Dominio: `OrdenTrabajoTests.Preventiva_*` (2). Infraestructura: `RepositorioPlanesPostgresTests` (generaciones simultáneas sin órdenes repetidas). | Aprobado |
+| CP-024 | CA-HU-020-01: cuando un mantenimiento o una calibración entra en el periodo de anticipación configurado, al abrir la aplicación veo una alerta. | RF-020, RF-024 | Integración: `CriteriosHu019Tests.CA_HU_020_01_DentroDelPeriodoDeAnticipacion_VeLaAlerta_ConLosDiasDeLaInstitucion`: con los 20 días guardados por el Administrador, el Técnico ve «próxima» la calibración que vence en 5 días y el plan de dentro de 10, en orden de fecha, y no el de dentro de 25; con 30 días ese plan también aparece, sin orden porque aún no llega (CA-HU-024-01). `CA_HU_020_01_SoloElIngenieroYElTecnicoVenLasAlertas` (AC-01, AC-04, AC-05 y AC-07 reciben 403). Aplicación: `GestionAlertasTests.Consultar_UsaLosDiasDeAnticipacion_*`, `Consultar_SinNadaPorVencer_*`. Infraestructura: `RepositorioPlanesPostgresTests` (planes y calibraciones por vencer de la institución, sin equipos de baja). Cliente (UI-016): `CentroAlertasViewModelTests` (al abrir la aplicación se consultan y se cuentan las pendientes en la campana, con tipo, equipo, fecha y estado en texto; marcar como revisada las saca del conteo durante la sesión; abrir una lleva a UI-015 y cierra el panel, NAV-011), `ShellViewModelTests.IngenieroYTecnico_TienenElCentroDeAlertas_*` y `LosDemasRoles_NoTienenCentroDeAlertas`. | Aprobado |
+| CP-024 | CA-HU-020-02: cuando un mantenimiento o una calibración ya venció, la alerta se muestra como vencida. | RF-020 | Integración: `CriteriosHu019Tests.CA_HU_020_02_YaVencido_LaAlertaSeMuestraComoVencida_YVaPrimero`: el plan que nació vencido y la calibración vencida aparecen «vencida» con los días en negativo y antes de la próxima; sin técnicos activos no se genera la orden y la alerta queda sin orden; con un técnico se genera y la alerta sigue «vencida» con la orden «asignada» hasta su aprobación. Aplicación: `GestionAlertasTests.Consultar_UsaLosDiasDeAnticipacion_YMarcaVencidasYProximas_LasVencidasPrimero` (vence hoy = «próxima»). Cliente: `CentroAlertasViewModelTests.AlAbrirLaAplicacion_MuestraLasAlertasConSuEstadoEnTexto` («Vencida hace 4 días» con punto rojo y la orden preventiva asignada). | Aprobado |
+| CP-036 | Aislamiento entre instituciones: una institución no ve ni usa los planes ni las alertas de otra. | RN-008, SEC-003 | Integración: `CriteriosHu019Tests.OtraInstitucion_NoVeNiUsaPlanesNiAlertasAjenos`: el plan ajeno responde 404 al consultar y al editar, la lista no lo trae, no se crea un plan sobre un equipo ajeno (404) y sus alertas no traen el plan vencido de la otra institución ni le generan una orden. Infraestructura: `RepositorioPlanesPostgresTests`. | Aprobado |
+
+### Decisiones
+
+- **Cuándo se generan las órdenes:** al consultar las alertas (`GET /api/v1/alertas`), sin un proceso en segundo plano. La generación es una sola por institución a la vez (`pg_advisory_xact_lock`) y no repite la orden de un plan con la misma fecha programada.
+- **A quién se asignan:** al técnico activo con menos órdenes abiertas; sin técnicos activos no se genera y la alerta sigue a la vista. La prioridad es «media» y la fecha programada, la próxima fecha del plan.
+- **Cuándo avanza el plan:** al aprobar su orden preventiva (HU-021): el último preventivo pasa a la fecha de aprobación (hora de Colombia) y el próximo, a esa fecha + la periodicidad.
+- **Próxima o vencida:** «próxima» desde los días de anticipación de la institución hasta el mismo día del vencimiento; «vencida» desde el día siguiente. Las vencidas van primero.
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu019Tests|FullyQualifiedName~GestionPlanesTests|FullyQualifiedName~GestionAlertasTests|FullyQualifiedName~RepositorioPlanesPostgresTests|FullyQualifiedName~MantenimientoEndpointTests"`. Solo `CA_HU_019_02_AlLlegarLaFecha_*` necesita MongoDB (registra la intervención).
+
+### Pendientes
+
+- **Pantallas UI-015 y UI-016:** resueltas en B2-03. UI-015 es «Gestión › Mantenimientos» con las pestañas «Planes preventivos» y «Calibraciones» (UI-017 llega con HU-022; una alerta de calibración abre esa pestaña). UI-016 se abre con la campana del riel, que muestra el número de alertas sin revisar; «revisada» se recuerda solo durante la sesión (no hay API para guardarla).
+- **CP-034:** el plan de commits lo asocia a B2-02, pero DOC-04, DOC-05 y DOC-06 no lo definen; queda por confirmar a qué criterio corresponde.
+- **Equipo que requiere calibración sin ningún registro:** no genera alerta de calibración. Sigue igual con HU-022; ver sus pendientes.
+
+## HU-022 · Registro de calibraciones y control de vigencia
+
+RF-022 · RN-007 · RN-008 · RN-010 · API-CAL (`GET`/`POST /api/v1/calibraciones`, `GET`/`PATCH /api/v1/calibraciones/{id}`, `PATCH /api/v1/calibraciones/{id}/aprobacion`) · Tabla `calibracion` (`ck_calibracion_vigencia`)
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-026 | CA-HU-022-01: al guardar una calibración completa (fecha, patrón de referencia, resultado y vencimiento), queda registrada en el historial del equipo con su vencimiento. | RF-022, RN-010 | Integración (API + PostgreSQL): `CriteriosHu022Tests.CA_HU_022_01_CalibracionCompleta_QuedaEnElHistorialDelEquipoConSuVencimiento`: el Técnico registra la calibración con patrón, resultado, certificado y laboratorio; responde 201 con el vencimiento = fecha + los 12 meses del equipo, «vigente» y sin aprobar; en la base queda del equipo y de la institución a nombre del Técnico y la bitácora guarda `CREAR` en `calibracion`; una segunda con el vencimiento del certificado aparece primero en `?equipoId=`; el Ingeniero la aprueba y ya no se corrige (409 `CAL-003`). `CA_HU_022_01_Incompleta_NoSeGuarda_YSoloElTecnicoRegistra` (400 junto a `fechaCalibracion` futura, `patronReferencia` vacío, `resultado` desconocido y `fechaVencimiento` anterior; el Ingeniero y el Gerente reciben 403 al registrar y el Gerente consulta). Aplicación: `GestionCalibracionesTests` (vencimiento calculado o indicado, validaciones, laboratorio de la institución, corrección que recalcula el vencimiento al cambiar la fecha, aprobación única). Dominio: `RegistroCalibracionTests`. API: `CalibracionesEndpointTests` (registra y corrige AC-03, aprueba AC-02, consultan AC-01, AC-02, AC-03, AC-05 y AC-07; AC-04 y AC-06 403, sin token 401). Infraestructura: `RepositorioPlanesPostgresTests.Calibraciones_SeGuardanYSeLeenConEquipoLaboratorioYResponsables_SoloEnLaInstitucion`. Cliente (UI-017): `CalibracionesViewModelTests` (historial con vigencia en texto, registro con el vencimiento calculado y solo equipos que requieren calibración, errores junto al campo, corrección sin aprobar, aprobación con confirmación), `ServicioMantenimientoHttpTests.Calibraciones_*`. | Aprobado |
+| CP-026 | CA-HU-022-02: si la calibración está vencida, el sistema bloquea el cierre de la orden como «Operativo» hasta registrar una nueva calibración (RN-007). | RF-022, RN-007 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu022Tests.CA_HU_022_02_ConLaCalibracionVencida_NoCierraOperativo_HastaRegistrarUnaNueva`: con la calibración registrada vencida hace 10 días, cerrar como «Operativo» responde 409 `RN-007` con la fecha (MSG-013) y la alerta de calibración aparece «vencida»; el Técnico registra una nueva calibración y la misma orden se cierra, se aprueba, el equipo queda «Operativo» y la alerta desaparece. Infraestructura: `RepositorioPlanesPostgresTests.Calibraciones_*` (la vigencia que lee la orden es el vencimiento más lejano). Ver también HU-021 (`Rn007_*`). | Aprobado |
+| CP-026 | CA-HU-022-03: un equipo que no requiere calibración no aparece para programación de calibraciones, no genera alertas de calibración y no se le aplica RN-007 (RN-010). | RN-010, RN-007 | Integración: `CriteriosHu022Tests.CA_HU_022_03_EquipoQueNoRequiereCalibracion_NoSeCalibra_NiGeneraAlertas` (409 `CAL-001` y nada se guarda; con una calibración vencida de antes no genera alerta) y `CA_HU_022_03_EquipoQueNoRequiereCalibracion_NoSeLeAplicaRn007` (con MongoDB: con esa calibración vencida la orden sale «Operativo»). Aplicación: `GestionCalibracionesTests.Registrar_EquipoQueNoRequiereCalibracion_SeRechaza_RN010`. | Aprobado |
+| CP-036 | Aislamiento entre instituciones: una institución no ve, corrige, aprueba ni registra calibraciones de otra. | RN-008, SEC-003 | Integración: `CriteriosHu022Tests.OtraInstitucion_NoVeNiCalibraNiApruebaLoAjeno` (404 al consultar, corregir, aprobar y registrar sobre el equipo ajeno; la lista no la trae y en la base no cambia). Infraestructura: `RepositorioPlanesPostgresTests.Calibraciones_*`. | Aprobado |
+
+### Decisiones
+
+- **Vencimiento:** si no se indica, es la fecha de la calibración + la periodicidad de calibración del equipo en meses (RN-010); si se indica (el del certificado), no puede ser anterior a la fecha. Vigente hasta el mismo día del vencimiento.
+- **Quién registra y quién aprueba:** el Técnico (AC-03) registra y corrige mientras no esté aprobada; el Ingeniero (AC-02) aprueba y desde entonces no cambia (matriz de permisos de UI-017 y API-CAL). La vigencia cuenta desde el registro, sin esperar la aprobación, para que una calibración nueva destrabe el cierre de la orden (CA-HU-022-02).
+- **Vigencia del equipo:** el vencimiento más lejano de sus calibraciones; la usan RN-007 y las alertas (HU-020).
+- **Equipo dado de baja:** no se le registran calibraciones (409 `CAL-002`).
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu022Tests|FullyQualifiedName~GestionCalibracionesTests|FullyQualifiedName~RegistroCalibracionTests|FullyQualifiedName~CalibracionesEndpointTests|FullyQualifiedName~RepositorioPlanesPostgresTests"`. Solo `CA_HU_022_02_*` y `CA_HU_022_03_*NoSeLeAplicaRn007` necesitan MongoDB (registran la intervención).
+
+### Pendientes
+
+- **Pantalla UI-017 (Calibraciones):** resuelta en B2-06, en la pestaña «Calibraciones» de UI-015; una alerta de calibración (UI-016) abre el historial de ese equipo. El laboratorio (`proveedorId`) aún no se elige en la pantalla.
+- **«Conforme con observaciones»:** el script 01 lo admite en el CHECK, pero `resultado` es VARCHAR(15) y no cabe; por ahora solo «conforme» y «no conforme». Requiere una migración V### que amplíe la columna.
+- **Calibración «no conforme»:** cuenta para la vigencia como cualquier otra, así que no anula una anterior vigente. Decidir si debe excluirse de RN-007 y de las alertas.
+- **Equipo que requiere calibración sin ningún registro:** no bloquea el cierre ni genera alerta (RN-007 habla de calibración vencida). Decidir si debe tratarse como vencida.
+- **Certificado y orden asociada:** `documento_id` (certificado en `documento_equipo`) y `orden_id` no se llenan aún; llegan con los documentos del equipo.
+
+## HU-023 · Línea de tiempo del equipo
+
+RF-023 · RN-008 · API-EQ-HV (`GET /api/v1/equipos/{id}/linea-tiempo`) · UI-006 pestaña «Historial» (CMP-UI-014)
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-027 | CA-HU-023-01: la hoja de vida muestra en orden cronológico el registro, los cambios de estado, los tiquetes, las órdenes, las intervenciones y las calibraciones del equipo. | RF-023 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu023Tests.CA_HU_023_01_LineaDeTiempo_UneElCicloDeVidaEnOrdenCronologico`. Aplicación: `ConsultaLineaTiempoTests` (orden, títulos, sin MongoDB). Cliente: `DetalleEquipoViewModelTests.Historial_*`. | Aprobado |
+| CP-027 | CA-HU-023-02: el Ente Regulador consulta la línea de tiempo sin poder modificar nada. | RF-023, RNF-003 | Integración: `CriteriosHu023Tests.CA_HU_023_02_EnteRegulador_ConsultaLaLineaDeTiempo_PeroNoEdita` (200 al consultar; 403 al editar el equipo, registrar calibración o reportar falla). | Aprobado |
+| CP-036 | Aislamiento: una institución no ve la línea de tiempo de otra. | RN-008 | Integración: `CriteriosHu023Tests.OtraInstitucion_NoVeLaLineaDeTiempoAjena` (404). | Aprobado |
+
+### Decisiones
+
+- Del evento más antiguo al más reciente; con la misma fecha: registro, falla, orden, intervención, calibración, estado. La calibración se ubica por su fecha (a las 00:00 de Colombia), aunque sea anterior al registro en SITBIO.
+- Si MongoDB no responde, se devuelve lo de PostgreSQL con `intervencionesCompletas = false` y la pantalla lo avisa.
+
+### Cómo reproducir
+
+`dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu023Tests|FullyQualifiedName~ConsultaLineaTiempoTests|FullyQualifiedName~DetalleEquipoViewModelTests"`; solo `CA_HU_023_01_*` necesita MongoDB.
+
+### Pendientes
+
+- Sin paginación: con historias muy largas habrá que paginar o filtrar por tipo.
+
+## HU-007 y HU-027 · Reportes PDF y Excel, y hoja de vida en PDF
+
+RF-008 · RF-027 · RNF-007 · RN-008 · API-REP (`GET /api/v1/reportes/ordenes?desde&hasta&formato=pdf|xlsx`, `GET /api/v1/equipos/{id}/hoja-vida.pdf`) · ADR-009 (QuestPDF Community y ClosedXML)
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-013 | CA-HU-007-01: con un rango de fechas y PDF, se genera el historial de órdenes en menos de 10 s para hasta 1 000 registros. | RF-008, RNF-007 | Integración: `CriteriosHu007Tests.CA_HU_007_01_HistorialDelRango_SaleEnPdf`, `CA_HU_007_01_RangoOFormatoInvalidos_Responden400_YElTecnicoNoExporta`. Infraestructura: `GeneradorReportesTests.HistorialPdf_ConMilRegistros_SeGeneraEnMenosDeDiezSegundos`. Aplicación: `ExportacionReportesTests`. API: `ReportesEndpointTests` (AC-01, AC-02 y AC-05; los demás 403, sin token 401). | Aprobado |
+| CP-013 | CA-HU-007-02: en Excel, un .xlsx con las mismas columnas del historial. | RF-008 | Integración: `CriteriosHu007Tests.CA_HU_007_02_Excel_TieneLasMismasColumnas_YSoloLasOrdenesDelRangoYLaInstitucion` (solo el rango y la institución; rango vacío con títulos). Infraestructura: `GeneradorReportesTests.HistorialExcel_*`. | Aprobado |
+| CP-031 | CA-HU-027-01: la hoja de vida en PDF con datos técnicos e historial de intervenciones. | RF-027, RN-008 | Integración (con MongoDB): `CriteriosHu007Tests.CA_HU_027_01_HojaDeVida_SaleEnPdf_ParaElAuditor_YNoParaOtraInstitucion` (AC-07 la descarga; otra institución 404; Técnico 403). Infraestructura: `GeneradorReportesTests.HojaVida_*`. | Aprobado |
+| CP-031 | CA-HU-027-02: con muchas intervenciones, el PDF sale en menos de 10 s. | RNF-007 | Infraestructura: `GeneradorReportesTests.HojaVida_ConMuchasIntervenciones_*` (1 000 eventos). | Aprobado |
+
+### Decisiones
+
+- Rango obligatorio, de máximo un año, en fechas de Colombia con el día final incluido; tope de 5 000 filas por archivo.
+- Columnas del historial: fecha, placa, equipo, ubicación, tipo, tiquete, técnico, estado, cierre y aprobada por. Los costos (en MongoDB) no van todavía.
+
+### Pendientes
+
+- **Pantalla UI-022 (Exportación):** resuelta en B2-11 (`ReportesViewModelTests.Exportar_*` y `HojaDeVida_*`). La hoja de vida se genera eligiendo el equipo por placa; falta el botón «Generar PDF» dentro de UI-006.
+- Costos de la intervención en el historial exportado.
+
+## HU-026 · Tablero de indicadores
+
+RF-026 · RN-008 · API-KPI (`GET /api/v1/indicadores?desde&hasta`)
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-030 | CA-HU-026-01: el tablero muestra los cinco indicadores calculados sobre los datos de la institución. | RF-026, RN-008 | Integración (con MongoDB): `CriteriosHu026Tests.CA_HU_026_01_LosCincoIndicadores_SeCalculanSobreLosDatosDeLaInstitucion`. Aplicación: `ConsultaIndicadoresTests`. | Aprobado |
+| CP-030 | CA-HU-026-02: la Directiva solo consulta los indicadores, sin acceso a otros módulos. | RNF-003 | Integración: `CriteriosHu026Tests.CA_HU_026_02_Directiva_SoloConsultaElTablero` (200 en el tablero; 403 en equipos, órdenes, tiquetes, calibraciones y usuarios). | Aprobado |
+
+### Decisiones
+
+- Periodo por defecto: los últimos 30 días; máximo un año; fechas de Colombia.
+- **Cumplimiento preventivo:** preventivas con fecha programada en el periodo que están cerradas o aprobadas. **MTTR:** promedio en horas de las correctivas cerradas en el periodo, de la creación al cierre. **MTBF:** horas del periodo × equipos activos ÷ fallas reportadas. **Costo por equipo:** costo de las intervenciones del periodo (MongoDB) ÷ equipos activos. **Fuera de servicio:** equipos activos en ese estado hoy.
+- Sin datos, el indicador es null; si MongoDB no responde, el costo es null y `costosCompletos = false`.
+
+### Pendientes
+
+- **Pantalla UI-021 (tablero):** resuelta en B2-11 (`ReportesViewModelTests.Tablero_*`).

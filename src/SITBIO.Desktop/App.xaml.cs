@@ -44,6 +44,13 @@ public partial class App : Application
         servicios.AddTransient<BandejaViewModel>();
         servicios.AddTransient<IServicioAnalitica, ServicioAnaliticaHttp>();
         servicios.AddTransient<AnaliticaViewModel>();
+        servicios.AddTransient<IServicioMantenimiento, ServicioMantenimientoHttp>();
+        servicios.AddTransient<MantenimientosViewModel>();
+        servicios.AddTransient<CentroAlertasViewModel>();
+        servicios.AddTransient<IServicioReportes, ServicioReportesHttp>();
+        servicios.AddSingleton<IDialogoArchivos, DialogoArchivosWpf>();
+        servicios.AddTransient<ReportesViewModel>();
+        servicios.AddTransient<ExportacionViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
         servicios.AddSingleton(TimeProvider.System);
         servicios.AddSingleton<ControlSesion>(sp => new ControlSesion(

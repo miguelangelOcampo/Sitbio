@@ -8,6 +8,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
     <PackageReference Include="MongoDB.Driver" />
     <PackageReference Include="BCrypt.Net-Next" />
+    <PackageReference Include="QuestPDF" />
+    <PackageReference Include="ClosedXML" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
   </ItemGroup>
   <ItemGroup>

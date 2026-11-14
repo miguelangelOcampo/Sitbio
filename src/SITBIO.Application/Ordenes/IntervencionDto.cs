@@ -108,6 +108,9 @@ public interface IRepositorioIntervenciones
     /// <summary>Intervención de la orden; null si aún no se registró.</summary>
     Task<IntervencionGuardada?> ObtenerAsync(Guid ordenId, CancellationToken cancellationToken);
 
+    /// <summary>Intervenciones del equipo en la institución, de la más antigua a la más reciente (línea de tiempo, HU-023).</summary>
+    Task<IReadOnlyList<Intervencion>> DelEquipoAsync(Guid equipoId, CancellationToken cancellationToken);
+
     /// <summary>
     /// Inserta el documento (sin <paramref name="objectIdExistente"/>) o lo reemplaza si no está firmado
     /// (RN-004). Devuelve el ObjectId del documento.

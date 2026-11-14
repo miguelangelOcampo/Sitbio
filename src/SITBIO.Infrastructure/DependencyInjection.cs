@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<IRepositorioOrdenes, RepositorioOrdenes>();
         services.AddScoped<IRepositorioPlanes, RepositorioPlanes>();
         services.AddScoped<IRepositorioCalibraciones, RepositorioCalibraciones>();
+        services.AddScoped<IRepositorioLineaTiempo, RepositorioLineaTiempo>();
         services.AddScoped<IRepositorioCatalogos, RepositorioCatalogos>();
 
         // Configuración de la institución (HU-024).

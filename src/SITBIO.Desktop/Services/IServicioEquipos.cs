@@ -13,7 +13,16 @@ public interface IServicioEquipos
     Task<Equipo> CrearAsync(DatosEquipo datos, CancellationToken cancellationToken);
 
     Task<Equipo> ActualizarAsync(Guid id, DatosEquipo datos, CancellationToken cancellationToken);
+
+    /// <summary>Línea de tiempo del equipo (HU-023): del evento más antiguo al más reciente.</summary>
+    Task<LineaTiempo> LineaTiempoAsync(Guid id, CancellationToken cancellationToken);
 }
+
+/// <summary>Evento de GET /equipos/{id}/linea-tiempo; <see cref="Tipo"/> es registro, estado, tiquete, orden, intervencion o calibracion.</summary>
+public sealed record EventoLineaTiempo(DateTimeOffset Fecha, string Tipo, string Titulo, string? Detalle, string? Responsable, Guid? ReferenciaId);
+
+/// <summary>Respuesta de GET /equipos/{id}/linea-tiempo; IntervencionesCompletas es false si faltan las de MongoDB.</summary>
+public sealed record LineaTiempo(Guid EquipoId, string PlacaInventario, IReadOnlyList<EventoLineaTiempo> Eventos, bool IntervencionesCompletas);
 
 /// <summary>Cuerpo de POST y PUT /equipos (RF-030, CA-HU-002-06).</summary>
 public sealed record DatosEquipo(

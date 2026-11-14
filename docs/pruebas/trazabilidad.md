@@ -495,3 +495,26 @@ Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO` definidas: `dotnet test S
 - **Calibración «no conforme»:** cuenta para la vigencia como cualquier otra, así que no anula una anterior vigente. Decidir si debe excluirse de RN-007 y de las alertas.
 - **Equipo que requiere calibración sin ningún registro:** no bloquea el cierre ni genera alerta (RN-007 habla de calibración vencida). Decidir si debe tratarse como vencida.
 - **Certificado y orden asociada:** `documento_id` (certificado en `documento_equipo`) y `orden_id` no se llenan aún; llegan con los documentos del equipo.
+
+## HU-023 · Línea de tiempo del equipo
+
+RF-023 · RN-008 · API-EQ-HV (`GET /api/v1/equipos/{id}/linea-tiempo`) · UI-006 pestaña «Historial» (CMP-UI-014)
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-027 | CA-HU-023-01: la hoja de vida muestra en orden cronológico el registro, los cambios de estado, los tiquetes, las órdenes, las intervenciones y las calibraciones del equipo. | RF-023 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu023Tests.CA_HU_023_01_LineaDeTiempo_UneElCicloDeVidaEnOrdenCronologico`. Aplicación: `ConsultaLineaTiempoTests` (orden, títulos, sin MongoDB). Cliente: `DetalleEquipoViewModelTests.Historial_*`. | Aprobado |
+| CP-027 | CA-HU-023-02: el Ente Regulador consulta la línea de tiempo sin poder modificar nada. | RF-023, RNF-003 | Integración: `CriteriosHu023Tests.CA_HU_023_02_EnteRegulador_ConsultaLaLineaDeTiempo_PeroNoEdita` (200 al consultar; 403 al editar el equipo, registrar calibración o reportar falla). | Aprobado |
+| CP-036 | Aislamiento: una institución no ve la línea de tiempo de otra. | RN-008 | Integración: `CriteriosHu023Tests.OtraInstitucion_NoVeLaLineaDeTiempoAjena` (404). | Aprobado |
+
+### Decisiones
+
+- Del evento más antiguo al más reciente; con la misma fecha: registro, falla, orden, intervención, calibración, estado. La calibración se ubica por su fecha (a las 00:00 de Colombia), aunque sea anterior al registro en SITBIO.
+- Si MongoDB no responde, se devuelve lo de PostgreSQL con `intervencionesCompletas = false` y la pantalla lo avisa.
+
+### Cómo reproducir
+
+`dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu023Tests|FullyQualifiedName~ConsultaLineaTiempoTests|FullyQualifiedName~DetalleEquipoViewModelTests"`; solo `CA_HU_023_01_*` necesita MongoDB.
+
+### Pendientes
+
+- Sin paginación: con historias muy largas habrá que paginar o filtrar por tipo.

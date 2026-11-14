@@ -5,8 +5,8 @@ using Sitbio.Desktop.Services;
 namespace Sitbio.Desktop.ViewModels;
 
 /// <summary>
-/// UI-006 Hoja de vida del equipo (HU-002; RF-030, RN-010). Pestañas «Resumen» e «Información
-/// técnica»; mantenimientos, historial y documentos llegan con sus historias (HU-023, HU-015).
+/// UI-006 Hoja de vida del equipo (HU-002; RF-030, RN-010). Pestañas «Resumen», «Información
+/// técnica» e «Historial» (línea de tiempo, HU-023); los documentos llegan con HU-015.
 /// Solo lectura en este commit: registrar y editar llegan con el formulario (UI-007).
 /// </summary>
 public partial class DetalleEquipoViewModel(
@@ -43,14 +43,96 @@ public partial class DetalleEquipoViewModel(
         nameof(InformacionRegulatoria))]
     private Equipo? _equipo;
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EnTecnica))]
-    private bool _enResumen = true;
+    private enum Pestana
+    {
+        Resumen,
+        Tecnica,
+        Historial,
+    }
+
+    private Pestana _pestana = Pestana.Resumen;
+
+    public bool EnResumen
+    {
+        get => _pestana == Pestana.Resumen;
+        set => Elegir(Pestana.Resumen, value);
+    }
 
     public bool EnTecnica
     {
-        get => !EnResumen;
-        set => EnResumen = !value;
+        get => _pestana == Pestana.Tecnica;
+        set => Elegir(Pestana.Tecnica, value);
+    }
+
+    /// <summary>«Historial»: la línea de tiempo se pide la primera vez que se abre la pestaña.</summary>
+    public bool EnHistorial
+    {
+        get => _pestana == Pestana.Historial;
+        set => Elegir(Pestana.Historial, value);
+    }
+
+    private void Elegir(Pestana pestana, bool elegida)
+    {
+        if (!elegida || _pestana == pestana)
+        {
+            return;
+        }
+
+        _pestana = pestana;
+        OnPropertyChanged(nameof(EnResumen));
+        OnPropertyChanged(nameof(EnTecnica));
+        OnPropertyChanged(nameof(EnHistorial));
+        if (pestana == Pestana.Historial && Eventos is null && !CargandoHistorial)
+        {
+            _ = CargarHistorialCommand.ExecuteAsync(null);
+        }
+    }
+
+    // ---------- Historial: línea de tiempo (HU-023, CMP-UI-014) ----------
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SinEventos))]
+    private bool _cargandoHistorial;
+
+    [ObservableProperty]
+    private Aviso? _avisoHistorial;
+
+    /// <summary>Los eventos del más antiguo al más reciente (orden cronológico, CA-HU-023-01); null hasta cargarlos.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SinEventos))]
+    private IReadOnlyList<FilaEvento>? _eventos;
+
+    /// <summary>MongoDB no respondió: se ve lo demás y se avisa que faltan las intervenciones.</summary>
+    [ObservableProperty]
+    private Aviso? _historialIncompleto;
+
+    public bool SinEventos => !CargandoHistorial && Eventos is { Count: 0 };
+
+    [RelayCommand]
+    private async Task CargarHistorialAsync()
+    {
+        CargandoHistorial = true;
+        try
+        {
+            var linea = await servicio.LineaTiempoAsync(equipoId, CancellationToken.None);
+            Eventos = linea.Eventos.Select(e => new FilaEvento(e)).ToList();
+            HistorialIncompleto = linea.IntervencionesCompletas
+                ? null
+                : new Aviso("Faltan las intervenciones", "El repositorio de documentos no respondió; el resto del historial está completo. Intenta de nuevo en unos minutos.", "MSG-011", EsError: false, PuedeReintentar: true);
+            AvisoHistorial = null;
+        }
+        catch (ErrorApi error)
+        {
+            AvisoHistorial = new Aviso(
+                error.SinConexion ? "Sin conexión" : "No pudimos cargar el historial",
+                error.Message,
+                error.SinConexion ? "MSG-011" : error.Codigo,
+                PuedeReintentar: true);
+        }
+        finally
+        {
+            CargandoHistorial = false;
+        }
     }
 
     public bool HayEquipo => Equipo is not null;
@@ -221,3 +303,35 @@ public partial class DetalleEquipoViewModel(
 
 /// <summary>Par etiqueta–valor de la hoja de vida; <see cref="Codigo"/> usa letra monoespaciada.</summary>
 public sealed record Dato(string Etiqueta, string Valor, bool Codigo = false);
+
+/// <summary>Un evento de la línea de tiempo con su marca (una por tipo, CMP-UI-014).</summary>
+public sealed record FilaEvento(EventoLineaTiempo Evento)
+{
+    public string Fecha => Evento.Fecha.ToLocalTime().ToString("dd/MM/yyyy HH:mm", TextosEquipo.Cultura);
+
+    public string Titulo => Evento.Titulo;
+
+    public string? Detalle => Evento.Detalle;
+
+    public string? Responsable => Evento.Responsable;
+
+    public string Tipo => Evento.Tipo switch
+    {
+        "registro" => "Registro",
+        "estado" => "Estado",
+        "tiquete" => "Tiquete",
+        "orden" => "Orden de trabajo",
+        "intervencion" => "Intervención",
+        "calibracion" => "Calibración",
+        _ => Evento.Tipo,
+    };
+
+    public TonoEstado Tono => Evento.Tipo switch
+    {
+        "tiquete" => TonoEstado.Advertencia,
+        "estado" when Evento.Titulo.Contains("Fuera de servicio", StringComparison.OrdinalIgnoreCase) || Evento.Titulo.EndsWith("Baja", StringComparison.OrdinalIgnoreCase) => TonoEstado.Critico,
+        "calibracion" when Evento.Titulo.Contains("no conforme", StringComparison.OrdinalIgnoreCase) => TonoEstado.Critico,
+        "intervencion" or "calibracion" or "registro" => TonoEstado.Exito,
+        _ => TonoEstado.Neutro,
+    };
+}

@@ -51,6 +51,16 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var alertas = servicios.GetRequiredService<CentroAlertasViewModel>();
                 alertas.CargarCommand.Execute(null);
                 return alertas;
+            // UI-021 Reportes e indicadores (HU-026): AC-01, AC-02, AC-05, AC-06 y AC-07; solo consulta.
+            case ReportesViewModel.IdPantalla:
+                var indicadores = servicios.GetRequiredService<ReportesViewModel>();
+                indicadores.CargarCommand.Execute(null);
+                return indicadores;
+            // UI-022 Exportación (HU-007, HU-027): historial para AC-01, AC-02 y AC-05; hoja de vida también para AC-07.
+            case ExportacionViewModel.IdPantalla:
+                var exportacion = servicios.GetRequiredService<ExportacionViewModel>();
+                exportacion.CargarCommand.Execute(null);
+                return exportacion;
             case "UI-019":
                 var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
                 catalogos.CargarCommand.Execute(null);

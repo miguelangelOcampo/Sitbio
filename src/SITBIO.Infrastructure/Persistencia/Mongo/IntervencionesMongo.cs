@@ -156,6 +156,20 @@ public sealed class IntervencionesMongo(IMongoDatabase baseDatos, IContextoUsuar
         }
     }
 
+    public async Task<decimal> CostoEnPeriodoAsync(DateTimeOffset desde, DateTimeOffset hasta, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var filtro = Filtro.And(Filtro.Gte(d => d.FechaIntervencion, desde.UtcDateTime), Filtro.Lt(d => d.FechaIntervencion, hasta.UtcDateTime));
+            var documentos = await BuscarAsync(filtro, new FindOptions<DocumentoIntervencion, DocumentoIntervencion>(), cancellationToken);
+            return Math.Round((decimal)documentos.Sum(d => d.CostoTotal), 2, MidpointRounding.AwayFromZero);
+        }
+        catch (Exception error) when (error is MongoException or TimeoutException)
+        {
+            throw new ErrorServicioNoDisponible(error);
+        }
+    }
+
     public async Task<string> GuardarAsync(Intervencion intervencion, string? objectIdExistente, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(intervencion);

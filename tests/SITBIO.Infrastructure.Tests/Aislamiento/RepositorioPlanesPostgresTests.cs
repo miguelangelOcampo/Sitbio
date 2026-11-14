@@ -16,6 +16,8 @@ namespace Sitbio.Infrastructure.Tests.Aislamiento;
 /// dentro de la institución; la generación de órdenes preventivas toma los planes activos que llegaron a
 /// su fecha, no repite la orden (ni con consultas simultáneas) y omite los suspendidos y los equipos dados
 /// de baja; las alertas leen los planes y la última vigencia de calibración de los equipos que la requieren.
+/// También <see cref="RepositorioCalibraciones"/> (HU-022): la calibración se guarda y se lee con su equipo,
+/// su laboratorio y sus responsables, solo dentro de la institución.
 /// </summary>
 public class RepositorioPlanesPostgresTests : IAsyncLifetime
 {
@@ -107,7 +109,7 @@ public class RepositorioPlanesPostgresTests : IAsyncLifetime
         var (contexto, _) = Crear(_tenantA);
         await using (contexto)
         {
-            foreach (var tabla in new[] { "calibracion", "orden_trabajo", "plan_preventivo", "historial_estado_equipo", "equipo_biomedico", "tipo_equipo", "ubicacion", "usuario" })
+            foreach (var tabla in new[] { "calibracion", "proveedor", "orden_trabajo", "plan_preventivo", "historial_estado_equipo", "equipo_biomedico", "tipo_equipo", "ubicacion", "usuario" })
             {
                 await contexto.Database.ExecuteSqlRawAsync(
                     $"DELETE FROM sitbio.{tabla} WHERE tenant_id IN (@a, @b)",
@@ -260,6 +262,69 @@ public class RepositorioPlanesPostgresTests : IAsyncLifetime
             var alerta = Assert.Single(hasta20);
             Assert.Equal((_equipoA, "PL-PL1", "Bomba de infusión", "UCI", Hoy.AddDays(10)), (alerta.EquipoId, alerta.PlacaInventario, alerta.TipoEquipo, alerta.Ubicacion, alerta.FechaVencimiento));
             Assert.Empty(await planes.CalibracionesPorVencerAsync(Hoy.AddDays(5), CancellationToken.None));
+        }
+    }
+
+    [FactIntegracion(Variable)]
+    public async Task Calibraciones_SeGuardanYSeLeenConEquipoLaboratorioYResponsables_SoloEnLaInstitucion()
+    {
+        var fecha = Hoy.AddDays(-3);
+        RegistroCalibracion aprobada;
+        RegistroCalibracion pendiente;
+        var (contexto, _) = Crear(_tenantA);
+        await using (contexto)
+        {
+            var laboratorio = new Proveedor(_tenantA, "Metrología Andina", $"9{Random.Shared.Next(10_000_000, 99_999_999)}", "Laboratorio de calibración");
+            contexto.Add(laboratorio);
+            await contexto.SaveChangesAsync();
+
+            var calibraciones = new RepositorioCalibraciones(contexto);
+            Assert.True(await calibraciones.ExisteProveedorAsync(laboratorio.Id, CancellationToken.None));
+            Assert.False(await calibraciones.ExisteProveedorAsync(Guid.NewGuid(), CancellationToken.None));
+            Assert.Equal(new EquipoDeCalibracion(_equipoA, "PL-PL1", false, true, 12), await calibraciones.EquipoAsync(_equipoA, CancellationToken.None));
+            Assert.Equal(new EquipoDeCalibracion(_sinCalibracionA, "PL-PL2", false, false, null), await calibraciones.EquipoAsync(_sinCalibracionA, CancellationToken.None));
+
+            aprobada = new RegistroCalibracion(_tenantA, _equipoA, _tecnicoA, fecha, "Analizador Fluke IDA-5", RegistroCalibracion.Conforme, fecha.AddMonths(12), "CERT-001", laboratorio.Id);
+            pendiente = new RegistroCalibracion(_tenantA, _equipoA, _tecnicoA, fecha.AddDays(1), "Simulador de paciente", RegistroCalibracion.NoConforme, fecha.AddDays(1));
+            calibraciones.Agregar(aprobada);
+            calibraciones.Agregar(pendiente);
+            await calibraciones.GuardarAsync(CancellationToken.None);
+            (await calibraciones.CalibracionAsync(aprobada.Id, CancellationToken.None))!.Aprobar(_ingenieroA);
+            await calibraciones.GuardarAsync(CancellationToken.None);
+        }
+
+        var (lectura, _) = Crear(_tenantA);
+        await using (lectura)
+        {
+            var calibraciones = new RepositorioCalibraciones(lectura);
+            var leida = (await calibraciones.ObtenerAsync(aprobada.Id, CancellationToken.None))!;
+            Assert.Equal(("PL-PL1", "Bomba de infusión", "UCI", "Metrología Andina", "Ana Mora", "Ana Mora"), (leida.PlacaInventario, leida.TipoEquipo, leida.Ubicacion, leida.Proveedor, leida.RegistradoPor, leida.AprobadoPor));
+            Assert.Equal((fecha, fecha.AddMonths(12), "Analizador Fluke IDA-5", "CERT-001", true), (leida.Calibracion.FechaCalibracion, leida.Calibracion.FechaVencimiento, leida.Calibracion.PatronReferencia, leida.Calibracion.NumeroCertificado, leida.Calibracion.Aprobada));
+
+            var sinLaboratorio = (await calibraciones.ObtenerAsync(pendiente.Id, CancellationToken.None))!;
+            Assert.Equal(((string?)null, (string?)null, RegistroCalibracion.NoConforme, false), (sinLaboratorio.Proveedor, sinLaboratorio.AprobadoPor, sinLaboratorio.Calibracion.Resultado, sinLaboratorio.Calibracion.Aprobada));
+
+            var (delEquipo, total) = await calibraciones.ListarAsync(new FiltroCalibraciones(_equipoA), CancellationToken.None);
+            Assert.Equal((2, pendiente.Id, aprobada.Id), (total, delEquipo[0].Calibracion.Id, delEquipo[1].Calibracion.Id));
+            Assert.Equal(0, (await calibraciones.ListarAsync(new FiltroCalibraciones(_sinCalibracionA), CancellationToken.None)).Total);
+        }
+
+        // La vigencia del equipo (RN-007) es el vencimiento más lejano de sus calibraciones.
+        var (ordenes, _) = Crear(_tenantA);
+        await using (ordenes)
+        {
+            var equipo = await new RepositorioOrdenes(ordenes).EquipoAsync(_equipoA, CancellationToken.None);
+            Assert.Equal(fecha.AddMonths(12), equipo!.VenceCalibracion);
+        }
+
+        var (contextoB, _) = Crear(_tenantB);
+        await using (contextoB)
+        {
+            var calibracionesB = new RepositorioCalibraciones(contextoB);
+            Assert.Null(await calibracionesB.ObtenerAsync(aprobada.Id, CancellationToken.None));
+            Assert.Null(await calibracionesB.CalibracionAsync(aprobada.Id, CancellationToken.None));
+            Assert.Null(await calibracionesB.EquipoAsync(_equipoA, CancellationToken.None));
+            Assert.Equal(0, (await calibracionesB.ListarAsync(new FiltroCalibraciones(), CancellationToken.None)).Total);
         }
     }
 }

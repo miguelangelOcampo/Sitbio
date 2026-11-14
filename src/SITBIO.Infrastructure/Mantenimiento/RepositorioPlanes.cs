@@ -131,16 +131,11 @@ public sealed class RepositorioPlanes(SitbioDbContext contexto, IContextoUsuario
 
     public async Task<IReadOnlyList<CalibracionPorVencer>> CalibracionesPorVencerAsync(DateOnly limite, CancellationToken cancellationToken)
     {
-        // calibracion aún no tiene entidad (HU-022): la última vigencia de cada equipo se lee con el tenant del token.
-        var tenant = contextoUsuario.TenantId;
-        var vigencias = await contexto.Database
-            .SqlQuery<Vigencia>($"""
-                SELECT equipo_id AS "EquipoId", max(fecha_vencimiento) AS "FechaVencimiento"
-                FROM sitbio.calibracion
-                WHERE tenant_id = {tenant}
-                GROUP BY equipo_id
-                HAVING max(fecha_vencimiento) <= {limite}
-                """)
+        // Vigencia de cada equipo: el vencimiento más lejano de sus calibraciones (HU-022).
+        var vigencias = await contexto.Calibraciones.AsNoTracking()
+            .GroupBy(c => c.EquipoId)
+            .Select(g => new { EquipoId = g.Key, FechaVencimiento = g.Max(c => c.FechaVencimiento) })
+            .Where(v => v.FechaVencimiento <= limite)
             .ToListAsync(cancellationToken);
         if (vigencias.Count == 0)
         {
@@ -164,11 +159,4 @@ public sealed class RepositorioPlanes(SitbioDbContext contexto, IContextoUsuario
         join t in contexto.TiposEquipo on e.TipoEquipoId equals t.Id
         join u in contexto.Ubicaciones on e.UbicacionId equals u.Id
         select new PlanLeido(p, e.PlacaInventario, t.Nombre, u.Nombre);
-
-    private sealed class Vigencia
-    {
-        public Guid EquipoId { get; set; }
-
-        public DateOnly FechaVencimiento { get; set; }
-    }
 }

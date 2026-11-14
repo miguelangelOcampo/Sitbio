@@ -111,11 +111,10 @@ public sealed class RepositorioOrdenes(SitbioDbContext contexto) : IRepositorioO
             return null;
         }
 
-        // calibracion aún no tiene entidad (HU-022): se lee la última vigencia con el tenant del propio equipo.
-        var tenant = leido.Equipo.TenantId;
-        var vence = await contexto.Database
-            .SqlQuery<DateOnly?>($"SELECT max(fecha_vencimiento) AS \"Value\" FROM sitbio.calibracion WHERE tenant_id = {tenant} AND equipo_id = {equipoId}")
-            .SingleAsync(cancellationToken);
+        // Vigencia del equipo: el vencimiento más lejano de sus calibraciones (HU-022, RN-007).
+        var vence = await contexto.Calibraciones.AsNoTracking()
+            .Where(c => c.EquipoId == equipoId)
+            .MaxAsync(c => (DateOnly?)c.FechaVencimiento, cancellationToken);
         return new EquipoDeLaOrden(leido.Equipo, leido.Tipo, leido.Ubicacion, vence);
     }
 

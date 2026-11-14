@@ -537,7 +537,7 @@ RF-008 · RF-027 · RNF-007 · RN-008 · API-REP (`GET /api/v1/reportes/ordenes?
 
 ### Pendientes
 
-- Pantalla de exportación UI-022 y botón «Generar PDF» en UI-006: llegan con B2-11.
+- **Pantalla UI-022 (Exportación):** resuelta en B2-11 (`ReportesViewModelTests.Exportar_*` y `HojaDeVida_*`). La hoja de vida se genera eligiendo el equipo por placa; falta el botón «Generar PDF» dentro de UI-006.
 - Costos de la intervención en el historial exportado.
 
 ## HU-026 · Tablero de indicadores
@@ -557,4 +557,4 @@ RF-026 · RN-008 · API-KPI (`GET /api/v1/indicadores?desde&hasta`)
 
 ### Pendientes
 
-- Pantalla UI-021 del tablero: llega con B2-11.
+- **Pantalla UI-021 (tablero):** resuelta en B2-11 (`ReportesViewModelTests.Tablero_*`).

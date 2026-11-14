@@ -36,6 +36,20 @@ internal static class PeticionApi
         using var respuesta = await SolicitarAsync(cliente, metodo, ruta, cuerpo, mensajePorEstado, cancellationToken);
     }
 
+    /// <summary>GET de un archivo (PDF o Excel) con el nombre que propone la API en Content-Disposition.</summary>
+    public static async Task<ArchivoDescargado> DescargarAsync(
+        ClienteApi cliente,
+        string ruta,
+        Func<int, string?> mensajePorEstado,
+        CancellationToken cancellationToken)
+    {
+        using var respuesta = await SolicitarAsync(cliente, HttpMethod.Get, ruta, null, mensajePorEstado, cancellationToken);
+        var contenido = await respuesta.Content.ReadAsByteArrayAsync(cancellationToken);
+        var disposicion = respuesta.Content.Headers.ContentDisposition;
+        var nombre = (disposicion?.FileNameStar ?? disposicion?.FileName)?.Trim('"');
+        return new ArchivoDescargado(contenido, string.IsNullOrWhiteSpace(nombre) ? "reporte" : nombre);
+    }
+
     /// <summary>Respuesta exitosa (que el llamador libera) o <see cref="ErrorApi"/>.</summary>
     private static async Task<HttpResponseMessage> SolicitarAsync(
         ClienteApi cliente,

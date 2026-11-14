@@ -34,6 +34,12 @@
     <DataTemplate DataType="{x:Type vm:MantenimientosViewModel}">
       <views:MantenimientosView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ReportesViewModel}">
+      <views:ReportesView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ExportacionViewModel}">
+      <views:ExportacionView />
+    </DataTemplate>
 
     <!-- Tarjeta de alerta de UI-016: estado con punto y texto (ACC-001); la revisada se atenúa. -->
     <Style x:Key="PuntoAlerta" TargetType="Ellipse" BasedOn="{StaticResource StatusDot}">

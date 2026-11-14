@@ -10,6 +10,7 @@ using Sitbio.Application.Equipos;
 using Sitbio.Application.Instituciones;
 using Sitbio.Application.Mantenimiento;
 using Sitbio.Application.Ordenes;
+using Sitbio.Application.Reportes;
 using Sitbio.Application.Seguridad;
 using Sitbio.Application.Tiquetes;
 using Sitbio.Application.Usuarios;
@@ -21,6 +22,7 @@ using Sitbio.Infrastructure.Mantenimiento;
 using Sitbio.Infrastructure.Persistencia;
 using Sitbio.Infrastructure.Persistencia.Mongo;
 using Sitbio.Infrastructure.Peticiones;
+using Sitbio.Infrastructure.Reportes;
 using Sitbio.Infrastructure.Seguridad;
 
 namespace Sitbio.Infrastructure;
@@ -75,6 +77,10 @@ public static class DependencyInjection
         services.AddScoped<IRepositorioCalibraciones, RepositorioCalibraciones>();
         services.AddScoped<IRepositorioLineaTiempo, RepositorioLineaTiempo>();
         services.AddScoped<IRepositorioCatalogos, RepositorioCatalogos>();
+
+        // Reportes (HU-007, HU-027; ADR-009).
+        services.AddScoped<IRepositorioReportes, RepositorioReportes>();
+        services.AddSingleton<IGeneradorReportes, GeneradorReportes>();
 
         // Configuración de la institución (HU-024).
         services.AddScoped<IRepositorioInstitucion, RepositorioInstitucion>();

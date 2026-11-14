@@ -256,7 +256,25 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             FROM generate_series(1, {cantidad}) AS g
             """));
 
-    /// <summary>Calibración del equipo directamente en la base (el registro de calibraciones llega con HU-022), para RN-007.</summary>
+    /// <summary>Laboratorio de calibración de la institución directamente en la base; devuelve su id.</summary>
+    public async Task<Guid> CrearLaboratorioAsync(Guid tenant, string nombre)
+    {
+        var id = Guid.NewGuid();
+        var nit = $"9{Random.Shared.Next(10_000_000, 99_999_999)}";
+        await EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.proveedor (id_proveedor, tenant_id, nombre, nit, tipo_proveedor) VALUES ({id}, {tenant}, {nombre}, {nit}, {"Laboratorio de calibración"})"));
+        return id;
+    }
+
+    /// <summary>Calibraciones del equipo, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<List<RegistroCalibracion>> LeerCalibracionesAsync(Guid equipoId)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Calibraciones.IgnoreQueryFilters().AsNoTracking().Where(c => c.EquipoId == equipoId).ToListAsync();
+    }
+
+    /// <summary>Calibración del equipo directamente en la base, para preparar vigencias pasadas (RN-007) o equipos sin calibración (RN-010).</summary>
     public Task RegistrarCalibracionAsync(Guid tenant, Guid equipoId, Guid usuarioId, DateOnly fecha, DateOnly vence) =>
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"INSERT INTO sitbio.calibracion (tenant_id, equipo_id, registrado_por_id, fecha_calibracion, patron_referencia, fecha_vencimiento) VALUES ({tenant}, {equipoId}, {usuarioId}, {fecha}, {"Analizador Fluke IDA-5"}, {vence})"));

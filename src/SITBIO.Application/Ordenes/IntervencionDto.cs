@@ -111,6 +111,9 @@ public interface IRepositorioIntervenciones
     /// <summary>Intervenciones del equipo en la institución, de la más antigua a la más reciente (línea de tiempo, HU-023).</summary>
     Task<IReadOnlyList<Intervencion>> DelEquipoAsync(Guid equipoId, CancellationToken cancellationToken);
 
+    /// <summary>Costo total de las intervenciones de la institución registradas en [desde, hasta) (tablero, HU-026).</summary>
+    Task<decimal> CostoEnPeriodoAsync(DateTimeOffset desde, DateTimeOffset hasta, CancellationToken cancellationToken);
+
     /// <summary>
     /// Inserta el documento (sin <paramref name="objectIdExistente"/>) o lo reemplaza si no está firmado
     /// (RN-004). Devuelve el ObjectId del documento.

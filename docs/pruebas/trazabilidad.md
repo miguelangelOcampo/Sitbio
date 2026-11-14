@@ -539,3 +539,22 @@ RF-008 · RF-027 · RNF-007 · RN-008 · API-REP (`GET /api/v1/reportes/ordenes?
 
 - Pantalla de exportación UI-022 y botón «Generar PDF» en UI-006: llegan con B2-11.
 - Costos de la intervención en el historial exportado.
+
+## HU-026 · Tablero de indicadores
+
+RF-026 · RN-008 · API-KPI (`GET /api/v1/indicadores?desde&hasta`)
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-030 | CA-HU-026-01: el tablero muestra los cinco indicadores calculados sobre los datos de la institución. | RF-026, RN-008 | Integración (con MongoDB): `CriteriosHu026Tests.CA_HU_026_01_LosCincoIndicadores_SeCalculanSobreLosDatosDeLaInstitucion`. Aplicación: `ConsultaIndicadoresTests`. | Aprobado |
+| CP-030 | CA-HU-026-02: la Directiva solo consulta los indicadores, sin acceso a otros módulos. | RNF-003 | Integración: `CriteriosHu026Tests.CA_HU_026_02_Directiva_SoloConsultaElTablero` (200 en el tablero; 403 en equipos, órdenes, tiquetes, calibraciones y usuarios). | Aprobado |
+
+### Decisiones
+
+- Periodo por defecto: los últimos 30 días; máximo un año; fechas de Colombia.
+- **Cumplimiento preventivo:** preventivas con fecha programada en el periodo que están cerradas o aprobadas. **MTTR:** promedio en horas de las correctivas cerradas en el periodo, de la creación al cierre. **MTBF:** horas del periodo × equipos activos ÷ fallas reportadas. **Costo por equipo:** costo de las intervenciones del periodo (MongoDB) ÷ equipos activos. **Fuera de servicio:** equipos activos en ese estado hoy.
+- Sin datos, el indicador es null; si MongoDB no responde, el costo es null y `costosCompletos = false`.
+
+### Pendientes
+
+- Pantalla UI-021 del tablero: llega con B2-11.

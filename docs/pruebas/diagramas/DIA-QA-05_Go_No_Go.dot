@@ -1,0 +1,55 @@
+digraph G {
+  graph [rankdir=TB, splines=ortho, nodesep=0.35, ranksep=0.32, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-QA-05 · Decisión Go / No-Go para liberar el MVP</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-07, sección 12 y Tabla 10</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  s [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Reunión de cierre del Sprint 6</b>>, peripheries=1];
+  a [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Reúne el reporte de la CI y la<br/>Matriz Maestra de Trazabilidad>];
+  c1 [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Cobertura unitaria<br/>≥ 70 %? (RNF-012)>];
+  c2 [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Cero defectos<br/>S1 y S2 abiertos?>];
+  c3 [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿100 % de CP-001<br/>a CP-037 ejecutados?>];
+  c4 [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿&gt; 80 % de RF Must y<br/>Should aprobados? (RNF-013)>];
+  c5 [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿MongoDB y pipeline<br/>K-Means correctos?>];
+  c6 [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Instalación estable en<br/>Windows 10 y 11? (RNF-011)>];
+  no [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<No-Go: plan de corrección,<br/>nueva fecha y nueva evaluación>];
+  go [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Go: liberación del MVP<br/>y acta firmada (sección 14)</b>>, peripheries=1];
+  s -> a -> c1;
+  c1 -> lbl1 [arrowhead=none];
+  lbl1 -> c2;
+  c2 -> lbl2 [arrowhead=none];
+  lbl2 -> c3;
+  c3 -> lbl3 [arrowhead=none];
+  lbl3 -> c4;
+  c4 -> lbl4 [arrowhead=none];
+  lbl4 -> c5;
+  c5 -> lbl5 [arrowhead=none];
+  lbl5 -> c6;
+  c6 -> lbl6 [arrowhead=none];
+  lbl6 -> go;
+  c1 -> lbl7 [arrowhead=none];
+  lbl7 -> no;
+  c2 -> lbl8 [arrowhead=none];
+  lbl8 -> no;
+  c3 -> lbl9 [arrowhead=none];
+  lbl9 -> no;
+  c4 -> lbl10 [arrowhead=none];
+  lbl10 -> no;
+  c5 -> lbl11 [arrowhead=none];
+  lbl11 -> no;
+  c6 -> lbl12 [arrowhead=none];
+  lbl12 -> no;
+  no -> a [style=dashed, constraint=false];
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl6 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl7 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl8 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl9 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl10 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl11 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl12 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

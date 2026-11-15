@@ -1,0 +1,90 @@
+// DIA-007 v1.0 (11/11/2026): modelo conceptual del dominio de SITBIO. Fuente: DOC-06 secciones 8.2 y 8.3 y Tabla 25.
+digraph DIA007 {
+  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-007 · Modelo conceptual del dominio de SITBIO</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-06, secciones 8.2 y 8.3</font><br/> >, rankdir=TB, splines=ortho, nodesep=0.5, ranksep=0.45, fontname="Liberation Sans", bgcolor="white", pad=0.2, forcelabels=true, newrank=true];
+  node  [shape=box, style="rounded,filled", fontname="Liberation Sans", fontsize=11, color="#2F5D8A", fillcolor="#E6EEF7", fontcolor="#222222", margin="0.16,0.09"];
+  edge  [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+    inst [label=<<b>Institución</b><br/><font point-size="9">IPS cliente con su plan del servicio</font>>, fillcolor="#2F5D8A", fontcolor="#FFFFFF", color="#24496D"];
+    usu  [label=<<b>Usuario</b><br/><font point-size="9">persona que usa el sistema</font>>];
+    rol  [label=<<b>Rol</b><br/><font point-size="9">siete roles (AC-01 a AC-07)</font>>];
+    aud  [label=<<b>Evento de auditoría</b><br/><font point-size="9">acción registrada e inalterable</font>>];
+    eq   [label=<<b>Equipo biomédico</b><br/><font point-size="9">hoja de vida con información regulatoria</font>>, fillcolor="#2F5D8A", fontcolor="#FFFFFF", color="#24496D"];
+    tipo [label=<<b>Tipo de equipo</b><br/><font point-size="9">clase de riesgo y calibración por defecto</font>>];
+    ubi  [label=<<b>Ubicación</b>>];
+    prov [label=<<b>Proveedor</b>>];
+    est  [label=<<b>Estado del equipo</b><br/><font point-size="9">Operativo, En mantenimiento,<br/>Fuera de servicio, Baja</font>>];
+    doc  [label=<<b>Documento</b><br/><font point-size="9">manuales, certificados y fotografía</font>>];
+    tiq  [label=<<b>Tiquete</b><br/><font point-size="9">reporte de falla con criticidad</font>>];
+    plan [label=<<b>Plan preventivo</b><br/><font point-size="9">periodicidad y próxima fecha</font>>];
+    ot   [label=<<b>Orden de trabajo</b><br/><font point-size="9">ejecución y aprobación</font>>];
+    intv [label=<<b>Intervención</b><br/><font point-size="9">hoja de servicio con parámetros<br/>propios del tipo de equipo</font>>];
+    cfg  [label=<<b>Configuración de campos</b><br/><font point-size="9">campos dinámicos versionados</font>>];
+    cal  [label=<<b>Calibración</b><br/><font point-size="9">resultado y vigencia</font>>];
+
+  inst -> lbl1 [arrowhead=none];
+
+  lbl1 -> usu;
+  rol -> lbl2 [arrowhead=none];
+  lbl2 -> usu;
+  inst -> lbl3 [arrowhead=none];
+  lbl3 -> eq;
+  usu -> lbl4 [style=dashed, arrowhead=none];
+  lbl4 -> aud [style=dashed];
+  tipo -> lbl5 [arrowhead=none];
+  lbl5 -> eq;
+  ubi -> lbl6 [arrowhead=none];
+  lbl6 -> eq;
+  prov -> lbl7 [arrowhead=none];
+  lbl7 -> eq;
+  est -> lbl8 [arrowhead=none];
+  lbl8 -> eq;
+  eq -> lbl9 [arrowhead=none];
+  lbl9 -> doc;
+  eq -> lbl10 [arrowhead=none];
+  lbl10 -> tiq;
+  eq -> lbl11 [arrowhead=none];
+  lbl11 -> plan;
+  eq -> lbl12 [arrowhead=none];
+  lbl12 -> cal;
+  tiq -> lbl13 [arrowhead=none];
+  lbl13 -> ot;
+  plan -> lbl14 [arrowhead=none];
+  lbl14 -> ot;
+  usu -> lbl15 [arrowhead=none];
+  lbl15 -> ot;
+  ot -> lbl16 [arrowhead=none];
+  lbl16 -> intv;
+  cfg -> lbl17 [arrowhead=none];
+  lbl17 -> intv;
+  tipo -> lbl18 [arrowhead=none];
+  lbl18 -> cfg;
+
+  
+  legend [shape=plaintext, style="", margin=0, label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="4" color="#B5B5B5">
+      <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+      <tr><td bgcolor="#2F5D8A" width="22"></td><td align="left"><font point-size="8.5">Concepto central</font></td></tr>
+      <tr><td bgcolor="#E6EEF7" width="22"></td><td align="left"><font point-size="8.5">Concepto del dominio</font></td></tr>
+      <tr><td width="22"><font point-size="8.5">1 — 0..*</font></td><td align="left"><font point-size="8.5">Cardinalidad: origen — destino de la flecha</font></td></tr>
+      <tr><td colspan="2" align="left"><font point-size="8.5">Todo concepto pertenece a una sola institución (aislamiento multi-tenant).</font></td></tr>
+    </table>>];
+  {rank=same; inst; legend}
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="tiene  1 — 1..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="se asigna a  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="posee  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="genera  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="clasifica  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl6 [shape=box, style="filled", fillcolor="white", color="white", label="aloja  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl7 [shape=box, style="filled", fillcolor="white", color="white", label="suministra  0..1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl8 [shape=box, style="filled", fillcolor="white", color="white", label="describe  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl9 [shape=box, style="filled", fillcolor="white", color="white", label="acumula  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl10 [shape=box, style="filled", fillcolor="white", color="white", label="recibe  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl11 [shape=box, style="filled", fillcolor="white", color="white", label="programa  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl12 [shape=box, style="filled", fillcolor="white", color="white", label="registra  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl13 [shape=box, style="filled", fillcolor="white", color="white", label="origina  1 — 0..1", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl14 [shape=box, style="filled", fillcolor="white", color="white", label="origina  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl15 [shape=box, style="filled", fillcolor="white", color="white", label="ejecuta (técnico)  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl16 [shape=box, style="filled", fillcolor="white", color="white", label="se documenta en  1 — 0..1", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl17 [shape=box, style="filled", fillcolor="white", color="white", label="define los campos de  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl18 [shape=box, style="filled", fillcolor="white", color="white", label="tiene versiones  1 — 0..*", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

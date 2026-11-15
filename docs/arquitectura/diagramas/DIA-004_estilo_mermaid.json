@@ -1,0 +1,38 @@
+{
+ "theme": "base",
+ "themeVariables": {
+  "fontFamily": "Liberation Sans, Arial, sans-serif",
+  "fontSize": "15px",
+  "primaryColor": "#E6EEF7",
+  "primaryBorderColor": "#2F5D8A",
+  "primaryTextColor": "#222222",
+  "actorBkg": "#E6EEF7",
+  "actorBorder": "#2F5D8A",
+  "actorTextColor": "#222222",
+  "actorLineColor": "#9AA5B1",
+  "signalColor": "#444444",
+  "signalTextColor": "#222222",
+  "labelBoxBkgColor": "#F1F1F1",
+  "labelBoxBorderColor": "#8C8C8C",
+  "labelTextColor": "#222222",
+  "loopTextColor": "#24496D",
+  "noteBkgColor": "#FFF4DC",
+  "noteBorderColor": "#B8862B",
+  "noteTextColor": "#222222",
+  "activationBkgColor": "#DCE6F2",
+  "activationBorderColor": "#2F5D8A",
+  "sequenceNumberColor": "#FFFFFF"
+ },
+ "sequence": {
+  "mirrorActors": false,
+  "showSequenceNumbers": false,
+  "actorMargin": 70,
+  "messageMargin": 34,
+  "boxMargin": 8,
+  "noteMargin": 12,
+  "wrap": true,
+  "width": 230,
+  "boxTextMargin": 6,
+  "useMaxWidth": false
+ }
+}

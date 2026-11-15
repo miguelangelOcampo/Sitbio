@@ -1,0 +1,69 @@
+// Fuente editable. Líneas en ángulo recto (splines=ortho); las etiquetas de las decisiones son nodos intermedios. Generar: dot -Tpng -Gdpi=200
+digraph G {
+  graph [rankdir=TB, splines=ortho, nodesep=0.45, ranksep=0.4, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-FLU-001 · Flujo FLU-001: iniciar sesión y acceder por rol</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-05, Tabla 17; CU-001</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  s [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Abre el ejecutable de SITBIO</b>>, peripheries=1];
+  a1 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Ingresa correo y contraseña<br/><font point-size="8" color="#24496D">UI-001</font>>];
+  a2 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Presiona «Iniciar sesión» o Enter<br/><font point-size="8" color="#24496D">UI-001</font>>];
+  a3 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Muestra estado de carga y<br/>deshabilita el botón</i>>];
+  dc [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Hay<br/>conexión?>];
+  e3 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E3 · MSG-011 sin conexión<br/>con «Reintentar»>];
+  dv [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Credenciales<br/>válidas y cuenta<br/>activa?>];
+  db [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Quinto intento<br/>fallido?>];
+  e1 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E1 · MSG-001 sin detallar la causa;<br/>conserva el correo y vacía la contraseña>];
+  e2 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E2 · Cuenta bloqueada (RN-006)<br/>MSG-002 genérico>];
+  a4 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>La API emite el JWT (30 min)</i>>];
+  dt [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Clave<br/>temporal?>];
+  a1x [shape=box, style="rounded,dashed,filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<A1 · Cambia la contraseña<br/><font point-size="8" color="#24496D">UI-002 (modal bloqueante)</font>>];
+  f [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Panel y menú de su rol (UI-003)</b>>, peripheries=1];
+  e4 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E4 · Inactividad de 30 min: MSG-003<br/>y retorno a UI-001 (RF-011)>];
+  a2x [shape=box, style="rounded,dashed,filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<A2 · Cierre de sesión voluntario<br/>desde la barra superior>];
+  f2 [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Fin de la sesión (UI-001)</b>>, peripheries=1];
+  s -> a1 -> a2 -> a3 -> dc;
+  dc -> lbl1 [arrowhead=none];
+  lbl1 -> e3;
+  e3 -> a2 [style=dashed, constraint=false];
+  dc -> lbl2 [arrowhead=none];
+  lbl2 -> dv;
+  dv -> lbl3 [arrowhead=none];
+  lbl3 -> db;
+  db -> lbl4 [arrowhead=none];
+  lbl4 -> e1;
+  db -> lbl5 [arrowhead=none];
+  lbl5 -> e2;
+  e1 -> a1 [style=dashed, constraint=false];
+  dv -> lbl6 [arrowhead=none];
+  lbl6 -> a4;
+  a4 -> dt;
+  dt -> lbl7 [arrowhead=none];
+  lbl7 -> a1x;
+  a1x -> f;
+  dt -> lbl8 [arrowhead=none];
+  lbl8 -> f;
+  f -> e4 [style=dashed];
+  f -> a2x [style=dashed];
+  e4 -> f2;
+  a2x -> f2;
+  legend [shape=plaintext, margin=0, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4" color="#B5B5B5">
+   <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+   <tr><td bgcolor="#2F5D8A" width="22"></td><td align="left"><font point-size="8.5">Inicio o fin del flujo</font></td></tr>
+   <tr><td bgcolor="#E6EEF7" width="22"></td><td align="left"><font point-size="8.5">Acción del usuario (pantalla en azul)</font></td></tr>
+   <tr><td width="22"><font point-size="8.5"><i>abc</i></font></td><td align="left"><font point-size="8.5">Acción del sistema</font></td></tr>
+   <tr><td bgcolor="#FFF4DC" width="22"></td><td align="left"><font point-size="8.5">Decisión</font></td></tr>
+   <tr><td bgcolor="#FBEAEA" width="22"></td><td align="left"><font point-size="8.5">Error y recuperación (E)</font></td></tr>
+   <tr><td width="22"><font point-size="8.5" color="#2F5D8A">- -</font></td><td align="left"><font point-size="8.5">Camino alternativo (A)</font></td></tr>
+  </table>>];
+
+  {rank=same; s; legend}
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl6 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl7 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl8 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

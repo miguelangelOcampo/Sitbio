@@ -1,13 +1,17 @@
 using Sitbio.Api;
 using Microsoft.AspNetCore.Authorization;
 using Sitbio.Api.Errores;
+using Sitbio.Api.Modules.Analitica;
 using Sitbio.Api.Modules.Auditoria;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Api.Modules.Catalogos;
 using Sitbio.Api.Modules.ConfiguracionCampos;
 using Sitbio.Api.Modules.Equipos;
+using Sitbio.Api.Modules.Indicadores;
 using Sitbio.Api.Modules.Instituciones;
+using Sitbio.Api.Modules.Mantenimiento;
 using Sitbio.Api.Modules.Ordenes;
+using Sitbio.Api.Modules.Reportes;
 using Sitbio.Api.Modules.Salud;
 using Sitbio.Api.Modules.Tiquetes;
 using Sitbio.Api.Modules.Usuarios;
@@ -39,6 +43,10 @@ builder.Services.AddModuloSolicitudesServicio(builder.Configuration);
 builder.Services.AddModuloConfiguracionCampos();
 builder.Services.AddModuloTiquetes();
 builder.Services.AddModuloOrdenes();
+builder.Services.AddModuloAnalitica();
+builder.Services.AddModuloMantenimiento();
+builder.Services.AddModuloReportes();
+builder.Services.AddModuloIndicadores();
 
 var app = builder.Build();
 
@@ -65,6 +73,10 @@ api.MapSolicitudesServicio();
 api.MapConfiguracionCampos();
 api.MapTiquetes();
 api.MapOrdenes();
+api.MapAnalitica();
+api.MapMantenimiento();
+api.MapReportes();
+api.MapIndicadores();
 
 app.Run();
 

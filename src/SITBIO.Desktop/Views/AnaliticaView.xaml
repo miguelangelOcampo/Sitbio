@@ -1,0 +1,169 @@
+<!-- UI-023 Analítica (HU-008, HU-009): dispersión de equipos por grupo K-Means y tabla resumen por grupo. -->
+<UserControl x:Class="Sitbio.Desktop.Views.AnaliticaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+
+    <!-- Color por grupo (0 = menor carga) -->
+    <Style x:Key="ColorGrupo" TargetType="Ellipse">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Primary}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Grupo}" Value="1">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Info}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Grupo}" Value="2">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Grupo}" Value="3">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Grupo}" Value="4">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Text3}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Grupo}" Value="5">
+          <Setter Property="Fill" Value="{DynamicResource Brush.Success}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+    <StackPanel Margin="40,32,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+      <TextBlock Text="ANÁLISIS" Style="{StaticResource Overline}" />
+      <TextBlock Text="Analítica de mantenimiento" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
+      <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,24" TextWrapping="Wrap"
+                 Text="Equipos agrupados con K-Means según sus intervenciones, costo y tiempo de atención. Los resultados los calcula el lote de analítica; no son en tiempo real." />
+
+      <!-- Aviso -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,0,0,16"
+              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
+          <StackPanel>
+            <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+            <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+      <TextBlock Text="Cargando la analítica…" Style="{StaticResource Muted}" Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+
+      <StackPanel Visibility="{Binding HayDatos, Converter={StaticResource Visible}}">
+        <DockPanel Margin="0,0,0,12">
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+            <TextBlock Text="Número de grupos" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,10,0" />
+            <ComboBox Style="{StaticResource FieldCombo}" Width="90" ItemsSource="{x:Static vm:AnaliticaViewModel.OpcionesGrupos}"
+                      SelectedItem="{Binding GruposSolicitados}" AutomationProperties.Name="Número de grupos" />
+          </StackPanel>
+          <TextBlock Text="{Binding Encabezado}" Style="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" />
+        </DockPanel>
+
+        <!-- Grupos (CA-HU-009-02) -->
+        <Border Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,14"
+                Visibility="{Binding AvisoGrupos, Converter={StaticResource NuloVisible}}">
+          <StackPanel>
+            <TextBlock Text="{Binding AvisoGrupos.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+            <TextBlock Text="{Binding AvisoGrupos.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </Border>
+
+        <!-- Dispersión -->
+        <Border Style="{StaticResource Section}">
+          <StackPanel>
+            <TextBlock Text="Tiempo de atención frente a costo" Style="{StaticResource SectionTitle}" Margin="0,0,0,14" />
+            <Grid HorizontalAlignment="Left">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+              </Grid.ColumnDefinitions>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+              </Grid.RowDefinitions>
+              <TextBlock Text="{Binding EjeY}" Style="{StaticResource Muted}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center">
+                <TextBlock.LayoutTransform>
+                  <RotateTransform Angle="-90" />
+                </TextBlock.LayoutTransform>
+              </TextBlock>
+              <Border Grid.Column="1" BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="1,0,0,1"
+                      Width="{x:Static vm:AnaliticaViewModel.Ancho}" Height="{x:Static vm:AnaliticaViewModel.Alto}">
+                <ItemsControl ItemsSource="{Binding Puntos}" Focusable="False" AutomationProperties.Name="Gráfico de dispersión de equipos">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <Canvas />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemContainerStyle>
+                    <Style TargetType="ContentPresenter">
+                      <Setter Property="Canvas.Left" Value="{Binding X}" />
+                      <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                    </Style>
+                  </ItemsControl.ItemContainerStyle>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:PuntoAnalitica}">
+                      <Ellipse Width="12" Height="12" Style="{StaticResource ColorGrupo}" Opacity="0.85" ToolTip="{Binding Etiqueta}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+              <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding EjeX}" Style="{StaticResource Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Resumen por grupo -->
+        <Border Style="{StaticResource Section}" Margin="0,14,0,0">
+          <StackPanel>
+            <TextBlock Text="Resumen por grupo" Style="{StaticResource SectionTitle}" Margin="0,0,0,10" />
+            <Grid Margin="0,0,0,6">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140" />
+                <ColumnDefinition Width="100" />
+                <ColumnDefinition Width="140" />
+                <ColumnDefinition Width="120" />
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="GRUPO" Style="{StaticResource Overline}" />
+              <TextBlock Grid.Column="1" Text="EQUIPOS" Style="{StaticResource Overline}" />
+              <TextBlock Grid.Column="2" Text="INTERVENCIONES" Style="{StaticResource Overline}" />
+              <TextBlock Grid.Column="3" Text="CORRECTIVOS" Style="{StaticResource Overline}" />
+              <TextBlock Grid.Column="4" Text="COSTO MEDIO" Style="{StaticResource Overline}" />
+              <TextBlock Grid.Column="5" Text="TIEMPO MEDIO" Style="{StaticResource Overline}" />
+            </Grid>
+            <ItemsControl ItemsSource="{Binding Resumen}" Focusable="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaGrupo}">
+                  <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="0,8">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="140" />
+                        <ColumnDefinition Width="100" />
+                        <ColumnDefinition Width="140" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="*" />
+                      </Grid.ColumnDefinitions>
+                      <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="10" Height="10" Style="{StaticResource ColorGrupo}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="1" Text="{Binding Equipos}" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Grid.Column="2" Text="{Binding Intervenciones}" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Grid.Column="3" Text="{Binding Correctivos}" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Grid.Column="4" Text="{Binding Costo}" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Grid.Column="5" Text="{Binding Tiempo}" Foreground="{DynamicResource Brush.Text}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

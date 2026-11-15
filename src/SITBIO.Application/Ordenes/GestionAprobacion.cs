@@ -13,8 +13,9 @@ namespace Sitbio.Application.Ordenes;
 /// Solo se aprueba una orden «cerrada» por el técnico. Primero se marca la intervención como firmada en
 /// MongoDB (<c>cerrada_firmada</c>, estado de salida y copia del equipo); luego, en una transacción de
 /// PostgreSQL, la orden pasa a «aprobada» con la firma, el tiquete se cierra y el equipo toma su estado
-/// de salida. Si MongoDB falla, nada cambia; si falla PostgreSQL, repetir la aprobación vuelve a marcar el
-/// mismo documento y termina el cambio.
+/// de salida. Si la orden es preventiva, su plan avanza: último = el día de la aprobación y próximo = último +
+/// periodicidad (HU-019). Si MongoDB falla, nada cambia; si falla PostgreSQL, repetir la aprobación vuelve
+/// a marcar el mismo documento y termina el cambio.
 /// </summary>
 public sealed class GestionAprobacion(
     IRepositorioOrdenes ordenes,
@@ -76,6 +77,11 @@ public sealed class GestionAprobacion(
             {
                 cambioTiquete = tiquete.Cerrar(contexto.UsuarioId, "Orden de trabajo aprobada y firmada por el Ingeniero.", ahora);
             }
+        }
+
+        if (orden.PlanId is { } planId && await ordenes.PlanAsync(planId, cancellationToken) is { } plan)
+        {
+            plan.RegistrarEjecucion(DateOnly.FromDateTime(ahora.ToOffset(FechaColombia.Desfase).DateTime));
         }
 
         HistorialEstadoEquipo? cambioEquipo = null;

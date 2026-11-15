@@ -88,6 +88,7 @@ public static class DependencyInjection
 
         // Configuración de la institución (HU-024).
         services.AddScoped<IRepositorioInstitucion, RepositorioInstitucion>();
+        services.AddScoped<IRepositorioSolicitudesServicio, RepositorioSolicitudesServicio>();
 
         // Motor de campos dinámicos (HU-006).
         services.AddScoped<IRepositorioConfiguracionCampos, ConfiguracionCamposMongo>();

@@ -558,3 +558,22 @@ RF-026 · RN-008 · API-KPI (`GET /api/v1/indicadores?desde&hasta`)
 ### Pendientes
 
 - **Pantalla UI-021 (tablero):** resuelta en B2-11 (`ReportesViewModelTests.Tablero_*`).
+
+## HU-028 · Consulta de planes y solicitud del servicio
+
+RF-029 · RN-009 · MSG-021 · MSG-022 · API-SERV-PLANES (`GET /api/v1/planes`, público) · API-SERV-SOL (`POST /api/v1/solicitudes-servicio`: demostración y cotización públicas con límite por IP; cambio de plan solo AC-01) · Tabla `solicitud_servicio` (V002, V003) · Pantalla «Conoce los planes» desde UI-001.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| — | CA-HU-028-01: sin cuenta, desde «Conoce los planes» del inicio de sesión se envía la solicitud con los datos de la institución y se recibe un código; el proveedor la atiende (MSG-021). | RF-029 | Dominio: `SolicitudServicioTests` (nace «recibida» sin tenant, valida institución, NIT, contacto, correo y plan; código `SOL-######`). Aplicación: `SolicitudesServicioTests.CA_HU_028_01_*`. API: `SolicitudesServicioEndpointTests` (planes y demostración sin token, 201 con `Location`; 400 por campo; 429 al pasar el límite por minuto). Escritorio: `SolicitudServicioViewModelTests` (abre el panel desde el login con los planes de la API, envía y muestra el código, valida antes de llamar, ubica el 400 en el campo, MSG-011 sin conexión). Integración (API + PostgreSQL): `CriteriosHu028Tests.CA_HU_028_01_SinCuenta_ConsultaPlanesYEnviaLaSolicitud_RecibeUnCodigoQueQuedaParaElProveedor` (la fila queda en `solicitud_servicio` «recibida», sin tenant) y `CA_HU_028_01_DosSolicitudesSeguidas_RecibenCodigosDistintos`. | Aprobado |
+| — | CA-HU-028-02: si el consumo actual supera la capacidad del plan elegido, el cambio no se envía y se indica qué límite se excede (MSG-022, RN-009). | RF-029, RN-009 | Aplicación: `SolicitudesServicioTests.CA_HU_028_02_*` y `LimitesExcedidos_*` (usuarios de gestión, equipos activos y almacenamiento; Red de Salud sin tope). API: `SolicitudesServicioEndpointTests.CambioDePlan_SinToken401_YConOtroRol403`. Integración: `CriteriosHu028Tests.CA_HU_028_02_ConsumoMayorQueElPlanElegido_NoSeEnviaEIndicaElLimite` (409 `RN-009` con «usuarios de gestión 4 de 3», nada guardado), `CA_HU_028_02_ConsumoQueCabe_SeEnviaAnombreDeLaInstitucionDelToken` (institución y NIT salen del tenant, no del cuerpo; el plan no cambia hasta que lo aprovisione el proveedor) y `CA_HU_028_02_SoloElAdministradorPideElCambio`. | Aprobado |
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` definida: `dotnet test SITBIO.sln --filter "FullyQualifiedName~SolicitudServicio|FullyQualifiedName~SolicitudesServicio|FullyQualifiedName~CriteriosHu028Tests"`.
+
+### Pendientes
+
+- **Cambio de plan desde Mi institución (UI-019):** la API ya lo admite para AC-01; falta el botón en la pantalla del Administrador.
+- **Número de CP:** HU-028 aún no tiene caso de prueba asignado en el plan de pruebas.
+- **Gestión de las solicitudes por el proveedor (ST-10):** pasar a «en gestión» o «cerrada» queda fuera de la aplicación (DT-010).

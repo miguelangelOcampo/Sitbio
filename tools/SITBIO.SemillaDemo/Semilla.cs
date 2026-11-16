@@ -68,7 +68,8 @@ public sealed class Semilla(Opciones opciones)
         await PrepararTenantAsync();
         using var api = new ApiDemo(opciones, _reloj);
         await CrearUsuariosAsync(api);
-        _api = new Sesiones(api, _reloj, opciones.Clave);
+        using var sesiones = new Sesiones(api, _reloj, opciones.Clave);
+        _api = sesiones;
 
         Console.WriteLine($"Simulando del {inicio:dd/MM/yyyy} al {_fin:dd/MM/yyyy HH:mm} (hora de Colombia)...");
         await ConfigurarAsync(hoy);
@@ -139,7 +140,8 @@ public sealed class Semilla(Opciones opciones)
         await transaccion.CommitAsync();
 
         var baseMongo = new MongoClient(opciones.Mongo).GetDatabase(opciones.BaseMongo);
-        foreach (var coleccion in await (await baseMongo.ListCollectionNamesAsync()).ToListAsync())
+        using var nombres = await baseMongo.ListCollectionNamesAsync();
+        foreach (var coleccion in await nombres.ToListAsync())
         {
             await baseMongo.GetCollection<BsonDocument>(coleccion).DeleteManyAsync(new BsonDocument("tenant_id", Tenant.ToString()));
         }

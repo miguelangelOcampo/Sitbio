@@ -50,7 +50,7 @@ public sealed class ApiDemo(Opciones opciones, RelojDemo reloj) : WebApplication
 }
 
 /// <summary>Cliente HTTP de un usuario de la demo; inicia sesión de nuevo cuando el reloj avanza.</summary>
-public sealed class Sesiones(ApiDemo api, RelojDemo reloj, string clave)
+public sealed class Sesiones(ApiDemo api, RelojDemo reloj, string clave) : IDisposable
 {
     private const string V1 = "/api/v1";
     private readonly Dictionary<string, (HttpClient Cliente, DateTimeOffset Momento)> _abiertas = [];
@@ -64,7 +64,7 @@ public sealed class Sesiones(ApiDemo api, RelojDemo reloj, string clave)
 
         abierta.Cliente?.Dispose();
         var cliente = api.CreateClient();
-        var respuesta = await cliente.PostAsJsonAsync($"{V1}/auth/login", new { correo, contrasena = clave });
+        using var respuesta = await cliente.PostAsJsonAsync($"{V1}/auth/login", new { correo, contrasena = clave });
         var cuerpo = await LeerAsync(respuesta, $"inicio de sesión de {correo}");
         cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", cuerpo.GetProperty("token").GetString());
         _abiertas[correo] = (cliente, reloj.Ahora);
@@ -82,6 +82,16 @@ public sealed class Sesiones(ApiDemo api, RelojDemo reloj, string clave)
 
         using var respuesta = await cliente.SendAsync(peticion);
         return await LeerAsync(respuesta, $"{metodo} {ruta} como {correo}");
+    }
+
+    public void Dispose()
+    {
+        foreach (var (cliente, _) in _abiertas.Values)
+        {
+            cliente.Dispose();
+        }
+
+        _abiertas.Clear();
     }
 
     public Task<JsonElement> GetAsync(string correo, string ruta) => EnviarAsync(correo, HttpMethod.Get, ruta);

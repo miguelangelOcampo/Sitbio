@@ -40,3 +40,6 @@ secrets.json
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Datos de la demo local (usuarios y contraseña de scripts/semilla-demo.sh)
+*.local.txt

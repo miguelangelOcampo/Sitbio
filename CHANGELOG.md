@@ -23,14 +23,15 @@ Cierre del MVP. Incluye todo lo de la versión 0.2.0.
 - HU-008 y HU-009 Analítica (UI-023): lote en Python con métricas y K-Means que escribe en `resultados_analitica`; vista con dispersión por grupo y resumen (CP-011, CP-012).
 - HU-028 Planes y solicitud de servicio desde el inicio de sesión, y cambio de plan para el Administrador (CP-032).
 - Regresión final: `scripts/regresion.sh` con PostgreSQL y MongoDB en Docker, prueba transversal de aislamiento entre instituciones (CP-036) e informe en `docs/pruebas/regresion.md`.
-- Documentación final: DOC-03 a DOC-06 actualizados, DOC-07 Plan de calidad y diagramas (C4, secuencias, despliegue, modelos de datos, clases, flujos y QA) con sus fuentes; matriz de trazabilidad y Go/No-Go en `docs/pruebas/`.
+- Documentación final: DOC-03 a DOC-06 actualizados, DOC-07 Plan de calidad, manuales DOC-08 y DOC-09, y diagramas (C4, secuencias, despliegue, modelos de datos, clases, flujos y QA) con sus fuentes; matriz de trazabilidad y Go/No-Go en `docs/pruebas/`.
 
 ### Corregido
 - Las fechas de los reportes se convierten a UTC antes de consultar PostgreSQL.
 - Las pruebas de endpoints de reportes ya no dependen de cadenas de conexión (CI sin bases).
 
 ### Pendiente (fuera de esta versión)
-- HU-014 Cambio de estado y baja lógica del equipo (la API aún no ofrece el cambio de estado), HU-015 Documentos adjuntos y fotografía, HU-016 Importación masiva (CP-018, CP-019, CP-020, CP-035).
+- HU-014 Baja lógica del equipo: escrita en `feature/HU-014-estado-baja`, por integrar (CP-018).
+- Mejoras futuras: HU-015 Documentos adjuntos y fotografía, HU-016 Importación masiva (CP-019, CP-020, CP-035).
 - CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes.
 
 ## [0.2.0] - 2026-11-12

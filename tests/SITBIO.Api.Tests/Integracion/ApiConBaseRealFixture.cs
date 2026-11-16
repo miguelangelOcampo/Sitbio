@@ -13,7 +13,9 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using Sitbio.Api.Modules.Autenticacion;
 using Sitbio.Application.Seguridad;
+using Sitbio.Domain.Instituciones;
 using Sitbio.Domain.Inventario;
+using Sitbio.Domain.Peticiones;
 using Sitbio.Domain.Seguridad;
 using Sitbio.Infrastructure.Persistencia;
 using Sitbio.Infrastructure.Seguridad;
@@ -23,7 +25,7 @@ namespace Sitbio.Api.Tests.Integracion;
 /// <summary>
 /// API completa contra PostgreSQL real (script 01 + V002..V008). Crea dos tenants (y los
 /// que pidan las pruebas) con usuarios de clave conocida y borra todo al terminar. Si hay
-/// MongoDB de pruebas, la bitácora va a una base temporal con el validador real (02 + V007). Sin la variable de entorno no
+/// MongoDB de pruebas, la bitácora, los campos dinámicos y las intervenciones van a una base temporal con los validadores reales (02 + V007). Sin la variable de entorno no
 /// toca la base (las pruebas se omiten).
 /// </summary>
 public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsyncLifetime
@@ -47,12 +49,64 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
     /// <summary>Base temporal de MongoDB de este fixture; se borra al terminar.</summary>
     public string BaseMongo => $"sitbio_pruebas_api_{_sufijo}";
 
+    /// <summary>Versiones de configuracion_campos de un tenant tal como quedaron en MongoDB, de la más reciente a la más antigua.</summary>
+    public Task<List<BsonDocument>> LeerConfiguracionCamposAsync(Guid tenant) =>
+        new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("configuracion_campos")
+            .Find(new BsonDocument("tenant_id", tenant.ToString()))
+            .Sort(new BsonDocument("version", -1))
+            .ToListAsync();
+
+    /// <summary>Intervenciones de un tenant tal como quedaron en MongoDB (HU-005).</summary>
+    public Task<List<BsonDocument>> LeerIntervencionesAsync(Guid tenant) =>
+        new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("intervenciones")
+            .Find(new BsonDocument("tenant_id", tenant.ToString()))
+            .ToListAsync();
+
+    /// <summary>Marca la intervención de la orden como firmada, como lo hará la aprobación de HU-021 (RN-004).</summary>
+    public Task FirmarIntervencionAsync(Guid ordenId) =>
+        new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("intervenciones")
+            .UpdateOneAsync(new BsonDocument("orden_id", ordenId.ToString()), new BsonDocument("$set", new BsonDocument("cerrada_firmada", true)));
+
     /// <summary>Eventos de la bitácora de un tenant tal como quedaron en MongoDB, del más reciente al más antiguo.</summary>
     public async Task<List<BsonDocument>> LeerBitacoraAsync(Guid tenant)
     {
         var coleccion = new MongoClient(_cadenaMongo).GetDatabase(BaseMongo).GetCollection<BsonDocument>("bitacora_auditoria");
         return await coleccion.Find(new BsonDocument("tenant_id", tenant.ToString())).Sort(new BsonDocument("fecha_hora", -1)).ToListAsync();
     }
+
+    /// <summary>Tiquetes de la institución con su historial, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<List<(Tiquete Tiquete, List<HistorialTiquete> Historial)>> LeerTiquetesAsync(Guid tenant)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        var tiquetes = await contexto.Tiquetes.IgnoreQueryFilters().AsNoTracking().Where(t => t.TenantId == tenant).OrderBy(t => t.Codigo).ToListAsync();
+        var historial = await contexto.HistorialTiquetes.IgnoreQueryFilters().AsNoTracking().Where(h => h.TenantId == tenant).ToListAsync();
+        return tiquetes.Select(t => (t, historial.Where(h => h.TiqueteId == t.Id).ToList())).ToList();
+    }
+
+    /// <summary>Tipo de falla activo del catálogo de la institución (HU-025), que exige el reporte de fallas.</summary>
+    public Task CrearTipoFallaAsync(Guid tenant, string nombre) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.tipo_falla (tenant_id, nombre) VALUES ({tenant}, {nombre})"));
+
+    /// <summary>
+    /// Pasa un tiquete a otro estado directamente en la base y deja el cambio en su historial, como lo
+    /// harán la ejecución (HU-005) y el cierre (HU-021); la asignación ya existe (HU-004). Al cerrar fija la fecha de cierre.
+    /// </summary>
+    public Task CambiarEstadoTiqueteAsync(Guid tenant, string codigo, Guid usuarioId, string nuevoEstado, string comentario, DateTimeOffset fecha) =>
+        EjecutarSqlAsync(async contexto =>
+        {
+            await contexto.Database.ExecuteSqlAsync($"""
+                INSERT INTO sitbio.historial_tiquete (tenant_id, tiquete_id, usuario_id, estado_anterior, nuevo_estado, comentario, fecha_cambio)
+                SELECT tenant_id, id_tiquete, {usuarioId}, estado, {nuevoEstado}, {comentario}, {fecha}
+                FROM sitbio.tiquete WHERE tenant_id = {tenant} AND codigo = {codigo}
+                """);
+            await contexto.Database.ExecuteSqlAsync($"""
+                UPDATE sitbio.tiquete
+                SET estado = {nuevoEstado}, fecha_cierre = CASE WHEN {nuevoEstado} = {EstadosTiquete.Cerrado} THEN {fecha} ELSE fecha_cierre END
+                WHERE tenant_id = {tenant} AND codigo = {codigo}
+                """);
+        });
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -61,6 +115,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         builder.UseSetting("Mongo:Database", BaseMongo);
         builder.UseSetting("Jwt:Clave", ClaveJwt);
         builder.UseSetting(AutenticacionEndpoints.SeccionLimite, "1000");
+        builder.UseSetting(Sitbio.Api.Modules.Instituciones.SolicitudesServicioEndpoints.SeccionLimite, "1000");
     }
 
     /// <summary>
@@ -202,6 +257,29 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             FROM generate_series(1, {cantidad}) AS g
             """));
 
+    /// <summary>Laboratorio de calibración de la institución directamente en la base; devuelve su id.</summary>
+    public async Task<Guid> CrearLaboratorioAsync(Guid tenant, string nombre)
+    {
+        var id = Guid.NewGuid();
+        var nit = $"9{Random.Shared.Next(10_000_000, 99_999_999)}";
+        await EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.proveedor (id_proveedor, tenant_id, nombre, nit, tipo_proveedor) VALUES ({id}, {tenant}, {nombre}, {nit}, {"Laboratorio de calibración"})"));
+        return id;
+    }
+
+    /// <summary>Calibraciones del equipo, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<List<RegistroCalibracion>> LeerCalibracionesAsync(Guid equipoId)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Calibraciones.IgnoreQueryFilters().AsNoTracking().Where(c => c.EquipoId == equipoId).ToListAsync();
+    }
+
+    /// <summary>Calibración del equipo directamente en la base, para preparar vigencias pasadas (RN-007) o equipos sin calibración (RN-010).</summary>
+    public Task RegistrarCalibracionAsync(Guid tenant, Guid equipoId, Guid usuarioId, DateOnly fecha, DateOnly vence) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.calibracion (tenant_id, equipo_id, registrado_por_id, fecha_calibracion, patron_referencia, fecha_vencimiento) VALUES ({tenant}, {equipoId}, {usuarioId}, {fecha}, {"Analizador Fluke IDA-5"}, {vence})"));
+
     /// <summary>Da de baja un equipo directamente en la base, sin pasar por PATCH /estado (para preparar datos).</summary>
     public Task DarDeBajaAsync(Guid equipoId) =>
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
@@ -242,6 +320,35 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         return await contexto.PlanesPreventivos.IgnoreQueryFilters().AsNoTracking().Where(p => p.EquipoId == equipoId).ToListAsync();
     }
 
+    /// <summary>Institución tal como quedó en la base, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<Tenant> LeerTenantAsync(Guid tenant)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Tenants.IgnoreQueryFilters().AsNoTracking().SingleAsync(t => t.Id == tenant);
+    }
+
+    /// <summary>Fija la vigencia del plan como lo haría el proveedor al aprovisionar (ST-10).</summary>
+    public Task FijarVigenciaAsync(Guid tenant, DateOnly vigenteHasta) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"UPDATE sitbio.tenant SET vigente_hasta = {vigenteHasta} WHERE id_tenant = {tenant}"));
+
+    /// <summary>Solicitud del servicio tal como quedó en la base (HU-028), o null si no se guardó.</summary>
+    public async Task<SolicitudServicio?> LeerSolicitudAsync(string codigo)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.SolicitudesServicio.AsNoTracking().SingleOrDefaultAsync(s => s.Codigo == codigo);
+    }
+
+    /// <summary>Solicitudes del servicio enviadas con los correos de esta ejecución.</summary>
+    public async Task<int> ContarSolicitudesAsync(string correo)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.SolicitudesServicio.CountAsync(s => s.Correo == correo);
+    }
+
     public async Task<bool> ExisteSesionAsync(string jti)
     {
         using var alcance = Services.CreateScope();
@@ -261,17 +368,26 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
 
         if (!string.IsNullOrWhiteSpace(_cadenaMongo))
         {
-            // Misma validación que en desarrollo: se copia el validador de sitbio_dev (02 + V007).
+            // Misma validación que en desarrollo: se copian los validadores de sitbio_dev (02 + V007).
             var cliente = new MongoClient(_cadenaMongo);
-            var origen = await (await cliente.GetDatabase("sitbio_dev").ListCollectionsAsync(
-                new ListCollectionsOptions { Filter = new BsonDocument("name", "bitacora_auditoria") })).SingleAsync();
-            await cliente.GetDatabase(BaseMongo).RunCommandAsync<BsonDocument>(new BsonDocument
+            foreach (var coleccion in new[] { "bitacora_auditoria", "configuracion_campos", "intervenciones" })
             {
-                { "create", "bitacora_auditoria" },
-                { "validator", origen["options"]["validator"] },
-                { "validationLevel", "strict" },
-                { "validationAction", "error" },
-            });
+                var origen = await (await cliente.GetDatabase("sitbio_dev").ListCollectionsAsync(
+                    new ListCollectionsOptions { Filter = new BsonDocument("name", coleccion) })).SingleAsync();
+                await cliente.GetDatabase(BaseMongo).RunCommandAsync<BsonDocument>(new BsonDocument
+                {
+                    { "create", coleccion },
+                    { "validator", origen["options"]["validator"] },
+                    { "validationLevel", "strict" },
+                    { "validationAction", "error" },
+                });
+            }
+
+            // Una versión por número en cada institución y tipo de equipo (script 02).
+            await cliente.GetDatabase(BaseMongo).GetCollection<BsonDocument>("configuracion_campos").Indexes.CreateOneAsync(
+                new CreateIndexModel<BsonDocument>(
+                    new BsonDocument { { "tenant_id", 1 }, { "tipo_equipo", 1 }, { "version", -1 } },
+                    new CreateIndexOptions { Unique = true, Name = "uq_config_tenant_tipo_version" }));
         }
     }
 
@@ -283,12 +399,20 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             await EjecutarSqlAsync(async contexto =>
             {
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_estado_equipo WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.calibracion WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.orden_trabajo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_tiquete WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tiquete WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.equipo_biomedico WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.proveedor WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tipo_falla WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tipo_equipo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.ubicacion WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.sesion_token WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.usuario WHERE tenant_id = ANY({tenants})");
+                var correos = $"%.{_sufijo}@demo.co";
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.solicitud_servicio WHERE tenant_id = ANY({tenants}) OR correo LIKE {correos}");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tenant WHERE id_tenant = ANY({tenants})");
             });
         }

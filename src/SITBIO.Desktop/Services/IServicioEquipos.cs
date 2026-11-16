@@ -14,6 +14,9 @@ public interface IServicioEquipos
 
     Task<Equipo> ActualizarAsync(Guid id, DatosEquipo datos, CancellationToken cancellationToken);
 
+    /// <summary>Línea de tiempo del equipo (HU-023): del evento más antiguo al más reciente.</summary>
+    Task<LineaTiempo> LineaTiempoAsync(Guid id, CancellationToken cancellationToken);
+
     /// <summary>
     /// PATCH /equipos/{id}/estado (HU-014, solo AC-02): cambio de estado, baja lógica o, con
     /// <see cref="EstadosEquipo.Operativo"/> para un equipo de baja, reversión de la baja (RN-009).
@@ -29,6 +32,12 @@ public static class EstadosEquipo
     public const string FueraDeServicio = "FUERA_DE_SERVICIO";
     public const string Baja = "BAJA";
 }
+
+/// <summary>Evento de GET /equipos/{id}/linea-tiempo; <see cref="Tipo"/> es registro, estado, tiquete, orden, intervencion o calibracion.</summary>
+public sealed record EventoLineaTiempo(DateTimeOffset Fecha, string Tipo, string Titulo, string? Detalle, string? Responsable, Guid? ReferenciaId);
+
+/// <summary>Respuesta de GET /equipos/{id}/linea-tiempo; IntervencionesCompletas es false si faltan las de MongoDB.</summary>
+public sealed record LineaTiempo(Guid EquipoId, string PlacaInventario, IReadOnlyList<EventoLineaTiempo> Eventos, bool IntervencionesCompletas);
 
 /// <summary>Cuerpo de POST y PUT /equipos (RF-030, CA-HU-002-06).</summary>
 public sealed record DatosEquipo(

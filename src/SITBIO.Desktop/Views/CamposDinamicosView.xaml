@@ -1,0 +1,267 @@
+<!-- UI-018 Campos dinámicos (HU-006, RF-006; prototipo Admin.tsx › CamposDinamicos), pestaña de UI-019
+     Configuración. Por tipo de equipo: versión publicada, tabla abierta de campos y vista previa de
+     cómo los verá el técnico en la intervención (UI-013). AC-02 arma un borrador y lo publica como
+     versión nueva; AC-01 solo consulta. Diseño clínico editorial: sin tarjetas ni ventanas modales. -->
+<UserControl x:Class="Sitbio.Desktop.Views.CamposDinamicosView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+    <views:ProxyDatos x:Key="Proxy" Datos="{Binding}" />
+
+    <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}, Converter={StaticResource TextoVisible}}" Value="Visible">
+          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+    <StackPanel Margin="40,24,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+      <!-- Tipo de equipo, versión y acciones -->
+      <DockPanel Margin="0,0,0,18">
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                    Visibility="{Binding PuedeGestionar, Converter={StaticResource Visible}}">
+          <Button Content="Descartar cambios" Style="{StaticResource LinkButton}" Command="{Binding DescartarCommand}" Margin="0,0,20,0"
+                  Visibility="{Binding HayCambios, Converter={StaticResource Visible}}" />
+          <Button Content="+ Agregar campo" Style="{StaticResource LinkButton}" Command="{Binding AbrirAgregarCommand}" Margin="0,0,20,0" />
+          <Button Content="{Binding TextoPublicar}" Style="{StaticResource PrimaryButton}" Command="{Binding PublicarCommand}" />
+        </StackPanel>
+        <TextBlock Text="Tipo de equipo" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
+        <ComboBox Style="{StaticResource FieldCombo}" Width="280" ItemsSource="{Binding TiposEquipo}" SelectedItem="{Binding TipoSeleccionado}"
+                  DisplayMemberPath="Nombre" AutomationProperties.Name="Tipo de equipo" />
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
+          <Ellipse x:Name="PuntoVersion" Fill="{DynamicResource Brush.Text3}">
+            <Ellipse.Style>
+              <Style TargetType="Ellipse" BasedOn="{StaticResource StatusDot}">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding TieneVersion}" Value="True">
+                    <Setter Property="Fill" Value="{DynamicResource Brush.Info}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Ellipse.Style>
+          </Ellipse>
+          <TextBlock Text="{Binding TextoVersion}" Foreground="{DynamicResource Brush.Text2}" />
+          <StackPanel Orientation="Horizontal" Margin="16,0,0,0" Visibility="{Binding HayCambios, Converter={StaticResource Visible}}">
+            <Ellipse Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.Warning}" />
+            <TextBlock Text="Cambios sin publicar" Foreground="{DynamicResource Brush.WarningText}" />
+          </StackPanel>
+        </StackPanel>
+      </DockPanel>
+
+      <TextBlock Text="Cargando los campos…" Style="{StaticResource Muted}" Margin="0,0,0,18"
+                 Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+
+      <!-- Error -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+              Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
+              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                          Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
+              <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+            </DockPanel>
+            <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+          <Button Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
+                  VerticalAlignment="Bottom" Margin="16,0,0,0"
+                  Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
+        </Grid>
+      </Border>
+
+      <!-- Confirmación -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
+              Margin="0,0,0,18" AutomationProperties.LiveSetting="Polite"
+              Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}"
+                          Foreground="{DynamicResource Brush.SuccessText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="{Binding Confirmacion.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
+            <TextBlock Text="{Binding Confirmacion.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+          <Button Grid.Column="2" Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarConfirmacionCommand}"
+                  VerticalAlignment="Center" Margin="16,0,0,0" />
+        </Grid>
+      </Border>
+
+      <!-- Agregar campo al borrador (AC-02) -->
+      <Border Style="{StaticResource Section}" Margin="0,0,0,24" Visibility="{Binding Agregando, Converter={StaticResource Visible}}">
+        <StackPanel>
+          <TextBlock Style="{StaticResource SectionTitle}" TextWrapping="Wrap">
+            <Run Text="Agregar campo ·" />
+            <Run Text="{Binding TipoSeleccionado.Nombre, Mode=OneWay}" />
+          </TextBlock>
+          <Grid Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="2*" />
+              <ColumnDefinition Width="20" />
+              <ColumnDefinition Width="*" />
+              <ColumnDefinition Width="20" />
+              <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+              <TextBlock Text="Etiqueta visible *" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+              <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorEtiqueta}">
+                <TextBox Style="{StaticResource FieldInput}" Text="{Binding NuevaEtiqueta, UpdateSourceTrigger=PropertyChanged}" MaxLength="80"
+                         AutomationProperties.Name="Etiqueta visible del campo" />
+              </Border>
+              <TextBlock Text="{Binding ErrorEtiqueta}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorEtiqueta, Converter={StaticResource TextoVisible}}" />
+              <TextBlock Text="{Binding NombreInterno}" Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="2">
+              <TextBlock Text="Tipo de dato *" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+              <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:CamposDinamicosViewModel.OpcionesTipoDato}"
+                        SelectedItem="{Binding NuevoTipoDato}" DisplayMemberPath="Texto" AutomationProperties.Name="Tipo de dato" />
+            </StackPanel>
+            <StackPanel Grid.Column="4" Visibility="{Binding NuevoEsNumerico, Converter={StaticResource Visible}}">
+              <TextBlock Text="Unidad" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+              <Border Style="{StaticResource FieldBox}">
+                <TextBox Style="{StaticResource FieldInput}" Text="{Binding NuevaUnidad, UpdateSourceTrigger=PropertyChanged}" MaxLength="20"
+                         AutomationProperties.Name="Unidad, por ejemplo mmHg" />
+              </Border>
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Margin="0,16,0,0" Visibility="{Binding NuevoEsSeleccion, Converter={StaticResource Visible}}">
+            <TextBlock Text="Opciones *" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+            <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorOpciones}">
+              <TextBox Style="{StaticResource FieldInput}" Text="{Binding NuevasOpciones, UpdateSourceTrigger=PropertyChanged}"
+                       AutomationProperties.Name="Opciones separadas por coma" />
+            </Border>
+            <TextBlock Text="{Binding ErrorOpciones}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorOpciones, Converter={StaticResource TextoVisible}}" />
+            <TextBlock Text="Separadas por coma. Ej.: Baja, Media, Alta" Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0" />
+          </StackPanel>
+
+          <DockPanel Margin="0,18,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+              <Button Content="Cancelar" Style="{StaticResource LinkButton}" Command="{Binding CancelarAgregarCommand}" Margin="0,0,20,0" VerticalAlignment="Center" />
+              <Button Content="Agregar al borrador" Style="{StaticResource PrimaryButton}" Command="{Binding AgregarCampoCommand}" />
+            </StackPanel>
+            <CheckBox Style="{StaticResource Casilla}" Content="Obligatorio para cerrar la orden" IsChecked="{Binding NuevoObligatorio}" VerticalAlignment="Center" />
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+      <Grid>
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="1.35*" />
+          <ColumnDefinition Width="40" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Campos del tipo (borrador o versión publicada) -->
+        <StackPanel>
+          <TextBlock Text="{Binding TextoVacio}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"
+                     Visibility="{Binding SinCampos, Converter={StaticResource Visible}}" />
+          <DataGrid Style="{StaticResource OpenGrid}" ItemsSource="{Binding Campos}" RowHeight="56"
+                    AutomationProperties.Name="Campos dinámicos del tipo de equipo" ScrollViewer.CanContentScroll="False"
+                    Visibility="{Binding HayCampos, Converter={StaticResource Visible}}">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="ETIQUETA" Width="2*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCampo}">
+                    <StackPanel>
+                      <TextBlock Text="{Binding EtiquetaConUnidad}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Opciones}" Foreground="{DynamicResource Brush.Text2}" FontSize="12" TextTrimming="CharacterEllipsis"
+                                 Visibility="{Binding Opciones, Converter={StaticResource TextoVisible}}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="NOMBRE INTERNO" Width="1.6*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCampo}">
+                    <TextBlock Text="{Binding Nombre}" FontFamily="Consolas" FontSize="13" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="TIPO DE DATO" Width="1.2*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCampo}">
+                    <TextBlock Text="{Binding TipoDato}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="OBLIGATORIO" Width="*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCampo}">
+                    <TextBlock Text="{Binding Obligatorio}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Width="80"
+                                      Visibility="{Binding Datos.PuedeGestionar, Source={StaticResource Proxy}, Converter={StaticResource Visible}}">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaCampo}">
+                    <Button Content="Quitar" Style="{StaticResource LinkButton}" HorizontalAlignment="Left"
+                            Command="{Binding DataContext.QuitarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            CommandParameter="{Binding}" AutomationProperties.Name="{Binding Etiqueta, StringFormat='Quitar {0}'}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
+        </StackPanel>
+
+        <!-- Vista previa en la intervención (UI-013) -->
+        <Border Grid.Column="2" Style="{StaticResource Section}" VerticalAlignment="Top">
+          <StackPanel>
+            <TextBlock Text="Vista previa en la intervención (UI-013)" Style="{StaticResource SectionTitle}" FontSize="16" />
+            <TextBlock Text="Sin campos para mostrar." Style="{StaticResource Muted}" Margin="0,12,0,0"
+                       Visibility="{Binding SinCampos, Converter={StaticResource Visible}}" />
+            <ItemsControl ItemsSource="{Binding Campos}" Focusable="False" IsTabStop="False">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaCampo}">
+                  <StackPanel Margin="0,14,0,0">
+                    <TextBlock Style="{StaticResource FieldLabel}" Margin="0,0,0,6">
+                      <Run Text="{Binding EtiquetaConUnidad, Mode=OneWay}" />
+                      <Run x:Name="Asterisco" Text="" Foreground="{DynamicResource Brush.DangerText}" />
+                    </TextBlock>
+                    <!-- Sí / No -->
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding EsBooleano, Converter={StaticResource Visible}}">
+                      <RadioButton Content="Sí" IsEnabled="False" Margin="0,0,20,0" Foreground="{DynamicResource Brush.Text2}" />
+                      <RadioButton Content="No" IsEnabled="False" Foreground="{DynamicResource Brush.Text2}" />
+                    </StackPanel>
+                    <!-- Selección -->
+                    <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{Binding Campo.Opciones}" IsTabStop="False" Focusable="False"
+                              Visibility="{Binding EsSeleccion, Converter={StaticResource Visible}}" AutomationProperties.Name="{Binding Etiqueta}" />
+                    <!-- Número, texto o fecha -->
+                    <Border Style="{StaticResource FieldBox}" Visibility="{Binding EsTextoLibre, Converter={StaticResource Visible}}">
+                      <TextBlock Text="{Binding Marcador}" Margin="14,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text3}" />
+                    </Border>
+                  </StackPanel>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Campo.Obligatorio}" Value="True">
+                      <Setter TargetName="Asterisco" Property="Text" Value="*" />
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </Grid>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

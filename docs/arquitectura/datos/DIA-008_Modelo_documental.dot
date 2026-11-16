@@ -1,0 +1,89 @@
+// DIA-008 v1.0 (11/11/2026): modelo documental de MongoDB 7 y enlaces lógicos con PostgreSQL. Fuente: 02_MongoDB_SITBIO.js, V007__bitacora_acciones.js, ADR-006 y DOC-06 sección 8.3.
+digraph DIA008 {
+  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-008 · Modelo documental de MongoDB 7 y enlaces con PostgreSQL</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: 02_MongoDB_SITBIO.js, V007 y ADR-006</font><br/> >, rankdir=LR, splines=ortho, nodesep=0.35, ranksep=0.9, fontname="Liberation Sans", bgcolor="white", pad=0.2, forcelabels=true, newrank=true];
+  node [fontname="Liberation Sans", shape=plaintext, margin=0];
+  edge [color="#8C8C8C", style=dashed, arrowsize=0.6, arrowhead=vee, fontname="Liberation Sans", fontsize=8, fontcolor="#555555"];
+
+  subgraph cluster_mongo {
+    label=<<b>MongoDB 7 · base sitbio</b>  <font point-size="9">validadores JSON Schema con validationLevel «strict»</font>>; fontsize=11; fontcolor="#8A6416"; style="rounded,dashed"; color="#B8862B"; margin=12;
+
+    intv [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="2" color="#B8862B" bgcolor="#FFFFFF">
+      <tr><td colspan="2" bgcolor="#B8862B" align="left"><font color="#FFFFFF" point-size="10"><b>intervenciones</b></font>  <font color="#FFFFFF" point-size="8">DAT-INTERVENCION</font></td></tr>
+      <tr><td align="left"><font point-size="8.5"><u>id_intervencion</u></font></td><td align="left"><font point-size="8" color="#666666">string (UUID)</font></td></tr>
+      <tr><td align="left" port="t"><font point-size="8.5"><i>tenant_id</i></font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left" port="eq"><font point-size="8.5"><i>equipo_id</i></font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left" port="ot"><font point-size="8.5"><i>orden_id</i></font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left" port="tec"><font point-size="8.5"><i>tecnico_id</i></font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">tipo_mantenimiento · diagnostico</font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">acciones_realizadas</font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>repuestos[ ]</b> nombre, cantidad, costo_unitario</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">array embebido</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">costo_total · tiempo_atencion_min</font></td><td align="left"><font point-size="8" color="#666666">double · int</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">estado_equipo_salida</font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">fecha_intervencion</font></td><td align="left"><font point-size="8" color="#666666">date</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">cerrada_firmada</font></td><td align="left"><font point-size="8" color="#666666">bool (RN-004)</font></td></tr>
+      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>camposDinamicos { }</b> clave: valor según la configuración</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">objeto embebido</font></td></tr>
+    </table>>];
+
+    cfg [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="2" color="#B8862B" bgcolor="#FFFFFF">
+      <tr><td colspan="2" bgcolor="#B8862B" align="left"><font color="#FFFFFF" point-size="10"><b>configuracion_campos</b></font>  <font color="#FFFFFF" point-size="8">DAT-CONFIG-CAMPOS</font></td></tr>
+      <tr><td colspan="2" align="left"><font point-size="8" color="#8A6416">Valida los camposDinamicos de cada intervención</font></td></tr>
+      <tr><td align="left"><font point-size="8.5"><i>tenant_id</i></font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5"><i>tipo_equipo</i></font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">version · estado</font></td><td align="left"><font point-size="8" color="#666666">int · string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5"><i>creado_por</i> · fecha_creacion</font></td><td align="left"><font point-size="8" color="#666666">string · date</font></td></tr>
+      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>campos[ ]</b> nombre, etiqueta, tipo_dato,<br align="left"/>obligatorio, opciones[ ], unidad</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">array embebido</font></td></tr>
+    </table>>];
+
+    bit [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="2" color="#B8862B" bgcolor="#FFFFFF">
+      <tr><td colspan="2" bgcolor="#B8862B" align="left"><font color="#FFFFFF" point-size="10"><b>bitacora_auditoria</b></font>  <font color="#FFFFFF" point-size="8">DAT-BITACORA · insert-only</font></td></tr>
+      <tr><td align="left"><font point-size="8.5"><u>id_evento</u></font></td><td align="left"><font point-size="8" color="#666666">string (UUID)</font></td></tr>
+      <tr><td align="left"><font point-size="8.5"><i>tenant_id</i> · <i>usuario_id</i></font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">accion</font></td><td align="left"><font point-size="8" color="#666666">enum (12 acciones, V007)</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">entidad · entidad_id</font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">ip_origen · fecha_hora</font></td><td align="left"><font point-size="8" color="#666666">string · date</font></td></tr>
+      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>detalle { }</b> resumen sin datos sensibles</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">objeto embebido</font></td></tr>
+    </table>>];
+
+    res [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="2" color="#B8862B" bgcolor="#FFFFFF" style="dashed">
+      <tr><td colspan="2" bgcolor="#E9D6AE" align="left"><font point-size="10"><b>resultados_analitica</b></font>  <font point-size="8">propuesta (ADR-006)</font></td></tr>
+      <tr><td align="left"><font point-size="8.5"><i>tenant_id</i> · periodo</font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">tipo · fecha_calculo</font></td><td align="left"><font point-size="8" color="#666666">métricas o agrupamientos · date</font></td></tr>
+      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>datos { }</b> MTTR, MTBF, costos o grupos K-Means</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">objeto embebido</font></td></tr>
+    </table>>];
+  }
+
+  subgraph cluster_pg {
+    label=<<b>PostgreSQL 16 · esquema sitbio</b>  <font point-size="9">ver Figura del modelo lógico</font>>; fontsize=11; fontcolor="#24496D"; style="rounded,dashed"; color="#9AA5B1"; margin=12;
+    node [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", fontsize=10, margin="0.12,0.06"];
+    peq  [label="equipo_biomedico"];
+    pot  [label=<orden_trabajo<br/><font point-size="8">intervencion_id ↔ orden_id</font>>];
+    pusu [label=<usuario<br/><font point-size="8">tecnico_id, usuario_id</font>>];
+    ptip [label="tipo_equipo"];
+  }
+
+  py [shape=box, style="rounded,dashed,filled", fillcolor="#F1F1F1", color="#8C8C8C", fontsize=10, margin="0.12,0.06", label=<<b>Módulo analítico</b><br/><font point-size="8">Python, por lotes</font>>];
+
+  intv -> pot;
+  intv -> peq;
+  intv -> pusu;
+  cfg  -> ptip;
+  bit  -> pusu;
+  py -> lbl1 [color="#555555", arrowhead=none];
+  lbl1 -> intv [color="#555555"];
+  py -> lbl2 [color="#555555", arrowhead=none];
+  lbl2 -> res [color="#555555"];
+
+  {rank=same; intv; cfg; bit; res}
+  {rank=same; pot; peq; pusu; ptip}
+  {rank=same; py; legend}
+  legend [label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4" color="#B5B5B5">
+   <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+   <tr><td bgcolor="#B8862B" width="22"></td><td align="left"><font point-size="8.5">Colección de MongoDB</font></td></tr>
+   <tr><td bgcolor="#FBF3E2" width="22"></td><td align="left"><font point-size="8.5">Estructura embebida (array u objeto)</font></td></tr>
+   <tr><td bgcolor="#E6EEF7" width="22"></td><td align="left"><font point-size="8.5">Tabla de PostgreSQL referenciada</font></td></tr>
+   <tr><td width="22"><font point-size="8.5" color="#8C8C8C">- -</font></td><td align="left"><font point-size="8.5">Enlace lógico por identificador (sin FK entre almacenes)</font></td></tr>
+   <tr><td colspan="2" align="left"><font point-size="8.5">Todas las colecciones llevan tenant_id (referencia a tenant, no dibujada)<br align="left"/>y toda consulta filtra por él (RN-008). Subrayado: identificador; cursiva: referencia.</font></td></tr>
+  </table>>];
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="lee", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="escribe", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

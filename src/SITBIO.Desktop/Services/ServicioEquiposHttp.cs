@@ -21,6 +21,9 @@ public sealed class ServicioEquiposHttp(ClienteApi cliente) : IServicioEquipos
     public Task<Equipo> CambiarEstadoAsync(Guid id, string estado, string motivo, CancellationToken cancellationToken) =>
         PeticionApi.EnviarAsync<Equipo>(cliente, HttpMethod.Patch, $"equipos/{id}/estado", new { estado, motivo }, MensajeEstado, cancellationToken);
 
+    public Task<LineaTiempo> LineaTiempoAsync(Guid id, CancellationToken cancellationToken) =>
+        PeticionApi.EnviarAsync<LineaTiempo>(cliente, HttpMethod.Get, $"equipos/{id}/linea-tiempo", null, MensajeConsulta, cancellationToken);
+
     /// <summary>Ruta con los filtros presentes; los textos van escapados.</summary>
     public static string Ruta(FiltroEquipos filtro)
     {

@@ -4,9 +4,11 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views"
              x:Name="Raiz">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
   </UserControl.Resources>
   <Grid>
     <Grid.ColumnDefinitions>
@@ -219,8 +221,23 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
+          <!-- HU-028: consulta de planes y solicitud de demostración o cotización sin cuenta -->
+          <Button Content="Conoce los planes y solicita una demostración" Style="{StaticResource LinkButton}" TabIndex="6"
+                  HorizontalAlignment="Left" Margin="0,10,0,0" Foreground="{DynamicResource Brush.OnBrandPanel}"
+                  Command="{Binding ConocerPlanesCommand}" Visibility="{Binding PuedeConocerPlanes, Converter={StaticResource Visible}}"
+                  AutomationProperties.Name="Conoce los planes" />
         </StackPanel>
       </DockPanel>
     </Grid>
+
+    <!-- «Conoce los planes» sobre el inicio de sesión (HU-028) -->
+    <ContentControl Grid.ColumnSpan="2" Content="{Binding Solicitud}" Focusable="False"
+                    Visibility="{Binding Solicitud, Converter={StaticResource NuloVisible}}">
+      <ContentControl.ContentTemplate>
+        <DataTemplate DataType="{x:Type vm:SolicitudServicioViewModel}">
+          <views:SolicitudServicioView />
+        </DataTemplate>
+      </ContentControl.ContentTemplate>
+    </ContentControl>
   </Grid>
 </UserControl>

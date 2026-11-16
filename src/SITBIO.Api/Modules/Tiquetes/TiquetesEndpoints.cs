@@ -1,0 +1,85 @@
+using Sitbio.Application.Comun.Errores;
+using Sitbio.Application.Tiquetes;
+using Sitbio.Domain.Seguridad;
+
+namespace Sitbio.Api.Modules.Tiquetes;
+
+/// <summary>
+/// API-TIQ (DOC-06): reportan fallas el Ingeniero Biomédico (AC-02) y el Personal Clínico (AC-04).
+/// El seguimiento (HU-017) lo consultan AC-01, AC-02, AC-03, AC-04 y el Ente Regulador (AC-07), en solo
+/// lectura, según la matriz de permisos del DOC-03; AC-04 solo ve los tiquetes que reportó. Sin token
+/// responde 401; con otro rol, 403. El permiso se valida aquí, no en WPF (RNF-003).
+/// </summary>
+public static class TiquetesEndpoints
+{
+    public const string PoliticaReporte = "ReporteTiquetes";
+    public const string PoliticaConsulta = "ConsultaTiquetes";
+
+    /// <summary>Único valor de <c>orden</c>: la bandeja de UI-011 prioriza por criticidad (HU-004, HU-018).</summary>
+    public const string OrdenCriticidad = "criticidad";
+
+    public static IServiceCollection AddModuloTiquetes(this IServiceCollection services)
+    {
+        services.AddScoped<GestionTiquetes>();
+        services.AddAuthorizationBuilder()
+            .AddPolicy(PoliticaReporte, politica => politica.RequireRole(CodigosRol.IngenieroBiomedico, CodigosRol.PersonalClinico))
+            .AddPolicy(PoliticaConsulta, politica => politica.RequireRole(
+                CodigosRol.AdministradorSistema,
+                CodigosRol.IngenieroBiomedico,
+                CodigosRol.TecnicoMantenimiento,
+                CodigosRol.PersonalClinico,
+                CodigosRol.EnteRegulador));
+        return services;
+    }
+
+    public static RouteGroupBuilder MapTiquetes(this RouteGroupBuilder api)
+    {
+        var grupo = api.MapGroup("/tiquetes");
+
+        grupo.MapGet("/", async (
+                GestionTiquetes caso,
+                CancellationToken cancellationToken,
+                string? estado = null,
+                string? criticidad = null,
+                int page = 1,
+                int pageSize = 20,
+                bool mios = false,
+                string? orden = null) =>
+            {
+                if (orden is not null && !string.Equals(orden.Trim(), OrdenCriticidad, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw ErrorValidacion.DeCampo("orden", "El orden solo admite «criticidad».");
+                }
+
+                return Results.Ok(await caso.ListarAsync(new FiltroTiquetes(estado, criticidad, page, pageSize, mios, orden is not null), cancellationToken));
+            })
+            .WithName("ListarTiquetes")
+            .RequireAuthorization(PoliticaConsulta);
+
+        // Catálogo para el formulario UI-009: quien reporta no tiene acceso a /catalogos.
+        grupo.MapGet("/tipos-falla", async (GestionTiquetes caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.TiposFallaAsync(cancellationToken)))
+            .WithName("TiposFallaParaReportar")
+            .RequireAuthorization(PoliticaReporte);
+
+        grupo.MapGet("/{codigo}", async (string codigo, GestionTiquetes caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.ObtenerAsync(codigo, cancellationToken)))
+            .WithName("ObtenerTiquete")
+            .RequireAuthorization(PoliticaConsulta);
+
+        grupo.MapGet("/{codigo}/historial", async (string codigo, GestionTiquetes caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.HistorialAsync(codigo, cancellationToken)))
+            .WithName("HistorialTiquete")
+            .RequireAuthorization(PoliticaConsulta);
+
+        grupo.MapPost("/", async (DatosTiquete datos, GestionTiquetes caso, CancellationToken cancellationToken) =>
+            {
+                var creado = await caso.ReportarAsync(datos, cancellationToken);
+                return Results.Created($"{RutasApi.V1}/tiquetes/{creado.Codigo}", creado);
+            })
+            .WithName("ReportarFalla")
+            .RequireAuthorization(PoliticaReporte);
+
+        return api;
+    }
+}

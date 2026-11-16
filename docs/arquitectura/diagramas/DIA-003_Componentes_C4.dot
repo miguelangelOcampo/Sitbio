@@ -1,0 +1,95 @@
+// DIA-003 v1.0 (09/11/2026): vista de componentes C4 nivel 3 de la API REST y del cliente WPF. Fuente: DOC-06 secciones 6.3 y 7.1 (Tabla 20) y estructura del repositorio (src/).
+// Líneas en ángulo recto (splines=ortho); las etiquetas de las relaciones son nodos intermedios.
+digraph DIA003 {
+  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-003 · Vista de componentes (C4 nivel 3) del cliente WPF y de la API REST</b><br/><font point-size="10" color="#555555">Versión 1.0 · 09/11/2026 · Fuente: DOC-06, sección 6.3 y Tabla 20; carpetas de src/</font><br/> >, rankdir=TB, splines=ortho, nodesep=0.95, ranksep=0.75, fontname="Liberation Sans", bgcolor="white", pad=0.3, forcelabels=true, newrank=true, compound=true];
+  node  [shape=box, style="rounded,filled", fontname="Liberation Sans", fontsize=10, color="#2F5D8A", fillcolor="#FFFFFF", fontcolor="#222222", margin="0.12,0.07"];
+  edge  [color="#555555", fontname="Liberation Sans", fontsize=8.5, fontcolor="#333333", arrowsize=0.6];
+
+  // ---------- Cliente WPF ----------
+  subgraph cluster_wpf {
+    label=<<b>Cliente de escritorio · CMP-DESK</b>  <font point-size="9">[C# · WPF · .NET 10 · MVVM] · src/SITBIO.Desktop</font>>; fontsize=11; fontcolor="#2F5D8A"; style="rounded,filled"; fillcolor="#FAFBFC"; color="#9AA5B1"; margin=12;
+    views [label=<<b>Views</b><br/><font point-size="8.5">Pantallas UI-001 a UI-024,<br/>temas claro y oscuro</font>>];
+    vms   [label=<<b>ViewModels</b><br/><font point-size="8.5">Shell y menú por rol, login,<br/>equipos, usuarios, bitácora</font>>];
+    svc   [label=<<b>Services</b><br/><font point-size="8.5">ClienteApi (HTTP tipado), sesión<br/>y renovación del JWT</font>>];
+    views -> vms;
+    vms -> svc;
+  }
+
+  // ---------- API ----------
+  subgraph cluster_api {
+    label=<<b>API REST</b>  <font point-size="9">[ASP.NET Core · .NET 10] · monolito modular; las dependencias apuntan hacia el dominio</font>>; fontsize=11; fontcolor="#2F5D8A"; style="rounded,filled"; fillcolor="#FAFBFC"; color="#9AA5B1"; margin=12;
+
+    subgraph cluster_capa_api {
+      label=<<font point-size="9"><b>Capa API</b> · src/SITBIO.Api</font>>; style="rounded,dashed"; color="#B5B5B5"; fillcolor="#FFFFFF"; margin=8;
+      mw [label=<<b>Controladores y middleware</b><br/><font point-size="8.5">Validación del JWT · autorización por rol (RBAC) ·<br/>contexto de tenant tomado del token · contrato de errores (400/401/403/409)</font>>, fillcolor="#2F5D8A", fontcolor="#FFFFFF", color="#24496D"];
+    }
+
+    subgraph cluster_mod {
+      label=<<font point-size="9"><b>Módulos funcionales</b> · casos de uso (src/SITBIO.Application) y reglas RN-001 a RN-010 (src/SITBIO.Domain)</font>>; style="rounded,dashed"; color="#B5B5B5"; fillcolor="#FFFFFF"; margin=8;
+      auth [label=<<b>CMP-AUTH</b><br/>Autenticación y sesión<br/><font point-size="8">RF-002, RF-011, RF-012<br/><i>PostgreSQL</i></font>>, fillcolor="#E6EEF7"];
+      adm  [label=<<b>CMP-ADM</b><br/>Usuarios, institución<br/>y catálogos<br/><font point-size="8">RF-001, RF-024, RF-025<br/><i>PostgreSQL</i></font>>, fillcolor="#E6EEF7"];
+      inv  [label=<<b>CMP-INV</b><br/>Inventario y hoja de vida<br/><font point-size="8">RF-003, RF-014 a 016,<br/>RF-023, RF-030, RF-031<br/><i>PostgreSQL · archivos</i></font>>, fillcolor="#E6EEF7"];
+      tiq  [label=<<b>CMP-TIQ</b><br/>Peticiones y tiquetes<br/><font point-size="8">RF-004, RF-017, RF-018<br/><i>PostgreSQL</i></font>>, style="rounded,dashed,filled"];
+      ot   [label=<<b>CMP-OT</b><br/>Órdenes y mantenimiento<br/><font point-size="8">RF-007, RF-019 a 021<br/><i>PostgreSQL</i></font>>, style="rounded,dashed,filled"];
+      intv [label=<<b>CMP-INT</b><br/>Intervenciones y<br/>campos dinámicos<br/><font point-size="8">RF-005, RF-006<br/><i>MongoDB</i></font>>, style="rounded,dashed,filled"];
+      cal  [label=<<b>CMP-CAL</b><br/>Calibraciones<br/><font point-size="8">RF-022, RN-007<br/><i>PostgreSQL</i></font>>, style="rounded,dashed,filled"];
+      rep  [label=<<b>CMP-REP</b><br/>Reportes e indicadores<br/><font point-size="8">RF-008, RF-026, RF-027<br/><i>PostgreSQL · MongoDB</i></font>>, style="rounded,dashed,filled"];
+      audc [label=<<b>CMP-AUD</b><br/>Auditoría<br/><font point-size="8">RF-013, RNF-015<br/><i>MongoDB</i></font>>, fillcolor="#E6EEF7"];
+    }
+
+    subgraph cluster_inf {
+      label=<<font point-size="9"><b>Capa de infraestructura</b> · src/SITBIO.Infrastructure</font>>; style="rounded,dashed"; color="#B5B5B5"; fillcolor="#FFFFFF"; margin=8;
+      psql [label=<<b>CMP-PSQL</b> · Persistencia relacional<br/><font point-size="8.5">EF Core · DbContext · filtro global por tenant</font>>, fillcolor="#E6EEF7"];
+      mng  [label=<<b>CMP-MONGO</b> · Persistencia documental<br/><font point-size="8.5">MongoDB.Driver · filtro obligatorio por tenant</font>>, fillcolor="#E6EEF7"];
+      arch [label=<<b>Archivos, PDF y Excel</b><br/><font point-size="8.5">Adjuntos, fotografías y exportaciones</font>>, style="rounded,dashed,filled"];
+    }
+      lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="invoca los casos de uso\ndel módulo según la ruta", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="repositorios definidos como interfaces\nen la aplicación e implementados en infraestructura", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+  }
+
+  pg  [label=<<b>PostgreSQL 16</b>>, shape=cylinder, style=filled, fillcolor="#FFF4DC", color="#B8862B"];
+  mg  [label=<<b>MongoDB 7</b>>, shape=cylinder, style=filled, fillcolor="#FFF4DC", color="#B8862B"];
+  fs  [label=<<b>Almacenamiento<br/>de archivos</b>>, shape=folder, style=filled, fillcolor="#F1F1F1", color="#8C8C8C"];
+  py  [label=<<b>CMP-ANA</b> · Módulo analítico<br/><font point-size="8.5">[Python, por lotes] escribe resultados_analitica</font>>, style="rounded,dashed,filled", fillcolor="#F1F1F1", color="#8C8C8C"];
+
+  // Disposición
+  {rank=same; views; vms; svc}
+  {rank=same; tiq; inv; adm; auth; audc}
+  {rank=same; rep; intv; ot; cal}
+  tiq -> rep [style=invis]; inv -> intv [style=invis]; adm -> ot [style=invis]; auth -> cal [style=invis];
+  tiq -> inv -> adm -> auth -> audc [style=invis, constraint=false]; rep -> intv -> ot -> cal [style=invis, constraint=false];
+
+  // Flujo principal
+  svc -> lbl1 [arrowhead=none];
+  lbl1 -> mw [lhead=cluster_capa_api];
+  mw -> lbl2 [arrowhead=none];
+  lbl2 -> inv [lhead=cluster_mod];
+
+  // Dependencias entre módulos (Tabla 20)
+  tiq -> inv [labelfontsize=8.5, labelfontcolor="#333333", labeldistance=3.2, labelangle=-35, headlabel="equipo del\ntiquete", constraint=false];
+  ot  -> intv [labelfontsize=8.5, labelfontcolor="#333333", labeldistance=3.2, labelangle=-35, headlabel="intervención\nde la orden", constraint=false];
+  inv -> intv [labelfontsize=8.5, labelfontcolor="#333333", labeldistance=3.2, labelangle=-35, headlabel="línea de\ntiempo", style=dashed, constraint=false];
+  auth -> audc [style=dotted, constraint=false];
+
+  // Persistencia
+  cal -> lbl3 [ltail=cluster_mod, arrowhead=none];
+  lbl3 -> psql [lhead=cluster_inf];
+  psql -> pg; mng -> mg; arch -> fs;
+  py -> lbl4 [style=dashed, arrowhead=none];
+  lbl4 -> mg [style=dashed];
+  {rank=same; pg; mg; fs; py}
+
+  legend [shape=plaintext, style="", margin=0, label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="4" color="#B5B5B5">
+      <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+      <tr><td bgcolor="#E6EEF7" width="22"></td><td align="left"><font point-size="8.5">Componente con código en main (al 09/11/2026)</font></td></tr>
+      <tr><td width="22"><font point-size="8.5" color="#8C8C8C">- -</font></td><td align="left"><font point-size="8.5">Borde punteado: componente diseñado, pendiente de implementar</font></td></tr>
+      <tr><td width="22"><font point-size="8.5" color="#8C8C8C">· · ·</font></td><td align="left"><font point-size="8.5">Línea de puntos: todos los módulos registran eventos en CMP-AUD</font></td></tr>
+      <tr><td width="22"><font point-size="8.5"><i>abc</i></font></td><td align="left"><font point-size="8.5">Cursiva: almacén que usa cada módulo</font></td></tr>
+      <tr><td bgcolor="#F1F1F1" width="22"></td><td align="left"><font point-size="8.5">Contenedor externo a la API (ver DIA-002)</font></td></tr>
+      <tr><td bgcolor="#FFF4DC" width="22"></td><td align="left"><font point-size="8.5">Base de datos</font></td></tr>
+    </table>>];
+  {rank=same; views; vms; svc; legend}
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="HTTPS / JSON + JWT", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="PyMongo", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

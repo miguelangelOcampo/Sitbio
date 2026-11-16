@@ -1,0 +1,30 @@
+%% DIA-004 v1.0 (09/11/2026). Fuente: DOC-06 Tabla 19. Generar: mmdc -i DIA-004_SEQ-001_Inicio_de_sesion.mmd -o DIA-004_SEQ-001_Inicio_de_sesion.png -c DIA-004_estilo_mermaid.json -s 2 -b white
+%% Título (agregado al exportar): DIA-004 · SEQ-001: Inicio de sesión y emisión del JWT · Versión 1.0 · 09/11/2026 · Fuente: DOC-06, Tabla 19
+sequenceDiagram
+    participant U as Usuario<br/>(AC-01 a AC-07)
+    participant UI as UI-001 Inicio de sesión<br/>[Cliente WPF]
+    participant AUTH as CMP-AUTH<br/>[API REST]
+    participant PG as PostgreSQL<br/>usuario · sesion_token
+    participant AUD as CMP-AUD<br/>bitacora_auditoria
+    U->>UI: Ingresa correo y contraseña
+    UI->>AUTH: POST /auth/login (HTTPS, límite de tasa)
+    activate AUTH
+    AUTH->>PG: Buscar usuario por correo
+    PG-->>AUTH: Usuario, hash BCrypt, intentos y estado
+    AUTH->>AUTH: Verificar contraseña con BCrypt (costo ≥ 11)
+    alt Credenciales válidas y cuenta activa
+        AUTH->>PG: Reiniciar intentos y registrar sesion_token (jti, vence en 30 min)
+        AUTH->>AUD: LOGIN_OK
+        AUTH-->>UI: 200 · JWT (sub, tenant_id, rol, jti), rol, debeCambiarClave
+        alt debeCambiarClave = true
+            UI-->>U: Abre UI-002 Cambio de contraseña (RF-012)
+        else
+            UI-->>U: Muestra el menú y el tablero de su rol
+        end
+    else Credenciales inválidas, usuario inexistente o cuenta bloqueada
+        AUTH->>PG: Sumar intento fallido y, al quinto, bloquea la cuenta (RN-006)
+        AUTH->>AUD: LOGIN_FALLIDO
+        AUTH-->>UI: 401 · mismo mensaje genérico en todos los casos
+        UI-->>U: Muestra MSG-001 (mensaje genérico)
+    end
+    deactivate AUTH

@@ -14,6 +14,7 @@ public class ConsultaCatalogosTests
         _repositorio.TiposEquipoAsync(Arg.Any<CancellationToken>()).Returns([new CatalogoDto(Guid.NewGuid(), "Tensiómetro", true, "I", true, 12)]);
         _repositorio.UbicacionesAsync(Arg.Any<CancellationToken>()).Returns([new CatalogoDto(Guid.NewGuid(), "Urgencias", true)]);
         _repositorio.ProveedoresAsync(Arg.Any<CancellationToken>()).Returns([new CatalogoDto(Guid.NewGuid(), "Biomédica SAS", false)]);
+        _repositorio.TiposFallaAsync(Arg.Any<CancellationToken>()).Returns([new CatalogoDto(Guid.NewGuid(), "No enciende", true)]);
         _caso = new ConsultaCatalogos(_repositorio);
     }
 
@@ -21,6 +22,7 @@ public class ConsultaCatalogosTests
     [InlineData("tipos-equipo", "Tensiómetro")]
     [InlineData("ubicaciones", "Urgencias")]
     [InlineData("Proveedores", "Biomédica SAS")]
+    [InlineData(" tipos-falla ", "No enciende")]
     public async Task CadaTipo_LeeSuCatalogo(string tipo, string esperado)
     {
         var elementos = await _caso.ListarAsync(tipo, CancellationToken.None);
@@ -36,6 +38,16 @@ public class ConsultaCatalogosTests
         Assert.Equal("I", tipo.ClaseRiesgo);
         Assert.True(tipo.RequiereCalibracion);
         Assert.Equal(12, tipo.PeriodicidadCalibracionMeses);
+    }
+
+    [Theory]
+    [InlineData("Tipos-Equipo", "tipos-equipo")]
+    [InlineData(" tipos-falla", "tipos-falla")]
+    [InlineData("campos-dinamicos", null)]
+    [InlineData(null, null)]
+    public void Normalizar_SoloLosCuatroCatalogosDeHU025(string? tipo, string? esperado)
+    {
+        Assert.Equal(esperado, TiposCatalogo.Normalizar(tipo));
     }
 
     [Fact]

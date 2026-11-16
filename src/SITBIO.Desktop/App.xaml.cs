@@ -29,14 +29,37 @@ public partial class App : Application
         servicios.AddTransient<UsuariosViewModel>();
         servicios.AddTransient<IServicioBitacora, ServicioBitacoraHttp>();
         servicios.AddTransient<BitacoraViewModel>();
+        servicios.AddTransient<IServicioInstitucion, ServicioInstitucionHttp>();
+        servicios.AddTransient<MiInstitucionViewModel>();
         servicios.AddTransient<IServicioEquipos, ServicioEquiposHttp>();
         servicios.AddTransient<IServicioCatalogos, ServicioCatalogosHttp>();
+        servicios.AddTransient<CatalogosViewModel>();
+        servicios.AddTransient<IServicioConfiguracionCampos, ServicioConfiguracionCamposHttp>();
+        servicios.AddTransient<CamposDinamicosViewModel>();
         servicios.AddTransient<EquiposViewModel>();
+        servicios.AddTransient<IServicioTiquetes, ServicioTiquetesHttp>();
+        servicios.AddTransient<ReportarFallaViewModel>();
+        servicios.AddTransient<SeguimientoViewModel>();
+        servicios.AddTransient<IServicioOrdenes, ServicioOrdenesHttp>();
+        servicios.AddTransient<BandejaViewModel>();
+        servicios.AddTransient<OrdenesViewModel>();
+        servicios.AddTransient<IServicioAnalitica, ServicioAnaliticaHttp>();
+        servicios.AddTransient<AnaliticaViewModel>();
+        servicios.AddTransient<IServicioMantenimiento, ServicioMantenimientoHttp>();
+        servicios.AddTransient<MantenimientosViewModel>();
+        servicios.AddTransient<CentroAlertasViewModel>();
+        servicios.AddTransient<IServicioReportes, ServicioReportesHttp>();
+        servicios.AddSingleton<IDialogoArchivos, DialogoArchivosWpf>();
+        servicios.AddTransient<ReportesViewModel>();
+        servicios.AddTransient<ExportacionViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
         servicios.AddSingleton(TimeProvider.System);
         servicios.AddSingleton<ControlSesion>(sp => new ControlSesion(
             sp.GetRequiredService<IServicioSesion>(), sp.GetRequiredService<SesionActual>(), sp.GetRequiredService<TimeProvider>()));
-        servicios.AddTransient<LoginViewModel>();
+        servicios.AddTransient<IServicioSolicitudesServicio, ServicioSolicitudesServicioHttp>();
+        servicios.AddTransient<SolicitudServicioViewModel>();
+        servicios.AddTransient<LoginViewModel>(sp => new LoginViewModel(
+            sp.GetRequiredService<IServicioAutenticacion>(), () => sp.GetRequiredService<SolicitudServicioViewModel>()));
         servicios.AddSingleton<Func<LoginViewModel>>(sp => () => sp.GetRequiredService<LoginViewModel>());
         servicios.AddSingleton<MainViewModel>();
         _servicios = servicios.BuildServiceProvider();

@@ -22,6 +22,8 @@ public sealed class EstadoEquipoConfiguracion : IEntityTypeConfiguration<EstadoE
 /// <summary>Tabla <c>tipo_equipo</c> (script 01 + V008). El filtro por tenant lo agrega <see cref="SitbioDbContext"/>.</summary>
 public sealed class TipoEquipoConfiguracion : IEntityTypeConfiguration<TipoEquipo>
 {
+    public const string IndiceNombre = "uq_tipo_equipo_tenant_nombre";
+
     public void Configure(EntityTypeBuilder<TipoEquipo> tipo)
     {
         tipo.ToTable("tipo_equipo");
@@ -34,36 +36,65 @@ public sealed class TipoEquipoConfiguracion : IEntityTypeConfiguration<TipoEquip
         tipo.Property(t => t.RequiereCalibracion).HasColumnName("requiere_calibracion");
         tipo.Property(t => t.PeriodicidadCalibracionMeses).HasColumnName("periodicidad_calibracion_meses");
 
-        tipo.HasIndex(t => new { t.TenantId, t.Nombre }).IsUnique().HasDatabaseName("uq_tipo_equipo_tenant_nombre");
+        tipo.HasIndex(t => new { t.TenantId, t.Nombre }).IsUnique().HasDatabaseName(IndiceNombre);
     }
 }
 
 /// <summary>Tabla <c>ubicacion</c> (script 01).</summary>
 public sealed class UbicacionConfiguracion : IEntityTypeConfiguration<Ubicacion>
 {
+    public const string IndiceNombre = "uq_ubicacion_tenant_nombre";
+
     public void Configure(EntityTypeBuilder<Ubicacion> ubicacion)
     {
         ubicacion.ToTable("ubicacion");
         ubicacion.HasKey(u => u.Id);
         ubicacion.Property(u => u.Id).HasColumnName("id_ubicacion");
-        ubicacion.Property(u => u.Nombre).HasColumnName("nombre").HasMaxLength(120).IsRequired();
-        ubicacion.Property(u => u.Descripcion).HasColumnName("descripcion").HasMaxLength(200);
+        ubicacion.Property(u => u.Nombre).HasColumnName("nombre").HasMaxLength(Ubicacion.LongitudMaximaNombre).IsRequired();
+        ubicacion.Property(u => u.Descripcion).HasColumnName("descripcion").HasMaxLength(Ubicacion.LongitudMaximaDescripcion);
         ubicacion.Property(u => u.EstadoActivo).HasColumnName("estado_activo");
+
+        ubicacion.HasIndex(u => new { u.TenantId, u.Nombre }).IsUnique().HasDatabaseName(IndiceNombre);
     }
 }
 
-/// <summary>Tabla <c>proveedor</c> (script 01). Los datos de contacto se mapean con HU-025.</summary>
+/// <summary>Tabla <c>proveedor</c> (script 01), con sus datos de contacto (HU-025). NIT único por tenant.</summary>
 public sealed class ProveedorConfiguracion : IEntityTypeConfiguration<Proveedor>
 {
+    public const string IndiceNit = "uq_proveedor_tenant_nit";
+
     public void Configure(EntityTypeBuilder<Proveedor> proveedor)
     {
         proveedor.ToTable("proveedor");
         proveedor.HasKey(p => p.Id);
         proveedor.Property(p => p.Id).HasColumnName("id_proveedor");
-        proveedor.Property(p => p.Nombre).HasColumnName("nombre").HasMaxLength(150).IsRequired();
-        proveedor.Property(p => p.Nit).HasColumnName("nit").HasMaxLength(20).IsRequired();
-        proveedor.Property(p => p.TipoProveedor).HasColumnName("tipo_proveedor").HasMaxLength(50).IsRequired();
+        proveedor.Property(p => p.Nombre).HasColumnName("nombre").HasMaxLength(Proveedor.LongitudMaximaNombre).IsRequired();
+        proveedor.Property(p => p.Nit).HasColumnName("nit").HasMaxLength(Proveedor.LongitudMaximaNit).IsRequired();
+        proveedor.Property(p => p.TipoProveedor).HasColumnName("tipo_proveedor").HasMaxLength(Proveedor.LongitudMaximaTipo).IsRequired();
+        proveedor.Property(p => p.NombreContacto).HasColumnName("nombre_contacto").HasMaxLength(Proveedor.LongitudMaximaContacto);
+        proveedor.Property(p => p.Correo).HasColumnName("correo").HasMaxLength(Proveedor.LongitudMaximaCorreo);
+        proveedor.Property(p => p.Telefono).HasColumnName("telefono").HasMaxLength(Proveedor.LongitudMaximaTelefono);
         proveedor.Property(p => p.EstadoActivo).HasColumnName("estado_activo");
+
+        proveedor.HasIndex(p => new { p.TenantId, p.Nit }).IsUnique().HasDatabaseName(IndiceNit);
+    }
+}
+
+/// <summary>
+/// Tabla <c>tipo_falla</c> (V009). El índice único de la base usa lower(nombre); aquí se declara
+/// solo con su nombre para reconocer la violación al guardar.
+/// </summary>
+public sealed class TipoFallaConfiguracion : IEntityTypeConfiguration<TipoFalla>
+{
+    public const string IndiceNombre = "uq_tipo_falla_tenant_nombre";
+
+    public void Configure(EntityTypeBuilder<TipoFalla> tipo)
+    {
+        tipo.ToTable("tipo_falla");
+        tipo.HasKey(t => t.Id);
+        tipo.Property(t => t.Id).HasColumnName("id_tipo_falla");
+        tipo.Property(t => t.Nombre).HasColumnName("nombre").HasMaxLength(TipoFalla.LongitudMaximaNombre).IsRequired();
+        tipo.Property(t => t.EstadoActivo).HasColumnName("estado_activo");
     }
 }
 
@@ -129,6 +160,33 @@ public sealed class PlanPreventivoConfiguracion : IEntityTypeConfiguration<PlanP
         plan.Property(p => p.FechaCreacion).HasColumnName("fecha_creacion");
 
         plan.HasOne<EquipoBiomedico>().WithMany().HasForeignKey(p => p.EquipoId).IsRequired();
+    }
+}
+
+/// <summary>Tabla <c>calibracion</c> (script 01; HU-022). El certificado en documento_equipo llega con los documentos.</summary>
+public sealed class RegistroCalibracionConfiguracion : IEntityTypeConfiguration<RegistroCalibracion>
+{
+    public void Configure(EntityTypeBuilder<RegistroCalibracion> calibracion)
+    {
+        calibracion.ToTable("calibracion");
+        calibracion.HasKey(c => c.Id);
+        calibracion.Property(c => c.Id).HasColumnName("id_calibracion");
+        calibracion.Property(c => c.EquipoId).HasColumnName("equipo_id");
+        calibracion.Property(c => c.ProveedorId).HasColumnName("proveedor_id");
+        calibracion.Property(c => c.OrdenId).HasColumnName("orden_id");
+        calibracion.Property(c => c.RegistradoPorId).HasColumnName("registrado_por_id");
+        calibracion.Property(c => c.AprobadoPorId).HasColumnName("aprobado_por_id");
+        calibracion.Property(c => c.FechaCalibracion).HasColumnName("fecha_calibracion");
+        calibracion.Property(c => c.PatronReferencia).HasColumnName("patron_referencia").HasMaxLength(RegistroCalibracion.LongitudMaximaPatron).IsRequired();
+        calibracion.Property(c => c.Resultado).HasColumnName("resultado").HasMaxLength(15).IsRequired();
+        calibracion.Property(c => c.NumeroCertificado).HasColumnName("numero_certificado").HasMaxLength(RegistroCalibracion.LongitudMaximaCertificado);
+        calibracion.Property(c => c.FechaVencimiento).HasColumnName("fecha_vencimiento");
+        calibracion.Ignore(c => c.Aprobada);
+
+        calibracion.HasOne<EquipoBiomedico>().WithMany().HasForeignKey(c => c.EquipoId).IsRequired();
+        calibracion.HasOne<Proveedor>().WithMany().HasForeignKey(c => c.ProveedorId);
+        calibracion.HasOne<Usuario>().WithMany().HasForeignKey(c => c.RegistradoPorId).IsRequired();
+        calibracion.HasOne<Usuario>().WithMany().HasForeignKey(c => c.AprobadoPorId);
     }
 }
 

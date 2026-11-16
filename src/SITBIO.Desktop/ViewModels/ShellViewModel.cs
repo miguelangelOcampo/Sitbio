@@ -23,6 +23,13 @@ public partial class ShellViewModel : ObservableObject
         _crearCambioClave = crearCambioClave;
         Modulos = MenuPorRol.Para(codigoRol).Select(m => new ModuloViewModel(m)).ToList();
 
+        // UI-016: el centro de alertas se consulta al abrir la aplicación (CA-HU-020-01), solo para AC-02 y AC-03.
+        if (CentroAlertasViewModel.Roles.Contains(codigoRol) && pantallas?.Crear(CentroAlertasViewModel.IdPantalla) is CentroAlertasViewModel alertas)
+        {
+            Alertas = alertas;
+            alertas.NavegacionSolicitada += AlSolicitarNavegacion;
+        }
+
         var inicio = MenuPorRol.Inicio(codigoRol);
         var opcionInicio = Modulos.SelectMany(m => m.Opciones).FirstOrDefault(o => o.Opcion.Id == inicio)
             ?? Modulos.FirstOrDefault()?.Opciones.FirstOrDefault();
@@ -34,6 +41,11 @@ public partial class ShellViewModel : ObservableObject
     }
 
     public string Rol => _codigoRol;
+
+    /// <summary>Centro de alertas (UI-016) de la campana del riel; null para los roles que no reciben alertas.</summary>
+    public CentroAlertasViewModel? Alertas { get; }
+
+    public bool TieneAlertas => Alertas is not null;
 
     /// <summary>Nombre del rol de la sesión para el pie del panel.</summary>
     public string NombreRol => GuiaRoles.NombreDe(_codigoRol);
@@ -152,8 +164,35 @@ public partial class ShellViewModel : ObservableObject
 
         opcion.EsActual = true;
         OpcionActual = opcion;
+        if (Contenido is ISolicitaNavegacion anterior)
+        {
+            anterior.NavegacionSolicitada -= AlSolicitarNavegacion;
+        }
+
         Contenido = _pantallas?.Crear(opcion.Opcion.Id);
+        if (Contenido is ISolicitaNavegacion nueva)
+        {
+            nueva.NavegacionSolicitada += AlSolicitarNavegacion;
+        }
+
         ActualizarSeleccion();
+    }
+
+    /// <summary>Una pantalla pide abrir otra opción del menú del rol; si el rol no la tiene, no pasa nada.</summary>
+    private void AlSolicitarNavegacion(object? sender, SolicitudNavegacion solicitud)
+    {
+        var destino = Modulos.SelectMany(m => m.Opciones).FirstOrDefault(o => o.Opcion.Id == solicitud.IdOpcion);
+        if (destino is null)
+        {
+            return;
+        }
+
+        Navegar(destino);
+        ModuloEnPanel = Modulos.First(m => m.Opciones.Contains(destino));
+        if (solicitud.Parametro is { } parametro && Contenido is IRecibeParametro pantalla)
+        {
+            pantalla.Recibir(parametro);
+        }
     }
 
     [RelayCommand]

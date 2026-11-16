@@ -1,0 +1,45 @@
+%% DIA-004 v1.0 (09/11/2026). Fuente: DOC-06 Tabla 19. Generar: mmdc -i DIA-004_SEQ-003_Intervencion_y_cierre.mmd -o DIA-004_SEQ-003_Intervencion_y_cierre.png -c DIA-004_estilo_mermaid.json -s 2 -b white
+%% Título (agregado al exportar): DIA-004 · SEQ-003: Registro de intervención y cierre de la orden · Versión 1.0 · 09/11/2026 · Fuente: DOC-06, Tabla 19
+sequenceDiagram
+    participant T as Técnico<br/>(AC-03)
+    participant UI as UI-013 Registro de intervención<br/>[Cliente WPF]
+    participant OT as CMP-OT<br/>[API REST]
+    participant INT as CMP-INT<br/>[API REST]
+    participant MG as MongoDB<br/>intervenciones · configuracion_campos
+    participant PG as PostgreSQL<br/>orden_trabajo · calibracion
+    T->>UI: Diligencia la intervención y los campos dinámicos
+    UI->>OT: PUT /ordenes/{id}/intervencion (IntervencionDto)
+    activate OT
+    OT->>PG: Verificar que la orden esté asignada al técnico y abierta
+    alt Orden no asignada o ya cerrada
+        OT-->>UI: 403 o 409
+    else Orden asignada
+        OT->>INT: Registrar intervención
+        INT->>MG: Leer configuración activa del tipo de equipo
+        INT->>INT: Validar campos obligatorios y tipos
+        alt Campo inválido
+            INT-->>OT: Errores por campo
+            OT-->>UI: 400 · errores por campo
+        else Datos válidos
+            INT->>MG: Guardar documento con tenant_id y orden_id
+            alt Falla al guardar en MongoDB (RT-002)
+                INT-->>OT: Error de persistencia
+                OT-->>UI: 503 · la orden no cambia de estado
+            else Guardado correcto
+                INT-->>OT: Intervención registrada
+                OT-->>UI: 200 · intervención guardada
+            end
+        end
+    end
+    deactivate OT
+    T->>UI: Cierra la orden
+    UI->>OT: PATCH /ordenes/{id}/estado (acción = cerrar)
+    activate OT
+    OT->>PG: Consultar si el equipo requiere calibración y su vigencia
+    alt Requiere calibración y está vencida (RN-007)
+        OT-->>UI: 409 · no puede cerrarse con el equipo «Operativo»
+    else Calibración vigente o no requerida
+        OT->>PG: Cambiar la orden a «Cerrada» (pendiente de aprobación)
+        OT-->>UI: 200 · orden cerrada
+    end
+    deactivate OT

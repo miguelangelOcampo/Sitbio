@@ -1,0 +1,66 @@
+// Fuente editable. Líneas en ángulo recto (splines=ortho); las etiquetas de las decisiones son nodos intermedios. Generar: dot -Tpng -Gdpi=200
+digraph G {
+  graph [rankdir=TB, splines=ortho, nodesep=0.45, ranksep=0.4, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-FLU-005 · Flujo FLU-005: ejecutar orden y registrar intervención</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-05, Tabla 19; CU-004</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  s [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>El técnico tiene una orden «asignada»</b>>, peripheries=1];
+  a1 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Abre «Mis órdenes», ordenadas por prioridad<br/><font point-size="8" color="#24496D">UI-012</font>>];
+  a2 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Presiona «Iniciar»: la orden pasa a «en ejecución»<br/><font point-size="8" color="#24496D">UI-012 → UI-013</font>>];
+  a3 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Registra diagnóstico, actividades,<br/>repuestos, tiempo y costos<br/><font point-size="8" color="#24496D">UI-013</font>>];
+  a4 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Diligencia «Parámetros del equipo»<br/>(camposDinamicos del tipo de equipo)<br/><font point-size="8" color="#24496D">UI-013</font>>];
+  dp [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Termina<br/>ahora?>];
+  ax [shape=box, style="rounded,dashed,filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<A1 · «Pausar orden» (estado «pausada»)<br/>A2 · «Guardar borrador» sin cerrar>];
+  a5 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Presiona «Cerrar orden» y confirma el resumen<br/><font point-size="8" color="#24496D">UI-013</font>>];
+  dv [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Campos<br/>dinámicos<br/>válidos?>];
+  e1 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E1 · Error junto al campo<br/>con su unidad>];
+  dc [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Calibración<br/>vencida?<br/>(RN-007)>];
+  e2 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E2 · MSG-013: no puede cerrar<br/>el equipo como «Operativo»>];
+  dg [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Guardado<br/>correcto?>];
+  e3 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E3 · Conserva los datos<br/>y ofrece reintentar>];
+  a6 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Guarda la intervención en MongoDB y<br/>cambia la orden a «cerrada»</i>>];
+  f [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Orden pendiente de aprobación (FLU-006, UI-014)</b>>, peripheries=1];
+  s -> a1 -> a2 -> a3 -> a4 -> dp;
+  dp -> lbl1 [arrowhead=none];
+  lbl1 -> ax;
+  ax -> a1 [style=dashed, constraint=false, labelfontsize=8.5, labelfontcolor="#333333", labeldistance=3.2, labelangle=-35, headlabel="retoma después"];
+  dp -> lbl2 [arrowhead=none];
+  lbl2 -> a5;
+  a5 -> dv;
+  dv -> lbl3 [arrowhead=none];
+  lbl3 -> e1;
+  e1 -> a4 [style=dashed, constraint=false];
+  dv -> lbl4 [arrowhead=none];
+  lbl4 -> dc;
+  dc -> lbl5 [arrowhead=none];
+  lbl5 -> e2;
+  e2 -> a3 [style=dashed, constraint=false];
+  dc -> lbl6 [arrowhead=none];
+  lbl6 -> dg;
+  dg -> lbl7 [arrowhead=none];
+  lbl7 -> e3;
+  e3 -> a5 [style=dashed, constraint=false];
+  dg -> lbl8 [arrowhead=none];
+  lbl8 -> a6;
+  a6 -> f;
+  legend [shape=plaintext, margin=0, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4" color="#B5B5B5">
+   <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+   <tr><td bgcolor="#2F5D8A" width="22"></td><td align="left"><font point-size="8.5">Inicio o fin del flujo</font></td></tr>
+   <tr><td bgcolor="#E6EEF7" width="22"></td><td align="left"><font point-size="8.5">Acción del usuario (pantalla en azul)</font></td></tr>
+   <tr><td width="22"><font point-size="8.5"><i>abc</i></font></td><td align="left"><font point-size="8.5">Acción del sistema</font></td></tr>
+   <tr><td bgcolor="#FFF4DC" width="22"></td><td align="left"><font point-size="8.5">Decisión</font></td></tr>
+   <tr><td bgcolor="#FBEAEA" width="22"></td><td align="left"><font point-size="8.5">Error y recuperación (E)</font></td></tr>
+   <tr><td width="22"><font point-size="8.5" color="#2F5D8A">- -</font></td><td align="left"><font point-size="8.5">Camino alternativo (A)</font></td></tr>
+  </table>>];
+
+  {rank=same; s; legend}
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl6 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl7 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl8 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

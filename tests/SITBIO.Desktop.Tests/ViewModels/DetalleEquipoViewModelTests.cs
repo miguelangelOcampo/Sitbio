@@ -119,6 +119,56 @@ public class DetalleEquipoViewModelTests
     }
 
     [Fact]
+    public async Task Historial_CargaLaLineaDeTiempoUnaSolaVez_EnOrdenCronologico()
+    {
+        var equipo = Equipo();
+        var detalle = await AbrirAsync(equipo);
+        var registro = new EventoLineaTiempo(new DateTimeOffset(2026, 1, 10, 15, 0, 0, TimeSpan.Zero), "registro", "Equipo registrado en el inventario", "Placa MON-07", null, null);
+        var falla = new EventoLineaTiempo(new DateTimeOffset(2026, 2, 3, 14, 30, 0, TimeSpan.Zero), "tiquete", "Falla reportada · TIQ-0001", "No enciende · criticidad alta", null, Guid.NewGuid());
+        var fuera = new EventoLineaTiempo(new DateTimeOffset(2026, 2, 3, 14, 30, 0, TimeSpan.Zero), "estado", "Estado: Operativo → Fuera de servicio", "Falla crítica", "Ana Mora", null);
+        _servicio.LineaTiempoAsync(equipo.Id, Arg.Any<CancellationToken>()).Returns(new LineaTiempo(equipo.Id, equipo.PlacaInventario, [registro, falla, fuera], true));
+
+        detalle.EnHistorial = true;
+        await Task.Yield();
+        detalle.EnResumen = true;
+        detalle.EnHistorial = true;
+
+        Assert.True(detalle.EnHistorial);
+        Assert.False(detalle.EnResumen || detalle.EnTecnica);
+        await _servicio.Received(1).LineaTiempoAsync(equipo.Id, Arg.Any<CancellationToken>());
+        Assert.Equal(["Registro", "Tiquete", "Estado"], detalle.Eventos!.Select(e => e.Tipo));
+        Assert.Equal((TonoEstado.Exito, TonoEstado.Advertencia, TonoEstado.Critico), (detalle.Eventos![0].Tono, detalle.Eventos[1].Tono, detalle.Eventos[2].Tono));
+        Assert.Null(detalle.HistorialIncompleto);
+        Assert.False(detalle.SinEventos);
+    }
+
+    [Fact]
+    public async Task Historial_SinMongo_AvisaQueFaltanLasIntervenciones()
+    {
+        var equipo = Equipo();
+        var detalle = await AbrirAsync(equipo);
+        _servicio.LineaTiempoAsync(equipo.Id, Arg.Any<CancellationToken>()).Returns(new LineaTiempo(equipo.Id, equipo.PlacaInventario, [], false));
+
+        await detalle.CargarHistorialCommand.ExecuteAsync(null);
+
+        Assert.Equal("Faltan las intervenciones", detalle.HistorialIncompleto?.Titulo);
+        Assert.True(detalle.SinEventos);
+    }
+
+    [Fact]
+    public async Task Historial_ErrorDeLaApi_MuestraAvisoConReintentar()
+    {
+        var equipo = Equipo();
+        var detalle = await AbrirAsync(equipo);
+        _servicio.LineaTiempoAsync(equipo.Id, Arg.Any<CancellationToken>()).ThrowsAsync(new ErrorApi(null, Mensajes.Msg011, new Dictionary<string, string>(), sinConexion: true));
+
+        await detalle.CargarHistorialCommand.ExecuteAsync(null);
+
+        Assert.Equal(("Sin conexión", true), (detalle.AvisoHistorial?.Titulo, detalle.AvisoHistorial?.PuedeReintentar));
+        Assert.Null(detalle.Eventos);
+    }
+
+    [Fact]
     public async Task NoEncontrado_MuestraAvisoConReintentar()
     {
         var id = Guid.NewGuid();

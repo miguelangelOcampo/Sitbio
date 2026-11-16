@@ -4,6 +4,8 @@ using Sitbio.Application.Comun;
 using Sitbio.Domain.Comun;
 using Sitbio.Domain.Instituciones;
 using Sitbio.Domain.Inventario;
+using Sitbio.Domain.Mantenimiento;
+using Sitbio.Domain.Peticiones;
 using Sitbio.Domain.Seguridad;
 
 namespace Sitbio.Infrastructure.Persistencia;
@@ -36,6 +38,9 @@ public class SitbioDbContext : DbContext
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
 
+    /// <summary>Solicitudes del servicio (V002): sin filtro por tenant, muchas llegan sin sesión (HU-028).</summary>
+    public DbSet<SolicitudServicio> SolicitudesServicio => Set<SolicitudServicio>();
+
     public DbSet<Rol> Roles => Set<Rol>();
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
@@ -50,9 +55,19 @@ public class SitbioDbContext : DbContext
 
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
 
+    public DbSet<TipoFalla> TiposFalla => Set<TipoFalla>();
+
+    public DbSet<Tiquete> Tiquetes => Set<Tiquete>();
+
+    public DbSet<HistorialTiquete> HistorialTiquetes => Set<HistorialTiquete>();
+
+    public DbSet<OrdenTrabajo> Ordenes => Set<OrdenTrabajo>();
+
     public DbSet<EquipoBiomedico> Equipos => Set<EquipoBiomedico>();
 
     public DbSet<PlanPreventivo> PlanesPreventivos => Set<PlanPreventivo>();
+
+    public DbSet<RegistroCalibracion> Calibraciones => Set<RegistroCalibracion>();
 
     public DbSet<HistorialEstadoEquipo> HistorialEstados => Set<HistorialEstadoEquipo>();
 
@@ -98,10 +113,18 @@ public class SitbioDbContext : DbContext
     /// <summary>Impide insertar o modificar registros de otro tenant (defensa adicional al filtro).</summary>
     private void VerificarTenantDeLosCambios()
     {
+        var cambios = ChangeTracker.Entries<EntidadTenant>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+            .ToList();
+
+        // Sin cambios con tenant (p. ej. una solicitud del servicio sin sesión, HU-028) no se lee el token.
+        if (cambios.Count == 0)
+        {
+            return;
+        }
+
         var tenant = TenantActual;
-        var ajenos = ChangeTracker.Entries<EntidadTenant>()
-            .Any(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted
-                && e.Entity.TenantId != tenant);
+        var ajenos = cambios.Any(e => e.Entity.TenantId != tenant);
 
         if (ajenos)
         {

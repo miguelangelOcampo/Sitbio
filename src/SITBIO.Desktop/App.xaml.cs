@@ -42,6 +42,7 @@ public partial class App : Application
         servicios.AddTransient<SeguimientoViewModel>();
         servicios.AddTransient<IServicioOrdenes, ServicioOrdenesHttp>();
         servicios.AddTransient<BandejaViewModel>();
+        servicios.AddTransient<OrdenesViewModel>();
         servicios.AddTransient<IServicioAnalitica, ServicioAnaliticaHttp>();
         servicios.AddTransient<AnaliticaViewModel>();
         servicios.AddTransient<IServicioMantenimiento, ServicioMantenimientoHttp>();

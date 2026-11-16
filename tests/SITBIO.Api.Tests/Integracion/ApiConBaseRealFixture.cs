@@ -280,7 +280,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"INSERT INTO sitbio.calibracion (tenant_id, equipo_id, registrado_por_id, fecha_calibracion, patron_referencia, fecha_vencimiento) VALUES ({tenant}, {equipoId}, {usuarioId}, {fecha}, {"Analizador Fluke IDA-5"}, {vence})"));
 
-    /// <summary>Da de baja un equipo directamente en la base (el flujo de baja llega con HU-014).</summary>
+    /// <summary>Da de baja un equipo directamente en la base, sin pasar por PATCH /estado (para preparar datos).</summary>
     public Task DarDeBajaAsync(Guid equipoId) =>
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"UPDATE sitbio.equipo_biomedico SET estado_equipo_id = {EstadosEquipo.Baja}, fecha_baja = now() WHERE id_equipo = {equipoId}"));

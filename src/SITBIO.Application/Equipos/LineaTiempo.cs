@@ -72,7 +72,8 @@ public sealed class ConsultaLineaTiempo(IRepositorioLineaTiempo repositorio, IRe
             new(historia.FechaRegistro, TiposEvento.Registro, "Equipo registrado en el inventario", $"Placa {historia.PlacaInventario}", null, null),
         };
 
-        eventos.AddRange(historia.Estados.Select(e => new EventoLineaTiempoDto(
+        // El estado inicial (sin estado anterior, HU-014) ya lo cuenta el evento de registro.
+        eventos.AddRange(historia.Estados.Where(e => e.Cambio.EstadoAnteriorId is not null).Select(e => new EventoLineaTiempoDto(
             e.Cambio.FechaCambio,
             TiposEvento.Estado,
             e.EstadoAnterior is null ? $"Estado: {e.NuevoEstado}" : $"Estado: {e.EstadoAnterior} → {e.NuevoEstado}",

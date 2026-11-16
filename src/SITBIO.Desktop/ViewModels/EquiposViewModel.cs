@@ -156,7 +156,7 @@ public partial class EquiposViewModel(
             return Task.CompletedTask;
         }
 
-        var detalle = new DetalleEquipoViewModel(servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar);
+        var detalle = new DetalleEquipoViewModel(servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina));
         Detalle = detalle;
         return detalle.CargarCommand.ExecuteAsync(null);
     }

@@ -16,6 +16,21 @@ public interface IServicioEquipos
 
     /// <summary>Línea de tiempo del equipo (HU-023): del evento más antiguo al más reciente.</summary>
     Task<LineaTiempo> LineaTiempoAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// PATCH /equipos/{id}/estado (HU-014, solo AC-02): cambio de estado, baja lógica o, con
+    /// <see cref="EstadosEquipo.Operativo"/> para un equipo de baja, reversión de la baja (RN-009).
+    /// </summary>
+    Task<Equipo> CambiarEstadoAsync(Guid id, string estado, string motivo, CancellationToken cancellationToken);
+}
+
+/// <summary>Códigos de estado que acepta PATCH /equipos/{id}/estado.</summary>
+public static class EstadosEquipo
+{
+    public const string Operativo = "OPERATIVO";
+    public const string EnMantenimiento = "EN_MANTENIMIENTO";
+    public const string FueraDeServicio = "FUERA_DE_SERVICIO";
+    public const string Baja = "BAJA";
 }
 
 /// <summary>Evento de GET /equipos/{id}/linea-tiempo; <see cref="Tipo"/> es registro, estado, tiquete, orden, intervencion o calibracion.</summary>

@@ -104,7 +104,7 @@ public class CriteriosHu003Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
 
         // Una falla no crítica no cambia el estado del equipo.
         Assert.Equal(EstadosEquipo.Operativo, (await api.LeerEquipoAsync(i.Equipo)).EstadoEquipoId);
-        Assert.Empty(await api.LeerHistorialAsync(i.Equipo));
+        Assert.DoesNotContain(await api.LeerHistorialAsync(i.Equipo), h => h.EstadoAnteriorId is not null);
 
         // Con criticidad fuera de las cuatro, no hay tiquete.
         var invalida = await i.Clinico.PostAsJsonAsync(Ruta, Falla(i.Equipo, "urgente"));
@@ -126,7 +126,8 @@ public class CriteriosHu003Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
 
         // El equipo y su historial de estados cambian en la misma operación que el tiquete.
         Assert.Equal(EstadosEquipo.FueraDeServicio, (await api.LeerEquipoAsync(i.Equipo)).EstadoEquipoId);
-        var cambio = Assert.Single(await api.LeerHistorialAsync(i.Equipo));
+        // Además del estado inicial del registro (HU-014), un solo cambio: el de la falla.
+        var cambio = Assert.Single(await api.LeerHistorialAsync(i.Equipo), h => h.EstadoAnteriorId is not null);
         Assert.Equal(((short?)EstadosEquipo.Operativo, EstadosEquipo.FueraDeServicio, i.ClinicoId), (cambio.EstadoAnteriorId, cambio.NuevoEstadoId, cambio.UsuarioId));
         Assert.StartsWith("Falla crítica reportada (RN-005)", cambio.Motivo);
 
@@ -142,7 +143,7 @@ public class CriteriosHu003Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
 
         // Otra falla crítica sobre el mismo equipo no repite el cambio de estado.
         await Reportar(i.Clinico, Falla(i.Equipo, Criticidades.Critica));
-        Assert.Single(await api.LeerHistorialAsync(i.Equipo));
+        Assert.Single(await api.LeerHistorialAsync(i.Equipo), h => h.EstadoAnteriorId is not null);
     }
 
     // ---------- Aislamiento entre instituciones (CP-036, RN-008) ----------
@@ -158,7 +159,7 @@ public class CriteriosHu003Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
         var ajeno = await b.Clinico.PostAsJsonAsync(Ruta, Falla(a.Equipo, Criticidades.Critica));
         Assert.Equal(HttpStatusCode.NotFound, ajeno.StatusCode);
         Assert.Empty(await api.LeerTiquetesAsync(b.Tenant));
-        Assert.Single(await api.LeerHistorialAsync(a.Equipo));
+        Assert.Single(await api.LeerHistorialAsync(a.Equipo), h => h.EstadoAnteriorId is not null);
 
         // El mismo código en otra institución es otro tiquete: cada una numera desde TQT-000001.
         Assert.Equal(HttpStatusCode.NotFound, (await b.Ingeniero.GetAsync($"{Ruta}/{codigo}")).StatusCode);

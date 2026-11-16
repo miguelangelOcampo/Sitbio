@@ -247,6 +247,36 @@
     </Setter>
   </Style>
 
+  <!-- Opción única de formulario (p. ej. motivo de la baja): círculo de 18 px con punto al elegirla -->
+  <Style x:Key="OpcionRadio" TargetType="RadioButton">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTeclado}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="RadioButton">
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Grid Width="18" Height="18" VerticalAlignment="Center">
+              <Ellipse x:Name="Circulo" StrokeThickness="1.5" Stroke="{DynamicResource Brush.BorderControl}" Fill="{DynamicResource Brush.Surface}" />
+              <Ellipse x:Name="Punto" Width="8" Height="8" Fill="{DynamicResource Brush.Primary}" Visibility="Collapsed" />
+            </Grid>
+            <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center" />
+          </StackPanel>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+              <Setter TargetName="Circulo" Property="Stroke" Value="{DynamicResource Brush.Primary}" />
+              <Setter TargetName="Punto" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="Circulo" Property="Stroke" Value="{DynamicResource Brush.Primary}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <!-- Velo detrás de un diálogo o panel lateral; al pulsarlo ejecuta su Command (por ejemplo, cancelar) -->
   <Style x:Key="Velo" TargetType="Button">
     <Setter Property="Focusable" Value="False" />

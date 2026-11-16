@@ -1,0 +1,31 @@
+%% DIA-004 v1.1 (11/11/2026). Fuente: DOC-06 Tabla 19. Generar: mmdc -i DIA-004_SEQ-004_Aprobacion_y_firma.mmd -o DIA-004_SEQ-004_Aprobacion_y_firma.png -c DIA-004_estilo_mermaid.json -s 2 -b white
+%% Título (agregado al exportar): DIA-004 · SEQ-004: Aprobación y firma de la orden · Versión 1.1 · 11/11/2026 · Fuente: DOC-06, Tabla 19
+sequenceDiagram
+    participant I as Ingeniero biomédico<br/>(AC-02)
+    participant UI as UI-014 Aprobación y firma<br/>[Cliente WPF]
+    participant OT as CMP-OT<br/>[API REST]
+    participant INT as CMP-INT<br/>[API REST]
+    participant AUD as CMP-AUD<br/>bitacora_auditoria
+    participant DB as PostgreSQL y MongoDB
+    I->>UI: Revisa la orden cerrada y su intervención
+    I->>UI: Firma y aprueba
+    UI->>OT: POST /ordenes/{id}/aprobacion (firma)
+    activate OT
+    OT->>OT: Verificar rol AC-02 y tenant del token
+    alt Rol distinto de AC-02
+        OT->>AUD: ACCESO_DENEGADO
+        OT-->>UI: 403 · sin permiso
+    else Rol autorizado
+        OT->>DB: Consultar estado de la orden
+        alt Orden ya aprobada o no cerrada
+            OT-->>UI: 409 · estado no válido para aprobar
+        else Orden «Cerrada»
+            OT->>DB: Registrar aprobación, firma y fecha (PostgreSQL)
+            OT->>INT: Marcar intervención como firmada
+            INT->>DB: cerrada_firmada = true (MongoDB)
+            OT->>AUD: ACTUALIZAR (orden_trabajo, aprobación)
+            OT-->>UI: 200 · orden aprobada
+            UI-->>I: La orden y la intervención quedan inalterables (RN-004) y se ven en la hoja de vida
+        end
+    end
+    deactivate OT

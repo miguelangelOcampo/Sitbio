@@ -1,0 +1,27 @@
+digraph G {
+  graph [rankdir=LR, splines=ortho, nodesep=0.5, ranksep=0.6, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-QA-02 · Ambientes de prueba y promoción de versiones</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-07, Tabla 7; DOC-06, Tablas 43 a 45</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  dev [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", fontcolor="#222222", label=<<b>DEP-DEV · Desarrollo</b><br/><font point-size="9">Equipo de cada desarrollador<br/>Visual Studio y .venv de Python<br/>PostgreSQL 16 y MongoDB 7 en Docker<br/>(scripts 01, 02 y V002 a V008)</font>>];
+  qa [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", fontcolor="#222222", label=<<b>DEP-QA · Pruebas</b><br/><font point-size="9">GitHub Actions (Windows y Ubuntu)<br/>y máquina de QA con el ejecutable WPF<br/>Datos sintéticos de dos instituciones</font>>];
+  demo [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", fontcolor="#222222", label=<<b>DEP-DEMO · Demostración</b><br/><font point-size="9">Evaluación académica con el instructor<br/>Datos sintéticos (EX-05)</font>>];
+  prod [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>DEP-PROD · Producción</b><br/><font point-size="9">Nube del proveedor (ADR-010)<br/>Respaldo diario (RNF-010)<br/>Fuera de la fase académica</font>>];
+  dev -> lbl1 [arrowhead=none];
+  lbl1 -> qa;
+  demo -> lbl2 [style=dashed, arrowhead=none];
+  lbl2 -> prod [style=dashed];
+  df [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿CI y pruebas<br/>aprobadas?>];
+  qa -> df;
+  df -> lbl3 [arrowhead=none];
+  lbl3 -> demo;
+  fx [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<Corrige en una rama<br/>fix/ y repite>];
+  df -> lbl4 [arrowhead=none];
+  lbl4 -> fx;
+  fx -> dev [style=dashed, constraint=false];
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="pull request", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Go (Tabla 10)\ny respaldo previo", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

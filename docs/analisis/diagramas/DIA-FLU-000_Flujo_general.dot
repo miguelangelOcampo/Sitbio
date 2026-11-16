@@ -1,0 +1,78 @@
+// Fuente editable. Líneas en ángulo recto (splines=ortho); las etiquetas de las decisiones son nodos intermedios. Generar: dot -Tpng -Gdpi=200
+digraph G {
+  graph [rankdir=TB, splines=ortho, nodesep=0.3, ranksep=0.38, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-FLU-000 · Flujo general del sistema: de la falla a la hoja de vida</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-05, Tabla 16; FLU-003 a FLU-006 y FLU-008</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  subgraph cluster_cli { label=<<b>Personal clínico (AC-04)</b>>; fontsize=11; fontcolor="#24496D"; style="filled"; fillcolor="#F7F9FB"; color="#9AA5B1"; margin=12;
+  top_cli [shape=point, width=0.01, style=invis];
+  s [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Falla del equipo</b>>, peripheries=1];
+  c1 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Reporta la falla<br/><font point-size="8">FLU-003</font><br/><font point-size="8" color="#24496D">UI-009</font>>];
+  c2 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Consulta el seguimiento<br/><font point-size="8" color="#24496D">UI-010</font>>];
+  f [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Tiquete cerrado</b>>, peripheries=1];
+  bot_cli [shape=point, width=0.01, style=invis];
+  }
+  subgraph cluster_sis { label=<<b>SITBIO</b>>; fontsize=11; fontcolor="#24496D"; style="filled"; fillcolor="#F7F9FB"; color="#9AA5B1"; margin=12;
+  top_sis [shape=point, width=0.01, style=invis];
+  y1 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Crea el tiquete con código;<br/>si es crítica, el equipo pasa<br/>a «Fuera de servicio» (RN-005)</i>>];
+  y0 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Genera la orden preventiva<br/>(FLU-008)</i>>];
+  y2 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Orden «asignada»;<br/>la muestra al técnico</i>>];
+  y3 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Guarda la intervención<br/>(MongoDB); orden «cerrada»</i>>];
+  y4 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Orden e intervención inalterables<br/>(RN-004); actualiza el estado<br/>del equipo, la hoja de vida<br/>y la línea de tiempo</i>>];
+  bot_sis [shape=point, width=0.01, style=invis];
+  }
+  subgraph cluster_ing { label=<<b>Ingeniero biomédico (AC-02)</b>>; fontsize=11; fontcolor="#24496D"; style="filled"; fillcolor="#F7F9FB"; color="#9AA5B1"; margin=12;
+  top_ing [shape=point, width=0.01, style=invis];
+  p0 [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Plan preventivo por vencer</b>>, peripheries=1];
+  i1 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Revisa la bandeja y asigna<br/>un técnico activo<br/><font point-size="8">FLU-004</font><br/><font point-size="8" color="#24496D">UI-011</font>>];
+  i2 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Revisa, aprueba y firma<br/><font point-size="8">FLU-006</font><br/><font point-size="8" color="#24496D">UI-014</font>>];
+  bot_ing [shape=point, width=0.01, style=invis];
+  }
+  subgraph cluster_tec { label=<<b>Técnico de mantenimiento (AC-03)</b>>; fontsize=11; fontcolor="#24496D"; style="filled"; fillcolor="#F7F9FB"; color="#9AA5B1"; margin=12;
+  top_tec [shape=point, width=0.01, style=invis];
+  t1 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Ejecuta la orden y registra<br/>la intervención<br/><font point-size="8">FLU-005</font><br/><font point-size="8" color="#24496D">UI-012, UI-013</font>>];
+  tc [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Calibración<br/>vencida?>];
+  tk [shape=box, style="rounded,dashed,filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<Registra la calibración<br/><font point-size="8" color="#24496D">FLU-008 · UI-017</font>>];
+  t2 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Cierra la orden<br/><font point-size="8" color="#24496D">UI-013</font>>];
+  bot_tec [shape=point, width=0.01, style=invis];
+      lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+  }
+  {rank=same; top_cli; top_sis; top_ing; top_tec}
+  {rank=same; bot_cli; bot_sis; bot_ing; bot_tec}
+  top_cli -> top_sis -> top_ing -> top_tec [style=invis];
+  top_cli -> s [style=invis]; top_sis -> y1 [style=invis]; top_sis -> y0 [style=invis]; top_ing -> p0 [style=invis]; top_tec -> t1 [style=invis];
+  f -> bot_cli [style=invis]; y4 -> bot_sis [style=invis]; i2 -> bot_ing [style=invis]; t2 -> bot_tec [style=invis];
+  s -> c1;
+  c1 -> lbl1 [arrowhead=none];
+  lbl1 -> y1;
+  y1 -> i1;
+  p0 -> y0;
+  y0 -> i1;
+  i1 -> y2;
+  y2 -> t1;
+  t1 -> tc;
+  tc -> lbl2 [arrowhead=none];
+  lbl2 -> tk;
+  tk -> t2;
+  tc -> lbl3 [arrowhead=none];
+  lbl3 -> t2;
+  t2 -> y3;
+  y3 -> i2;
+  i2 -> y4;
+  y4 -> c2;
+  c2 -> f;
+  legend [shape=plaintext, margin=0, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4" color="#B5B5B5">
+   <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+   <tr><td bgcolor="#2F5D8A" width="22"></td><td align="left"><font point-size="8.5">Inicio o fin del flujo</font></td></tr>
+   <tr><td bgcolor="#E6EEF7" width="22"></td><td align="left"><font point-size="8.5">Acción del rol (pantalla en azul)</font></td></tr>
+   <tr><td width="22"><font point-size="8.5"><i>abc</i></font></td><td align="left"><font point-size="8.5">Acción del sistema</font></td></tr>
+   <tr><td bgcolor="#FFF4DC" width="22"></td><td align="left"><font point-size="8.5">Decisión</font></td></tr>
+   <tr><td bgcolor="#FBEAEA" width="22"></td><td align="left"><font point-size="8.5">Error y recuperación (E)</font></td></tr>
+   <tr><td width="22"><font point-size="8.5" color="#2F5D8A">- -</font></td><td align="left"><font point-size="8.5">Camino alternativo (A)</font></td></tr>
+  </table>>];
+
+  {rank=same; bot_tec; legend}
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="tiquete", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

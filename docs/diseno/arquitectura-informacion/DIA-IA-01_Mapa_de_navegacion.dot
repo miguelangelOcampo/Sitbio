@@ -1,4 +1,4 @@
-// DIA-IA-01 v1.1 (23/10/2026): navegación agrupada por función (DD-012) e identidad verde (DD-010); ajuste 24/10/2026: alcance del rol AC-01
+// DIA-IA-01 v1.1 (23/10/2026): navegación agrupada por función (DD-012) e identidad verde (DD-010); ajuste 24/10/2026: alcance del rol AC-01; ajuste 01/11/2026: campos dinámicos y catálogos técnicos a AC-02, ubicaciones AC-01 y AC-02
 digraph SITBIO_IA {
   graph [rankdir=LR, splines=ortho, nodesep=0.18, ranksep=0.55, fontname="Liberation Sans", bgcolor="white", pad=0.2];
   node  [shape=box, style="rounded,filled", fontname="Liberation Sans", fontsize=11, color="#7F887F", fillcolor="#FFFFFF", fontcolor="#252B27", margin="0.12,0.06"];
@@ -41,7 +41,7 @@ digraph SITBIO_IA {
   ana -> {u21 u22 u23};
 
   u4  [label="UI-004 Usuarios y roles\nAC-01"];
-  cfg [label="Configuración\nUI-019 Institución · UI-020 Catálogos · UI-018 Campos dinámicos\nAC-01 (AC-02 consulta)"];
+  cfg [label="Configuración\nUI-019 Institución (AC-01)\nUI-020 Catálogos (AC-02; ubicaciones también AC-01)\nUI-018 Campos dinámicos (AC-02; AC-01 consulta)"];
   u24 [label="UI-024 Auditoría\nAC-01 · AC-07"];
   adm -> {u4 cfg u24};
 }

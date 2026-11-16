@@ -1,0 +1,35 @@
+digraph G {
+  graph [rankdir=TB, splines=ortho, nodesep=0.35, ranksep=0.35, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-QA-03 · Flujo de integración continua en cada pull request</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-07, sección 10; .github/workflows/ci.yml</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  s [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Pull request hacia main</b>>, peripheries=1];
+  subgraph cluster_w { label=<<b>Trabajo .NET · windows-latest</b>>; fontsize=10; fontcolor="#24496D"; style="rounded,dashed"; color="#9AA5B1";
+  w1 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>dotnet restore</i>>];
+  w2 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>dotnet format whitespace<br/>--verify-no-changes</i>>];
+  w3 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>dotnet build -c Release</i>>];
+  w4 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>dotnet test con cobertura</i>>];
+  w5 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Publica los resultados<br/>y la cobertura</i>>];
+  }
+  subgraph cluster_p { label=<<b>Trabajo Python · ubuntu-latest</b>>; fontsize=10; fontcolor="#24496D"; style="rounded,dashed"; color="#9AA5B1";
+  p1 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Instala dependencias</i>>];
+  p2 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>ruff check y ruff format --check</i>>];
+  p3 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>pytest</i>>];
+  }
+  dc [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Ambos<br/>trabajos<br/>en verde?>];
+  e [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<Corrige y hace push<br/>a la misma rama>];
+  r [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Revisión y aprobación<br/>de otro integrante>];
+  f [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Squash merge en main</b>>, peripheries=1];
+  s -> w1 -> w2 -> w3 -> w4 -> w5;
+  s -> p1 -> p2 -> p3;
+  w5 -> dc; p3 -> dc;
+  dc -> lbl1 [arrowhead=none];
+  lbl1 -> e;
+  e -> s [style=dashed, constraint=false];
+  dc -> lbl2 [arrowhead=none];
+  lbl2 -> r;
+  r -> f;
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

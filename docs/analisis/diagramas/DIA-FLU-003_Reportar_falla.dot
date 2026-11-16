@@ -1,0 +1,73 @@
+// Fuente editable. Líneas en ángulo recto (splines=ortho); las etiquetas de las decisiones son nodos intermedios. Generar: dot -Tpng -Gdpi=200
+digraph G {
+  graph [rankdir=TB, splines=ortho, nodesep=0.45, ranksep=0.4, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-FLU-003 · Flujo FLU-003: reportar falla y obtener tiquete</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-05, Tabla 18; CU-003</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  s [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Un equipo falla o se comporta de forma anómala</b>>, peripheries=1];
+  a1 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Selecciona «Reportar falla» desde Inicio<br/><font point-size="8" color="#24496D">UI-003 → UI-009</font>>];
+  a2 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Busca el equipo por placa, serie o nombre<br/>(autocompletado)<br/><font point-size="8" color="#24496D">UI-009</font>>];
+  de [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Equipo<br/>encontrado?>];
+  e3 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E3 · Estado vacío con indicación<br/>de contactar a ingeniería>];
+  dt [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Tiene un<br/>tiquete abierto?>];
+  a2x [shape=box, style="rounded,dashed,filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<A2 · Informa el código existente y<br/>ofrece agregar la observación>];
+  a3 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Elige el tipo de falla y la criticidad<br/>(con ayuda contextual) y describe la falla<br/><font point-size="8" color="#24496D">UI-009</font>>];
+  dk [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Criticidad<br/>«crítica»?>];
+  a1x [shape=box, style="rounded,dashed,filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<A1 · MSG-006: el equipo pasará a<br/>«Fuera de servicio» (RN-005)>];
+  a4 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Presiona «Enviar reporte»<br/><font point-size="8" color="#24496D">UI-009</font>>];
+  dd [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿Datos<br/>completos?>];
+  e1 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E1 · MSG-008 con resumen de errores<br/>y foco en el primer campo>];
+  da [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿La API<br/>responde?>];
+  e2 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<E2 · MSG-011: conserva los datos<br/>y ofrece «Reintentar»>];
+  a5 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>Crea el tiquete con código único;<br/>si es crítica, cambia el estado del equipo</i>>];
+  f [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>MSG-005 con el código y «Ver seguimiento» (UI-010)</b>>, peripheries=1];
+  s -> a1 -> a2 -> de;
+  de -> lbl1 [arrowhead=none];
+  lbl1 -> e3;
+  de -> lbl2 [arrowhead=none];
+  lbl2 -> dt;
+  dt -> lbl3 [arrowhead=none];
+  lbl3 -> a2x;
+  dt -> lbl4 [arrowhead=none];
+  lbl4 -> a3;
+  a3 -> dk;
+  dk -> lbl5 [arrowhead=none];
+  lbl5 -> a1x;
+  a1x -> a4;
+  dk -> lbl6 [arrowhead=none];
+  lbl6 -> a4;
+  a4 -> dd;
+  dd -> lbl7 [arrowhead=none];
+  lbl7 -> e1;
+  e1 -> a3 [style=dashed, constraint=false];
+  dd -> lbl8 [arrowhead=none];
+  lbl8 -> da;
+  da -> lbl9 [arrowhead=none];
+  lbl9 -> e2;
+  e2 -> a4 [style=dashed, constraint=false];
+  da -> lbl10 [arrowhead=none];
+  lbl10 -> a5;
+  a5 -> f;
+  legend [shape=plaintext, margin=0, label=<<table border="0" cellborder="1" cellspacing="0" cellpadding="4" color="#B5B5B5">
+   <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+   <tr><td bgcolor="#2F5D8A" width="22"></td><td align="left"><font point-size="8.5">Inicio o fin del flujo</font></td></tr>
+   <tr><td bgcolor="#E6EEF7" width="22"></td><td align="left"><font point-size="8.5">Acción del usuario (pantalla en azul)</font></td></tr>
+   <tr><td width="22"><font point-size="8.5"><i>abc</i></font></td><td align="left"><font point-size="8.5">Acción del sistema</font></td></tr>
+   <tr><td bgcolor="#FFF4DC" width="22"></td><td align="left"><font point-size="8.5">Decisión</font></td></tr>
+   <tr><td bgcolor="#FBEAEA" width="22"></td><td align="left"><font point-size="8.5">Error y recuperación (E)</font></td></tr>
+   <tr><td width="22"><font point-size="8.5" color="#2F5D8A">- -</font></td><td align="left"><font point-size="8.5">Camino alternativo (A)</font></td></tr>
+  </table>>];
+
+  {rank=same; s; legend}
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl6 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl7 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl8 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl9 [shape=box, style="filled", fillcolor="white", color="white", label="No", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl10 [shape=box, style="filled", fillcolor="white", color="white", label="Sí", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

@@ -1,0 +1,32 @@
+%% DIA-004 v1.1 (11/11/2026). Fuente: DOC-06 Tabla 19. Generar: mmdc -i DIA-004_SEQ-002_Reporte_de_falla.mmd -o DIA-004_SEQ-002_Reporte_de_falla.png -c DIA-004_estilo_mermaid.json -s 2 -b white
+%% Título (agregado al exportar): DIA-004 · SEQ-002: Reporte de falla y tiquete · Versión 1.1 · 11/11/2026 · Fuente: DOC-06, Tabla 19
+sequenceDiagram
+    participant U as Personal clínico<br/>(AC-04) o Ingeniero (AC-02)
+    participant UI as UI-009 Reportar falla<br/>[Cliente WPF]
+    participant TIQ as CMP-TIQ<br/>[API REST]
+    participant INV as CMP-INV<br/>[API REST]
+    participant PG as PostgreSQL<br/>tiquete · equipo_biomedico
+    participant AUD as CMP-AUD<br/>bitacora_auditoria
+    U->>UI: Busca el equipo y describe la falla con su criticidad
+    UI->>TIQ: POST /tiquetes (TiqueteDto, Bearer JWT)
+    activate TIQ
+    TIQ->>TIQ: Validar rol y tomar tenant_id del token
+    TIQ->>INV: Obtener equipo del tenant
+    INV->>PG: Consultar equipo por id y tenant_id
+    PG-->>INV: Equipo o sin resultado
+    alt Equipo inexistente o de otra institución
+        INV-->>TIQ: No encontrado
+        TIQ-->>UI: 404 · equipo no encontrado
+        UI-->>U: Mensaje de validación sin datos de otra institución
+    else Equipo del tenant
+        INV-->>TIQ: Equipo y estado actual
+        TIQ->>PG: BEGIN · insertar tiquete con código único
+        opt Criticidad «Crítica» (RN-005)
+            TIQ->>PG: Cambiar el equipo a «Fuera de servicio» en la misma transacción
+        end
+        TIQ->>PG: COMMIT
+        TIQ->>AUD: CREAR (entidad tiquete)
+        TIQ-->>UI: 201 · tiquete con código y estado «Abierto»
+        UI-->>U: Muestra el código del tiquete para su seguimiento (UI-010)
+    end
+    deactivate TIQ

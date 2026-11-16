@@ -1,0 +1,67 @@
+// DIA-001 v1.0 (09/11/2026): diagrama de contexto C4 nivel 1 de SITBIO. Fuente: DOC-06 Tablas 12 y 13.
+// Líneas en ángulo recto (splines=ortho); las etiquetas de las relaciones son nodos intermedios.
+digraph DIA001 {
+  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-001 · Diagrama de contexto (C4 nivel 1) de SITBIO</b><br/><font point-size="10" color="#555555">Versión 1.0 · 09/11/2026 · Fuente: DOC-06, Tablas 12 y 13</font><br/> >, rankdir=LR, splines=ortho, nodesep=0.35, ranksep=0.7, fontname="Liberation Sans", bgcolor="white", pad=0.3, forcelabels=true];
+  node  [shape=box, style="rounded,filled", fontname="Liberation Sans", fontsize=11, color="#8C8C8C", fillcolor="#FFFFFF", fontcolor="#222222", margin="0.16,0.10"];
+  edge  [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  // Personas (IPS)
+    clin [label=<<b>Personal clínico</b><br/><font point-size="9">[Persona] AC-04</font><br/><font point-size="9">Reporta fallas y sigue sus tiquetes</font>>, fillcolor="#E6EEF7", color="#2F5D8A"];
+    ing  [label=<<b>Ingeniero biomédico</b><br/><font point-size="9">[Persona] AC-02</font><br/><font point-size="9">Hojas de vida, órdenes, aprobación,<br/>campos dinámicos y catálogos técnicos</font>>, fillcolor="#E6EEF7", color="#2F5D8A"];
+    tec  [label=<<b>Técnico de mantenimiento</b><br/><font point-size="9">[Persona] AC-03</font><br/><font point-size="9">Ejecuta órdenes y registra intervenciones</font>>, fillcolor="#E6EEF7", color="#2F5D8A"];
+    adm  [label=<<b>Administrador del sistema</b><br/><font point-size="9">[Persona] AC-01 · TI de la institución</font><br/><font point-size="9">Usuarios, ubicaciones y datos de la institución</font>>, fillcolor="#E6EEF7", color="#2F5D8A"];
+    ger  [label=<<b>Gerente de Tecnología Biomédica<br/>y Directiva institucional</b><br/><font point-size="9">[Persona] AC-05 · AC-06</font><br/><font point-size="9">Indicadores, reportes y analítica</font>>, fillcolor="#E6EEF7", color="#2F5D8A"];
+    sti  [label=<<b>Soporte TI de la IPS</b><br/><font point-size="9">[Operador] EXT-004 · ST-07</font><br/><font point-size="9">Instala el cliente y mantiene Internet</font>>, fillcolor="#F1F1F1"];
+  aud [label=<<b>Ente regulador / auditor</b><br/><font point-size="9">[Persona] AC-07 · INVIMA / Secretaría de Salud</font><br/><font point-size="9">Consulta en solo lectura y recibe exportaciones</font>>, fillcolor="#E6EEF7", color="#2F5D8A"];
+
+  sys [label=<<font point-size="15"><b>SITBIO</b></font><br/><font point-size="9">[Sistema de software] SYS-01 · SaaS multi-tenant</font><br/><br/>Hoja de vida e información regulatoria de equipos biomédicos,<br/>tiquetes, órdenes de trabajo, mantenimientos, calibraciones,<br/>reportes, indicadores y analítica, con RBAC y bitácora de auditoría>,
+       fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", margin="0.35,0.22"];
+
+  arch [label=<<b>Almacenamiento de archivos</b><br/><font point-size="9">[Sistema de soporte] EXT-003 · Proveedor</font><br/><font point-size="9">Documentos adjuntos y fotografías</font>>, fillcolor="#F1F1F1"];
+  plat [label=<<b>Administradores de la plataforma</b><br/><font point-size="9">[Operador del proveedor] EXT-006 · ST-10</font><br/><font point-size="9">Planes, infraestructura y tenants</font>>, fillcolor="#F1F1F1"];
+  his  [label=<<b>HIS / ERP hospitalario</b><br/><font point-size="9">[Sistema externo] EXT-005</font><br/><font point-size="9">Fuera de alcance (EX-02)</font>>, style="rounded,dashed", fontcolor="#8C8C8C", color="#B5B5B5"];
+
+  {rank=same; clin; ing; tec; adm; ger}
+  {rank=same; aud; sti; plat; arch; his; legend}
+
+  clin -> lbl1 [arrowhead=none];
+
+  lbl1 -> sys;
+  ing -> lbl2 [arrowhead=none];
+  lbl2 -> sys;
+  tec -> lbl3 [arrowhead=none];
+  lbl3 -> sys;
+  adm -> lbl4 [arrowhead=none];
+  lbl4 -> sys;
+  ger -> lbl5 [arrowhead=none];
+  lbl5 -> sys;
+  sys -> lbl6 [style=dashed, arrowhead=none, arrowtail=normal, dir=back];
+  lbl6 -> sti [style=dashed, arrowhead=none];
+  sys -> lbl7 [arrowhead=none, arrowtail=normal, dir=back];
+  lbl7 -> aud [arrowhead=none];
+  sys -> lbl8 [arrowhead=none];
+  lbl8 -> arch;
+  sys -> lbl9 [arrowhead=none, arrowtail=normal, dir=back];
+  lbl9 -> plat [arrowhead=none];
+  sys -> lbl10 [style=dashed, color="#B5B5B5", fontcolor="#8C8C8C", arrowhead=none, arrowhead=none];
+  lbl10 -> his [style=dashed, color="#B5B5B5", fontcolor="#8C8C8C", arrowhead=none];
+
+  legend [shape=plaintext, style="", margin=0, label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="5" color="#B5B5B5">
+      <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+      <tr><td bgcolor="#2F5D8A" width="22"></td><td align="left"><font point-size="9">Sistema en alcance</font></td></tr>
+      <tr><td bgcolor="#E6EEF7" width="22"></td><td align="left"><font point-size="9">Persona (rol de usuario AC-01 a AC-07)</font></td></tr>
+      <tr><td bgcolor="#F1F1F1" width="22"></td><td align="left"><font point-size="9">Sistema u operador externo</font></td></tr>
+      <tr><td width="22"><font point-size="9" color="#8C8C8C">- -</font></td><td align="left"><font point-size="9">Línea o borde punteado: fuera de alcance o relación indirecta</font></td></tr>
+    </table>>];
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="Reporta fallas\n(cliente WPF, HTTPS/JSON)", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Gestiona equipos,\nórdenes y configuración", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="Registra\nintervenciones", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="Administra usuarios\ny la institución", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="Consulta KPIs\ny reportes", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl6 [shape=box, style="filled", fillcolor="white", color="white", label="Instala y actualiza\nel cliente", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl7 [shape=box, style="filled", fillcolor="white", color="white", label="Consulta y exporta\n(PDF / Excel)", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl8 [shape=box, style="filled", fillcolor="white", color="white", label="Guarda y lee\narchivos", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl9 [shape=box, style="filled", fillcolor="white", color="white", label="Aprovisiona tenants\n(script con credencial\nde servicio)", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl10 [shape=box, style="filled", fillcolor="white", color="white", label="Sin integración", fontsize=9, fontcolor="#8C8C8C", margin="0.03,0.01", width=0, height=0];
+}

@@ -1,0 +1,33 @@
+digraph G {
+  graph [rankdir=TB, splines=ortho, nodesep=0.4, ranksep=0.38, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-QA-04 · Ciclo de vida de un defecto</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-07, sección 11 y Tabla 9</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  s [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Resultado obtenido ≠ esperado<br/>en un caso CP</b>>, peripheries=1];
+  a1 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Registra el issue en GitHub con el CP,<br/>los pasos y la evidencia>];
+  ds [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<Severidad>];
+  s1 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", label=<S1 Crítica<br/>&lt; 4 h>];
+  s2 [shape=box, style="rounded,filled", fillcolor="#FBEAEA", color="#B0503F", fontcolor="#222222", label=<S2 Alta<br/>&lt; 12 h>];
+  s3 [shape=box, style="rounded,filled", fillcolor="#FFF4DC", color="#B8862B", fontcolor="#222222", label=<S3 Media<br/>&lt; 24 h>];
+  s4 [shape=box, style="rounded,filled", fillcolor="#F1F1F1", color="#8C8C8C", fontcolor="#222222", label=<S4 Menor<br/>&lt; 48 h>];
+  a2 [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", label=<Asigna al responsable y corrige<br/>en una rama fix/>];
+  a3 [shape=box, style="filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<<i>La CI ejecuta las pruebas<br/>del pull request</i>>];
+  dv [shape=diamond, style="filled", fillcolor="#FFF4DC", color="#B8862B", margin="0.04,0.02", label=<¿QA verifica<br/>con el CP?>];
+  re [shape=box, style="rounded,dashed,filled", fillcolor="#FFFFFF", color="#2F5D8A", label=<Reabre el issue>];
+  f [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", label=<<b>Cierra el issue y actualiza la<br/>Matriz de Trazabilidad</b>>, peripheries=1];
+  s -> a1 -> ds;
+  ds -> s1; ds -> s2; ds -> s3; ds -> s4;
+  {rank=same; s1; s2; s3; s4}
+  s1 -> a2; s2 -> a2; s3 -> a2; s4 -> a2;
+  a2 -> a3 -> dv;
+  dv -> lbl1 [arrowhead=none];
+  lbl1 -> re;
+  re -> a2 [style=dashed, constraint=false];
+  dv -> lbl2 [arrowhead=none];
+  lbl2 -> f;
+  nota [shape=note, style=filled, fillcolor="#FFFFFF", color="#8C8C8C", fontsize=9, label=<Go / No-Go: cero defectos<br/>S1 y S2 abiertos (Tabla 10)>];
+  {rank=same; f; nota}
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="Falla", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="Pasa", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

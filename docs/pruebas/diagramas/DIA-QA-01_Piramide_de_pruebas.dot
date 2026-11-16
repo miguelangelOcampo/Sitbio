@@ -1,0 +1,16 @@
+digraph G {
+  graph [rankdir=TB, splines=ortho, nodesep=0.2, ranksep=0.15, fontname="Liberation Sans", bgcolor="white", pad=0.25, forcelabels=true, newrank=true,
+         labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-QA-01 · Pirámide de pruebas de SITBIO</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: DOC-07, Tabla 4; RNF-012</font><br/> >];
+  node [fontname="Liberation Sans", fontsize=10, fontcolor="#222222", margin="0.14,0.07"];
+  edge [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  acc [shape=box, style="rounded,filled", fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF", width=3.2, fixedsize=false, label=<<b>Aceptación</b><br/><font point-size="9">Pruebas manuales guiadas con QA e instructores · 100 % de los criterios de éxito</font>>];
+  ui [shape=box, style="rounded,filled", fillcolor="#5B7FA6", color="#2F5D8A", fontcolor="#FFFFFF", width=4.6, fixedsize=false, label=<<b>Interfaz (UI)</b><br/><font point-size="9">Pruebas de ViewModels (xUnit) y pruebas manuales · flujos FLU-001, FLU-003 y FLU-005</font>>];
+  int [shape=box, style="rounded,filled", fillcolor="#9DB6D3", color="#2F5D8A", fontcolor="#222222", width=6.0, fixedsize=false, label=<<b>Integración</b><br/><font point-size="9">xUnit [FactIntegracion] contra PostgreSQL 16 y MongoDB 7 en Docker · un caso por criterio de aceptación (CA-HU)</font>>];
+  uni [shape=box, style="rounded,filled", fillcolor="#E6EEF7", color="#2F5D8A", fontcolor="#222222", width=7.4, fixedsize=false, label=<<b>Unitarias</b><br/><font point-size="9">xUnit y NSubstitute: reglas del dominio, casos de uso y ViewModels · cobertura ≥ 70 % del backend (RNF-012)</font>>];
+  py [shape=box, style="rounded,filled", fillcolor="#FFF4DC", color="#B8862B", fontcolor="#222222", label=<<b>Pipeline Python</b><br/><font point-size="9">pytest y ruff · 100 % de los scripts analíticos</font>>];
+  acc -> ui -> int -> uni [style=invis];
+  {rank=same; uni; py}
+  esc [shape=plaintext, label=<<table border="0" cellspacing="0" cellpadding="3"><tr><td align="left"><font point-size="9"><b>↑ Más lentas y costosas, menos casos</b></font></td></tr><tr><td align="left"><font point-size="9"><b>↓ Más rápidas, se ejecutan en cada pull request</b></font></td></tr></table>>];
+  {rank=same; acc; esc}
+}

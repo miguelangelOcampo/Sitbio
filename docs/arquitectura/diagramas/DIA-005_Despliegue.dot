@@ -1,0 +1,93 @@
+// Líneas en ángulo recto (splines=ortho); las etiquetas de las relaciones son nodos intermedios.
+// DIA-005 v1.0 (09/11/2026): diagrama de despliegue por ambiente de SITBIO. Fuente: DOC-06 secciones 12.1 a 12.4 (Tablas 43 a 45), ADR-007 y ADR-010.
+digraph DIA005 {
+  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-005 · Diagrama de despliegue por ambiente de SITBIO</b><br/><font point-size="10" color="#555555">Versión 1.0 · 09/11/2026 · Fuente: DOC-06, Tablas 43 a 45, ADR-007 y ADR-010</font><br/> >, rankdir=TB, splines=ortho, nodesep=0.45, ranksep=0.45, fontname="Liberation Sans", bgcolor="white", pad=0.2, forcelabels=true, newrank=true, compound=true];
+  node  [shape=box, style="rounded,filled", fontname="Liberation Sans", fontsize=10, color="#2F5D8A", fillcolor="#FFFFFF", fontcolor="#222222", margin="0.14,0.08"];
+  edge  [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
+
+  subgraph cluster_ips {
+    label=<<b>IPS cliente</b>  <font point-size="9">red local con salida a Internet</font>>; fontsize=11; fontcolor="#2F5D8A"; style="rounded,dashed"; color="#9AA5B1"; margin=12;
+    subgraph cluster_est {
+      label=<<b>«dispositivo» Estación Windows 10 / 11</b>  <font point-size="9">una por usuario o área</font>>; fontsize=10; fontcolor="#24496D"; style="filled"; fillcolor="#F4F6F9"; color="#2F5D8A"; penwidth=1.4; margin=10;
+      wpf  [label=<<b>Cliente WPF</b><br/><font point-size="9">«artefacto» ejecutable autocontenido win-x64<br/>instalado con Inno Setup (RNF-011)</font>>, fillcolor="#2F5D8A", fontcolor="#FFFFFF", color="#24496D"];
+      pref [label=<<b>preferencias.json</b><br/><font point-size="9">%LOCALAPPDATA%\SITBIO · tema por estación<br/>(lo lee y guarda el cliente)</font>>, shape=note, style=filled, fillcolor="#FFFFFF", color="#8C8C8C"];
+    }
+    sti [label=<<b>Soporte TI de la IPS</b><br/><font point-size="9">EXT-004 · instala y actualiza el cliente</font>>, fillcolor="#F1F1F1", color="#8C8C8C"];
+      lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="instala y actualiza", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+  }
+
+  dist [label=<<b>Página del proveedor<br/>o Microsoft Store</b><br/><font point-size="9">Distribución del instalador (ADR-007)</font>>, fillcolor="#F1F1F1", color="#8C8C8C"];
+
+  subgraph cluster_nube {
+    label=<<b>Nube del proveedor · DEP-PROD y DEP-DEMO</b>  <font point-size="9">operada por los administradores de la plataforma (ST-10, ADR-010)</font>>; fontsize=11; fontcolor="#2F5D8A"; style="rounded,dashed"; color="#9AA5B1"; margin=12;
+    subgraph cluster_srv {
+      label=<<b>«servidor» Servidor de aplicación</b>  <font point-size="9">puerto público 443 (HTTPS)</font>>; fontsize=10; fontcolor="#24496D"; style="filled"; fillcolor="#F4F6F9"; color="#2F5D8A"; penwidth=1.4; margin=10;
+      api  [label=<<b>API REST ASP.NET Core (.NET 10)</b><br/><font point-size="9">servicio de Windows o contenedor · GET /health</font>>, fillcolor="#2F5D8A", fontcolor="#FFFFFF", color="#24496D"];
+      adj  [label=<<b>Carpeta de adjuntos</b><br/><font point-size="9">Storage:AttachmentsPath · documentos y fotografías</font>>, shape=folder, style=filled, fillcolor="#F1F1F1", color="#8C8C8C"];
+      py   [label=<<b>Módulo analítico (Python 3.12)</b><br/><font point-size="9">tarea programada por lotes (ADR-006)</font>>];
+        lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="lee y escribe", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+  }
+    subgraph cluster_dat {
+      label=<<b>«red privada» Datos</b>  <font point-size="9">sin acceso público · solo desde el servidor de aplicación</font>>; fontsize=10; fontcolor="#24496D"; style="filled"; fillcolor="#FBF8F1"; color="#B8862B"; penwidth=1.4; margin=10;
+      pg [label=<<b>PostgreSQL 16</b><br/><font point-size="9">puerto 5432</font>>, shape=cylinder, style=filled, fillcolor="#FFF4DC", color="#B8862B"];
+      mg [label=<<b>MongoDB 7</b><br/><font point-size="9">puerto 27017</font>>, shape=cylinder, style=filled, fillcolor="#FFF4DC", color="#B8862B"];
+    }
+    sec [label=<<b>Bóveda de secretos</b><br/><font point-size="9">Jwt:SigningKey y cadenas de conexión</font>>, fillcolor="#F1F1F1", color="#8C8C8C"];
+    bk  [label=<<b>Respaldo diario</b><br/><font point-size="9">pg_dump y mongodump (RNF-010)</font>>, fillcolor="#F1F1F1", color="#8C8C8C"];
+      lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="secretos al iniciar", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl6 [shape=box, style="filled", fillcolor="white", color="white", label="Npgsql · 5432", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl7 [shape=box, style="filled", fillcolor="white", color="white", label="MongoDB.Driver · 27017", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl8 [shape=box, style="filled", fillcolor="white", color="white", label="PyMongo · lote", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl9 [shape=box, style="filled", fillcolor="white", color="white", label="copia diaria", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+  }
+
+  subgraph cluster_otros {
+    label=<<b>Ambientes del equipo de desarrollo</b>>; fontsize=11; fontcolor="#2F5D8A"; style="rounded,dashed"; color="#9AA5B1"; margin=12;
+    dev [label=<<b>DEP-DEV · equipo de cada desarrollador</b><br/><font point-size="9">Visual Studio, API en https://localhost:7001<br/>Docker Compose: PostgreSQL 16 (5432) y MongoDB 7 (27017)<br/>datos sintéticos y User Secrets</font>>];
+    qa  [label=<<b>DEP-QA · GitHub Actions</b><br/><font point-size="9">windows-latest: format, build, pruebas xUnit y cobertura<br/>ubuntu-latest: ruff y pytest<br/>pruebas [FactIntegracion] con bases en Docker</font>>];
+      lbl11 [shape=box, style="filled", fillcolor="white", color="white", label="pull request", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+  }
+
+  inet [label=<<b>Internet</b><br/><font point-size="9">HTTPS · puerto 443</font>>, style="rounded,dashed", color="#8C8C8C", fontcolor="#555555"];
+
+  {rank=same; sti; dist; legend}
+  {rank=same; inet; sec}
+  {rank=same; wpf; pref}
+  {rank=same; pg; mg}
+  dist -> lbl1 [style=dashed, arrowhead=none];
+  lbl1 -> wpf [style=dashed];
+  sti -> lbl2 [style=dashed, arrowhead=none];
+  lbl2 -> wpf [style=dashed];
+  wpf -> lbl3 [arrowhead=none];
+  lbl3 -> inet;
+  inet -> api;
+  sec -> lbl4 [style=dashed, arrowhead=none];
+  lbl4 -> api [style=dashed];
+  api -> lbl5 [arrowhead=none];
+  lbl5 -> adj;
+  api -> lbl6 [arrowhead=none];
+  lbl6 -> pg;
+  api -> lbl7 [arrowhead=none];
+  lbl7 -> mg;
+  py -> lbl8 [style=dashed, arrowhead=none];
+  lbl8 -> mg [style=dashed];
+  pg   -> bk   [style=dashed];
+  mg -> lbl9 [style=dashed, arrowhead=none];
+  lbl9 -> bk [style=dashed];
+  api -> lbl10 [style=dashed, arrowhead=none, arrowtail=normal, dir=back];
+  lbl10 -> qa [style=dashed, arrowhead=none];
+  qa -> lbl11 [arrowhead=none, arrowtail=normal, dir=back];
+  lbl11 -> dev [arrowhead=none];
+  legend [shape=plaintext, style="", margin=0, label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="4" color="#B5B5B5">
+      <tr><td colspan="2" align="left"><font point-size="9"><b>Leyenda</b></font></td></tr>
+      <tr><td bgcolor="#F4F6F9" width="22"></td><td align="left"><font point-size="8.5">Nodo de ejecución («dispositivo» o «servidor»)</font></td></tr>
+      <tr><td bgcolor="#2F5D8A" width="22"></td><td align="left"><font point-size="8.5">Software de SITBIO desplegado</font></td></tr>
+      <tr><td bgcolor="#FFF4DC" width="22"></td><td align="left"><font point-size="8.5">Base de datos</font></td></tr>
+      <tr><td bgcolor="#F1F1F1" width="22"></td><td align="left"><font point-size="8.5">Servicio, actor o recurso de soporte</font></td></tr>
+      <tr><td width="22"><font point-size="8.5" color="#8C8C8C">- -</font></td><td align="left"><font point-size="8.5">Relación por lotes, de instalación o de operación</font></td></tr>
+    </table>>];
+    lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="instalador (ADR-007)", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl3 [shape=box, style="filled", fillcolor="white", color="white", label="JSON + JWT", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl10 [shape=box, style="filled", fillcolor="white", color="white", label="despliegue con aprobación\ny respaldo previo (Tabla 45)", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+}

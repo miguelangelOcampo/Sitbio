@@ -2,7 +2,7 @@ using Sitbio.Domain.Mantenimiento;
 
 namespace Sitbio.Application.Ordenes;
 
-/// <summary>Orden de trabajo de API-OT (DOC-06) con el equipo, el técnico y el tiquete de origen.</summary>
+/// <summary>Orden de trabajo de API-OT (DOC-06) con el equipo, el técnico y su origen (el tiquete o el plan preventivo).</summary>
 public sealed record OrdenDto(
     Guid Id,
     Guid EquipoId,
@@ -27,7 +27,8 @@ public sealed record OrdenDto(
     DateTimeOffset? FechaCierre = null,
     Guid? AprobadoPorId = null,
     DateTimeOffset? FechaAprobacion = null,
-    string? FirmaAprobacion = null)
+    string? FirmaAprobacion = null,
+    Guid? PlanId = null)
 {
     public static OrdenDto Desde(OrdenLeida leida)
     {
@@ -57,7 +58,8 @@ public sealed record OrdenDto(
             o.FechaCierre,
             o.AprobadoPorId,
             o.FechaAprobacion,
-            o.FirmaAprobacion);
+            o.FirmaAprobacion,
+            o.PlanId);
     }
 }
 

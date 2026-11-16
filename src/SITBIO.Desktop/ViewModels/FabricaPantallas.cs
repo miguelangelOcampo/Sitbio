@@ -47,6 +47,31 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var ordenes = servicios.GetRequiredService<OrdenesViewModel>();
                 ordenes.CargarCommand.Execute(null);
                 return ordenes;
+            // UI-023 Analítica (HU-008, HU-009): AC-02, AC-05, AC-06 y AC-07; resultados del lote K-Means.
+            case AnaliticaViewModel.IdPantalla:
+                var analitica = servicios.GetRequiredService<AnaliticaViewModel>();
+                analitica.CargarCommand.Execute(null);
+                return analitica;
+            // UI-015 Mantenimientos (HU-019): planes preventivos; crea y edita AC-02, consultan AC-01, AC-03, AC-05 y AC-07.
+            case MantenimientosViewModel.IdPantalla:
+                var mantenimientos = servicios.GetRequiredService<MantenimientosViewModel>();
+                mantenimientos.CargarCommand.Execute(null);
+                return mantenimientos;
+            // UI-016 Centro de alertas (HU-020): lo crea el marco al iniciar la sesión de AC-02 y AC-03.
+            case CentroAlertasViewModel.IdPantalla:
+                var alertas = servicios.GetRequiredService<CentroAlertasViewModel>();
+                alertas.CargarCommand.Execute(null);
+                return alertas;
+            // UI-021 Reportes e indicadores (HU-026): AC-01, AC-02, AC-05, AC-06 y AC-07; solo consulta.
+            case ReportesViewModel.IdPantalla:
+                var indicadores = servicios.GetRequiredService<ReportesViewModel>();
+                indicadores.CargarCommand.Execute(null);
+                return indicadores;
+            // UI-022 Exportación (HU-007, HU-027): historial para AC-01, AC-02 y AC-05; hoja de vida también para AC-07.
+            case ExportacionViewModel.IdPantalla:
+                var exportacion = servicios.GetRequiredService<ExportacionViewModel>();
+                exportacion.CargarCommand.Execute(null);
+                return exportacion;
             case "UI-019":
                 var catalogos = servicios.GetRequiredService<CatalogosViewModel>();
                 catalogos.CargarCommand.Execute(null);

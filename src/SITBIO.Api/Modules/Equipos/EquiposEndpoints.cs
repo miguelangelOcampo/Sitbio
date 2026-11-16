@@ -16,6 +16,7 @@ public static class EquiposEndpoints
     public static IServiceCollection AddModuloEquipos(this IServiceCollection services)
     {
         services.AddScoped<GestionEquipos>();
+        services.AddScoped<ConsultaLineaTiempo>();
         services.AddAuthorizationBuilder()
             .AddPolicy(PoliticaConsulta, politica => politica.RequireRole(
                 CodigosRol.AdministradorSistema,
@@ -44,6 +45,12 @@ public static class EquiposEndpoints
                 int pageSize = 20) =>
                 Results.Ok(await caso.ListarAsync(new FiltroEquipos(placa, serie, estado, clase, calibracion, page, pageSize), cancellationToken)))
             .WithName("ListarEquipos")
+            .RequireAuthorization(PoliticaConsulta);
+
+        // API-EQ-HV (HU-023): solo consulta, para los mismos roles que ven la hoja de vida (CA-HU-023-02).
+        grupo.MapGet("/{id:guid}/linea-tiempo", async (Guid id, ConsultaLineaTiempo caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.ConsultarAsync(id, cancellationToken)))
+            .WithName("LineaTiempoEquipo")
             .RequireAuthorization(PoliticaConsulta);
 
         grupo.MapGet("/{id:guid}", async (Guid id, GestionEquipos caso, CancellationToken cancellationToken) =>

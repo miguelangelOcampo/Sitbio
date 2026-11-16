@@ -115,6 +115,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         builder.UseSetting("Mongo:Database", BaseMongo);
         builder.UseSetting("Jwt:Clave", ClaveJwt);
         builder.UseSetting(AutenticacionEndpoints.SeccionLimite, "1000");
+        builder.UseSetting(Sitbio.Api.Modules.Instituciones.SolicitudesServicioEndpoints.SeccionLimite, "1000");
     }
 
     /// <summary>
@@ -256,7 +257,25 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             FROM generate_series(1, {cantidad}) AS g
             """));
 
-    /// <summary>Calibración del equipo directamente en la base (el registro de calibraciones llega con HU-022), para RN-007.</summary>
+    /// <summary>Laboratorio de calibración de la institución directamente en la base; devuelve su id.</summary>
+    public async Task<Guid> CrearLaboratorioAsync(Guid tenant, string nombre)
+    {
+        var id = Guid.NewGuid();
+        var nit = $"9{Random.Shared.Next(10_000_000, 99_999_999)}";
+        await EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.proveedor (id_proveedor, tenant_id, nombre, nit, tipo_proveedor) VALUES ({id}, {tenant}, {nombre}, {nit}, {"Laboratorio de calibración"})"));
+        return id;
+    }
+
+    /// <summary>Calibraciones del equipo, sin pasar por el filtro (solo para comprobar).</summary>
+    public async Task<List<RegistroCalibracion>> LeerCalibracionesAsync(Guid equipoId)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.Calibraciones.IgnoreQueryFilters().AsNoTracking().Where(c => c.EquipoId == equipoId).ToListAsync();
+    }
+
+    /// <summary>Calibración del equipo directamente en la base, para preparar vigencias pasadas (RN-007) o equipos sin calibración (RN-010).</summary>
     public Task RegistrarCalibracionAsync(Guid tenant, Guid equipoId, Guid usuarioId, DateOnly fecha, DateOnly vence) =>
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"INSERT INTO sitbio.calibracion (tenant_id, equipo_id, registrado_por_id, fecha_calibracion, patron_referencia, fecha_vencimiento) VALUES ({tenant}, {equipoId}, {usuarioId}, {fecha}, {"Analizador Fluke IDA-5"}, {vence})"));
@@ -314,6 +333,22 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
             $"UPDATE sitbio.tenant SET vigente_hasta = {vigenteHasta} WHERE id_tenant = {tenant}"));
 
+    /// <summary>Solicitud del servicio tal como quedó en la base (HU-028), o null si no se guardó.</summary>
+    public async Task<SolicitudServicio?> LeerSolicitudAsync(string codigo)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.SolicitudesServicio.AsNoTracking().SingleOrDefaultAsync(s => s.Codigo == codigo);
+    }
+
+    /// <summary>Solicitudes del servicio enviadas con los correos de esta ejecución.</summary>
+    public async Task<int> ContarSolicitudesAsync(string correo)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.SolicitudesServicio.CountAsync(s => s.Correo == correo);
+    }
+
     public async Task<bool> ExisteSesionAsync(string jti)
     {
         using var alcance = Services.CreateScope();
@@ -364,9 +399,9 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             await EjecutarSqlAsync(async contexto =>
             {
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_estado_equipo WHERE tenant_id = ANY({tenants})");
-                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.calibracion WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.orden_trabajo WHERE tenant_id = ANY({tenants})");
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.plan_preventivo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_tiquete WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tiquete WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.equipo_biomedico WHERE tenant_id = ANY({tenants})");
@@ -376,6 +411,8 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.ubicacion WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.sesion_token WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.usuario WHERE tenant_id = ANY({tenants})");
+                var correos = $"%.{_sufijo}@demo.co";
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.solicitud_servicio WHERE tenant_id = ANY({tenants}) OR correo LIKE {correos}");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.tenant WHERE id_tenant = ANY({tenants})");
             });
         }

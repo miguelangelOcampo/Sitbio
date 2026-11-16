@@ -1,57 +1,42 @@
-# Regresión final (C-01)
+# Regresión final (C-01 e I-03)
 
-Ejecución de toda la suite sobre `main` con todas las historias integradas (hasta el PR #25), con PostgreSQL y MongoDB reales en Docker.
+Ejecución de toda la suite sobre `main` con todas las historias del alcance integradas, con PostgreSQL y MongoDB reales en Docker.
 
-- **Fecha:** 15/11/2026
-- **Commit base:** `ec14c6a` (`main`, PR #25)
+- **Fecha:** 16/11/2026
+- **Commit base:** `46bf36c` (`main`, PR #29: HU-014), después de I-01 (PR #27, pantallas de HU-005 y HU-021) e I-02 (PR #29).
 - **Cómo reproducir:** `scripts/regresion.sh`. Levanta `sitbio-postgres` y `sitbio-mongo` con `docker compose`, lee las credenciales de `.env` (o de `$SITBIO_ENV`) sin mostrarlas, compila en Release y corre cada proyecto de pruebas por separado. Deja los TRX en `TestResults/regresion-<fecha>/`.
+- **Primera ejecución (C-01):** 15/11/2026 sobre `ec14c6a` (PR #25), 1 401 de 1 401.
 
 ## Resultado
 
 | Proyecto | Pruebas | Correctas | Con error | Omitidas |
 |---|---|---|---|---|
-| SITBIO.Domain.Tests | 177 | 177 | 0 | 0 |
-| SITBIO.Application.Tests | 310 | 310 | 0 | 0 |
-| SITBIO.Desktop.Tests | 426 | 426 | 0 | 0 |
-| SITBIO.Infrastructure.Tests | 133 | 133 | 0 | 0 |
-| SITBIO.Api.Tests | 355 | 355 | 0 | 0 |
-| **Total .NET** | **1 401** | **1 401** | **0** | **0** |
-| tests/analytics (pytest) | — | — | — | No ejecutado: pytest no está instalado en el equipo de la regresión |
+| SITBIO.Domain.Tests | 192 | 192 | 0 | 0 |
+| SITBIO.Application.Tests | 328 | 328 | 0 | 0 |
+| SITBIO.Infrastructure.Tests | 136 | 136 | 0 | 0 |
+| SITBIO.Api.Tests | 378 | 378 | 0 | 0 |
+| SITBIO.Desktop.Tests | 509 | 509 | 0 | 0 |
+| **Total .NET** | **1 543** | **1 543** | **0** | **0** |
+| tests/analytics (pytest) | — | — | — | Se ejecuta en la CI (job «Analytics»); no en este equipo, que no tiene pytest |
 
 Con las bases activas no se omite ninguna prueba de integración.
 
+## Cobertura de líneas (coverlet, Release)
+
+| Ensamblado | Líneas cubiertas | Cobertura |
+|---|---|---|
+| SITBIO.Api | 704 de 713 | 98,7 % |
+| SITBIO.Application | 2 252 de 2 278 | 98,9 % |
+| SITBIO.Infrastructure | 1 544 de 1 599 | 96,6 % |
+| SITBIO.Domain | 1 430 de 1 572 | 91,0 % |
+| **Backend** | **5 930 de 6 162** | **96,2 %** |
+| SITBIO (cliente WPF, referencia) | 4 192 de 5 089 | 82,4 % |
+
+La cobertura une las pruebas unitarias y las de integración de cada proyecto; se excluyen los archivos generados (`obj/`, `*.g.cs`).
+
 ## Casos de prueba
 
-| CP | Historia | Pruebas automáticas | Resultado |
-|---|---|---|---|
-| CP-001 a CP-003 | HU-001 | `CriteriosHu001Tests` | Aprobado |
-| CP-004, CP-005 | HU-002 | `CriteriosHu002Tests` | Aprobado |
-| CP-006 | HU-003, HU-018 | `CriteriosHu003Tests` | Aprobado |
-| CP-007 | HU-004 | `CriteriosHu004Tests` | Aprobado |
-| CP-008 | HU-005 | `CriteriosHu005Tests` | Aprobado |
-| CP-009, CP-010 | HU-006 | `CriteriosHu006Tests` | Aprobado |
-| CP-011, CP-012 | HU-008, HU-009 | `ConsultaAnaliticaTests`, `AnaliticaViewModelTests`; el lote K-Means con `tests/analytics` | Aprobado en .NET; **Pendiente** la ejecución de pytest |
-| CP-013 | HU-007, HU-027 | `CriteriosHu007Tests`, `GeneradorReportesTests` | Aprobado |
-| CP-014 | HU-010 | `CriteriosHu010Tests` | Aprobado |
-| CP-015 | HU-011 | `CriteriosHu011Tests` | Aprobado |
-| CP-016 | HU-012 | `CriteriosHu012Tests` | Aprobado |
-| CP-017 a CP-020 | — | Sin prueba asociada en la trazabilidad | **Pendiente**: confirmar a qué criterio corresponden en el DOC-07 |
-| CP-021 | HU-017 | `CriteriosHu017Tests` | Aprobado |
-| CP-022 | HU-003, HU-018 | `CriteriosHu003Tests` | Aprobado |
-| CP-023, CP-024 | HU-019, HU-020 | `CriteriosHu019Tests` | Aprobado |
-| CP-025 | HU-021 | `CriteriosHu021Tests` | Aprobado |
-| CP-026 | HU-022 | `CriteriosHu022Tests` | Aprobado |
-| CP-027 | HU-023, HU-024 | `CriteriosHu023Tests`, `CriteriosHu024Tests` | Aprobado |
-| CP-028 | HU-025 | `CriteriosHu025Tests` | Aprobado |
-| CP-029 | — | Sin prueba asociada en la trazabilidad | **Pendiente** |
-| CP-030 | HU-026 | `CriteriosHu026Tests` | Aprobado |
-| CP-031 | HU-007, HU-027 | `CriteriosHu007Tests` | Aprobado |
-| CP-032 | HU-028 (probable) | `CriteriosHu028Tests` | Aprobado; **por confirmar** el número de CP, que la trazabilidad de HU-028 no asigna |
-| CP-033 | — | Sin prueba asociada | **Pendiente** |
-| CP-034 | HU-019, HU-020 (según el plan de commits) | No definido en DOC-04 a DOC-06 | **Pendiente**: confirmar el criterio |
-| CP-035 | — | Sin prueba asociada | **Pendiente** |
-| CP-036 | Todas | `RegresionCp036Tests` (transversal) y las pruebas de aislamiento de cada historia | Aprobado |
-| CP-037 | — | Sin prueba asociada | **Pendiente** |
+El estado de cada CP, con sus pruebas, está en la matriz de [go-no-go.md](go-no-go.md). En esta ejecución todos los CP del alcance que tienen prueba automática quedaron aprobados, incluido CP-018 (HU-014, `CriteriosHu014Tests`), que entró con I-02.
 
 ## CP-036 · Aislamiento entre instituciones
 
@@ -66,5 +51,6 @@ La bitácora de B sí guarda esos intentos denegados con la ruta pedida. Son reg
 
 ## Observaciones
 
-- **Pruebas de tiempo y concurrencia:** con todos los proyectos corriendo en paralelo en un mismo equipo fallaron tres pruebas: la de 1 000 registros en PDF (RNF-007), la del Excel del historial y la de asignaciones simultáneas. Fue por la carga del equipo: corriendo un proyecto a la vez pasan, con Infraestructura en 3 a 14 s. Por eso el script corre los proyectos uno por uno.
-- **Duración:** `SITBIO.Api.Tests` tarda unos 7 minutos con las bases reales.
+- **Integración de HU-014:** el registro del equipo ahora guarda su estado inicial en `historial_estado_equipo`. La línea de tiempo (HU-023) no lo repite, porque ya aparece como «Equipo registrado», y las pruebas de HU-003 cuentan solo los cambios de estado.
+- **Pruebas de tiempo y concurrencia:** con todos los proyectos en paralelo en un mismo equipo fallaron por carga la de 1 000 registros en PDF (RNF-007), la del Excel del historial y la de asignaciones simultáneas. Corriendo un proyecto a la vez pasan, y por eso el script corre los proyectos uno por uno.
+- **Duración:** `SITBIO.Api.Tests` tarda entre 1 y 7 minutos con las bases reales, según la carga del equipo.

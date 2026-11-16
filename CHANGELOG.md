@@ -14,7 +14,8 @@ Cierre del MVP. Incluye todo lo de la versión 0.2.0.
 - HU-017 Seguimiento de tiquetes por código e historial (UI-010); el Personal Clínico ve solo los suyos (CP-021).
 - HU-004 Asignación de órdenes (UI-011): bandeja por criticidad y panel de técnicos activos con su carga (RN-003) (CP-007).
 - HU-005 Ejecución de la orden (UI-012, UI-013): iniciar, pausar y registrar la intervención en MongoDB con los campos dinámicos de la versión activa; si MongoDB falla la orden no cambia (RT-002) (CP-008).
-- HU-021 Cierre y aprobación con firma (UI-014): la orden y su intervención quedan inalterables (RN-004); RN-007 bloquea el cierre «Operativo» con calibración vencida (CP-025).
+- HU-021 Cierre y aprobación con firma (UI-014), con las pantallas Mis órdenes UI-012 e Intervención UI-013: la orden y su intervención quedan inalterables (RN-004); RN-007 bloquea el cierre «Operativo» con calibración vencida (CP-025).
+- HU-014 Estado operativo y baja lógica del equipo: `PATCH /equipos/{id}/estado`, historial de estados y reversión de la baja por el Ingeniero (RN-009) (CP-018).
 - HU-019 y HU-020 Planes preventivos y alertas (UI-015, UI-016): órdenes preventivas generadas al consultar las alertas y avance del plan al aprobarlas (CP-023, CP-024).
 - HU-022 Calibraciones y vigencia (UI-017): próximo vencimiento según la periodicidad (RN-010) (CP-026).
 - HU-023 Línea de tiempo del equipo en la pestaña «Historial» de la hoja de vida (CP-027).
@@ -30,7 +31,6 @@ Cierre del MVP. Incluye todo lo de la versión 0.2.0.
 - Las pruebas de endpoints de reportes ya no dependen de cadenas de conexión (CI sin bases).
 
 ### Pendiente (fuera de esta versión)
-- HU-014 Baja lógica del equipo: escrita en `feature/HU-014-estado-baja`, por integrar (CP-018).
 - Mejoras futuras: HU-015 Documentos adjuntos y fotografía, HU-016 Importación masiva (CP-019, CP-020, CP-035).
 - CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes.
 

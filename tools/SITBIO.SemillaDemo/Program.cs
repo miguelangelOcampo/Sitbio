@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
-using Sitbio.SemillaDemo;
+
+namespace Sitbio.SemillaDemo;
 
 // Siembra la institución de demostración «Hospital Demo SITBIO» con seis meses de operación simulada.
 // Uso (desde la raíz): scripts/semilla-demo.sh [--reemplazar] [--dias N]
@@ -20,9 +21,9 @@ public static class EntradaSemilla
             await semilla.EjecutarAsync();
             return 0;
         }
-        catch (ErrorSemilla error)
+        catch (SemillaException error)
         {
-            Console.Error.WriteLine($"No se pudo completar la semilla: {error.Message}");
+            await Console.Error.WriteLineAsync($"No se pudo completar la semilla: {error.Message}");
             return 1;
         }
     }
@@ -48,7 +49,7 @@ public sealed record Opciones(string Postgres, string Mongo, string BaseMongo, s
             return null;
         }
 
-        var clave = Environment.GetEnvironmentVariable("SITBIO_DEMO_CLAVE");
+        var clave = Environment.GetEnvironmentVariable("SITBIO_DEMO_CLAVE") ?? string.Empty;
         var generada = string.IsNullOrWhiteSpace(clave);
         if (generada)
         {
@@ -59,7 +60,7 @@ public sealed record Opciones(string Postgres, string Mongo, string BaseMongo, s
             postgres,
             mongo,
             Environment.GetEnvironmentVariable("SITBIO_DEMO_MONGO_DB") is { Length: > 0 } baseMongo ? baseMongo : "sitbio_dev",
-            clave!,
+            clave,
             generada,
             args.Contains("--reemplazar"),
             dias,

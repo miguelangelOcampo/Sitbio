@@ -7,7 +7,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ENV_FILE="${SITBIO_ENV:-.env}"
-[ -f "$ENV_FILE" ] || { echo "Falta $ENV_FILE (copia .env.example y llénalo)." >&2; exit 1; }
+[[ -f "$ENV_FILE" ]] || { echo "Falta $ENV_FILE (copia .env.example y llénalo)." >&2; exit 1; }
 set -a; . "$ENV_FILE"; set +a
 
 docker compose up -d postgres mongo >/dev/null

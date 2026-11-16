@@ -107,11 +107,11 @@ public sealed class Sesiones(ApiDemo api, RelojDemo reloj, string clave) : IDisp
         var texto = await respuesta.Content.ReadAsStringAsync();
         if (!respuesta.IsSuccessStatusCode)
         {
-            throw new ErrorSemilla($"{que} respondió {(int)respuesta.StatusCode}: {texto}");
+            throw new SemillaException($"{que} respondió {(int)respuesta.StatusCode}: {texto}");
         }
 
         return string.IsNullOrWhiteSpace(texto) ? default : JsonDocument.Parse(texto).RootElement.Clone();
     }
 }
 
-public sealed class ErrorSemilla(string mensaje) : Exception(mensaje);
+public sealed class SemillaException(string mensaje) : Exception(mensaje);

@@ -20,6 +20,8 @@ namespace Sitbio.SemillaDemo;
 /// </summary>
 public sealed class Semilla(Opciones opciones)
 {
+    private const string Critica = "critica";
+    private const string Operativo = "Operativo";
     private static readonly TimeSpan Colombia = TimeSpan.FromHours(-5);
     private readonly Random _azar = new(20261116);
     private readonly PriorityQueue<Evento, (DateTimeOffset, long)> _agenda = new();
@@ -31,9 +33,11 @@ public sealed class Semilla(Opciones opciones)
     private readonly List<EquipoDemo> _equipos = Equipos();
     private readonly Dictionary<string, int> _cuenta = [];
     private long _secuencia;
-    private RelojDemo _reloj = null!;
-    private Sesiones _api = null!;
+    private readonly RelojDemo _reloj = new(DateTimeOffset.UtcNow);
+    private Sesiones? _sesiones;
     private DateTimeOffset _fin;
+
+    private Sesiones Api => _sesiones ?? throw new InvalidOperationException("Las sesiones aún no están abiertas.");
 
     private static string Laura => Usuario("laura.gomez").Correo;
 
@@ -43,7 +47,7 @@ public sealed class Semilla(Opciones opciones)
 
     private static readonly string[] Tecnicos = ["carlos.munoz", "diana.ospina", "jorge.restrepo"];
 
-    private sealed record Evento(DateTimeOffset Momento, string Que, Func<Task> Accion);
+    private sealed record Evento(DateTimeOffset Cuando, string Que, Func<Task> Accion);
 
     private sealed class OrdenDemo(Guid id, EquipoDemo equipo, string tecnico, bool preventiva, string? tipoFalla)
     {
@@ -63,13 +67,13 @@ public sealed class Semilla(Opciones opciones)
         _fin = DateTimeOffset.UtcNow.ToOffset(Colombia);
         var hoy = DateOnly.FromDateTime(_fin.DateTime);
         var inicio = new DateTimeOffset(hoy.AddDays(-opciones.Dias).ToDateTime(new TimeOnly(7, 30)), Colombia);
-        _reloj = new RelojDemo(inicio);
+        _reloj.Ahora = inicio;
 
         await PrepararTenantAsync();
         using var api = new ApiDemo(opciones, _reloj);
         await CrearUsuariosAsync(api);
         using var sesiones = new Sesiones(api, _reloj, opciones.Clave);
-        _api = sesiones;
+        _sesiones = sesiones;
 
         Console.WriteLine($"Simulando del {inicio:dd/MM/yyyy} al {_fin:dd/MM/yyyy HH:mm} (hora de Colombia)...");
         await ConfigurarAsync(hoy);
@@ -86,11 +90,11 @@ public sealed class Semilla(Opciones opciones)
         await using var fuente = NpgsqlDataSource.Create(opciones.Postgres);
         await using var existe = fuente.CreateCommand("SELECT count(*) FROM sitbio.tenant WHERE id_tenant = $1");
         existe.Parameters.AddWithValue(Tenant);
-        if ((long)(await existe.ExecuteScalarAsync())! > 0)
+        if (await existe.ExecuteScalarAsync() is long cuantas && cuantas > 0)
         {
             if (!opciones.Reemplazar)
             {
-                throw new ErrorSemilla($"«{Institucion}» ya existe. Vuelve a ejecutar con --reemplazar para borrarla y sembrarla de nuevo.");
+                throw new SemillaException($"«{Institucion}» ya existe. Vuelve a ejecutar con --reemplazar para borrarla y sembrarla de nuevo.");
             }
 
             await BorrarAsync(fuente);
@@ -100,11 +104,11 @@ public sealed class Semilla(Opciones opciones)
             "INSERT INTO sitbio.tenant (id_tenant, nombre, nit, plan, max_usuarios_gestion, max_equipos, max_almacenamiento_gb) VALUES ($1, $2, $3, 'Hospital', 25, 500, 20)");
         crear.Parameters.AddWithValue(Tenant);
         crear.Parameters.AddWithValue(Institucion);
-        crear.Parameters.AddWithValue(Nit);
+        crear.Parameters.AddWithValue(NitInstitucion);
         await crear.ExecuteNonQueryAsync();
     }
 
-    /// <summary>Borra todo lo de la institución de demo (PostgreSQL y MongoDB); solo con --reemplazar.</summary>
+    /// <summary>Borra los datos de la institución de demo (PostgreSQL y MongoDB); solo con --reemplazar.</summary>
     private async Task BorrarAsync(NpgsqlDataSource fuente)
     {
         Console.WriteLine($"Borrando la demo anterior de «{Institucion}»...");
@@ -152,7 +156,7 @@ public sealed class Semilla(Opciones opciones)
         var hash = new HasherBCrypt().Hash(opciones.Clave);
         using var alcance = api.Services.CreateScope();
         var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
-        var roles = await contexto.Roles.ToDictionaryAsync(r => r.Codigo!, r => r.Id);
+        var roles = await contexto.Roles.ToDictionaryAsync(r => r.Codigo ?? string.Empty, r => r.Id);
         foreach (var u in Usuarios)
         {
             var usuario = new Usuario(Tenant, roles[u.Rol], u.Nombres, u.Apellidos, u.Correo, hash, $"300{_azar.Next(1000000, 9999999)}");
@@ -167,32 +171,32 @@ public sealed class Semilla(Opciones opciones)
 
     private async Task ConfigurarAsync(DateOnly hoy)
     {
-        await _api.PutAsync(Admin, "/tenant/actual", new { nombre = Institucion, nit = Nit, diasAnticipacionAlerta = 30 });
+        await Api.PutAsync(Admin, "/tenant/actual", new { nombre = Institucion, nit = NitInstitucion, diasAnticipacionAlerta = 30 });
         foreach (var u in Usuarios.Where(u => u.Inactivo))
         {
-            await _api.PatchAsync(Admin, $"/usuarios/{IdDe(u.Correo)}/estado", new { accion = "desactivar" });
+            await Api.PatchAsync(Admin, $"/usuarios/{IdDe(u.Correo)}/estado", new { accion = "desactivar" });
         }
 
         Avanzar(TimeSpan.FromMinutes(40));
         foreach (var nombre in Ubicaciones)
         {
-            _ubicaciones[nombre] = Id(await _api.PostAsync(Laura, "/catalogos/ubicaciones", new { nombre }));
+            _ubicaciones[nombre] = IdRespuesta(await Api.PostAsync(Laura, "/catalogos/ubicaciones", new { nombre }));
         }
 
         foreach (var p in Proveedores)
         {
-            _proveedores.Add(Id(await _api.PostAsync(Laura, "/catalogos/proveedores",
+            _proveedores.Add(IdRespuesta(await Api.PostAsync(Laura, "/catalogos/proveedores",
                 new { nombre = p.Nombre, nit = p.Nit, tipoProveedor = p.Tipo, nombreContacto = p.Contacto, correo = p.Correo, telefono = p.Telefono })));
         }
 
         foreach (var nombre in TiposFalla)
         {
-            await _api.PostAsync(Laura, "/catalogos/tipos-falla", new { nombre });
+            await Api.PostAsync(Laura, "/catalogos/tipos-falla", new { nombre });
         }
 
         foreach (var t in Tipos)
         {
-            _tipos[t.Nombre] = Id(await _api.PostAsync(Laura, "/catalogos/tipos-equipo", new
+            _tipos[t.Nombre] = IdRespuesta(await Api.PostAsync(Laura, "/catalogos/tipos-equipo", new
             {
                 nombre = t.Nombre,
                 claseRiesgo = t.ClaseRiesgo,
@@ -203,7 +207,7 @@ public sealed class Semilla(Opciones opciones)
 
         foreach (var (tipo, campos) in Campos)
         {
-            await _api.PostAsync(Laura, $"/configuracion-campos/{_tipos[tipo]}", new { campos });
+            await Api.PostAsync(Laura, $"/configuracion-campos/{_tipos[tipo]}", new { campos });
         }
 
         Avanzar(TimeSpan.FromHours(1));
@@ -234,7 +238,7 @@ public sealed class Semilla(Opciones opciones)
                 datos["preventivo"] = new { periodicidadDias = tipo.DiasPreventivo, ultimaEjecucion = ultima, descripcion = $"Preventivo: {tipo.ProtocoloPreventivo}" };
             }
 
-            e.Id = Id(await _api.PostAsync(Laura, "/equipos", datos));
+            e.Id = IdRespuesta(await Api.PostAsync(Laura, "/equipos", datos));
             Contar("equipos");
         }
 
@@ -242,7 +246,7 @@ public sealed class Semilla(Opciones opciones)
         Avanzar(TimeSpan.FromHours(2));
         foreach (var e in _equipos.Where(e => Tipo(e).MesesCalibracion is not null))
         {
-            var meses = Tipo(e).MesesCalibracion!.Value;
+            var meses = Tipo(e).MesesCalibracion ?? 12;
             var fecha = e.Rezago switch
             {
                 "vencida" => hoy.AddDays(-18).AddMonths(-meses),
@@ -260,11 +264,11 @@ public sealed class Semilla(Opciones opciones)
         for (var dia = DateOnly.FromDateTime(inicio.DateTime).AddDays(1); dia <= hoy; dia = dia.AddDays(1))
         {
             var d = dia;
-            Agendar(Momento(d, 7, 0), "alertas del día", () => RevisarAlertasAsync());
+            Agendar(Hora(d, 7, 0), "alertas del día", () => RevisarAlertasAsync());
             var fallas = _azar.NextDouble() switch { < 0.45 => 0, < 0.85 => 1, _ => 2 };
             for (var i = 0; i < fallas; i++)
             {
-                Agendar(Momento(d, _azar.Next(8, 17), _azar.Next(0, 60)), "reporte de falla", ReportarFallaAsync);
+                Agendar(Hora(d, _azar.Next(8, 17), _azar.Next(0, 60)), "reporte de falla", ReportarFallaAsync);
             }
         }
 
@@ -280,9 +284,9 @@ public sealed class Semilla(Opciones opciones)
         }
 
         var baja = _equipos.Single(e => e.Rezago == "baja");
-        Agendar(Momento(hoy.AddDays(-21), 10, 0), "baja de equipo", async () =>
+        Agendar(Hora(hoy.AddDays(-21), 10, 0), "baja de equipo", async () =>
         {
-            await _api.PatchAsync(Andres, $"/equipos/{baja.Id}/estado", new { estado = "Baja", motivo = "Obsolescencia tecnológica: sin repuestos del fabricante. Reemplazo aprobado por el comité técnico." });
+            await Api.PatchAsync(Andres, $"/equipos/{baja.Id}/estado", new { estado = "Baja", motivo = "Obsolescencia tecnológica: sin repuestos del fabricante. Reemplazo aprobado por el comité técnico." });
             baja.Operativo = false;
             Contar("bajas");
         });
@@ -293,25 +297,25 @@ public sealed class Semilla(Opciones opciones)
         var hechos = 0;
         while (_agenda.TryDequeue(out var evento, out _))
         {
-            if (evento.Momento > _fin)
+            if (evento.Cuando > _fin)
             {
                 Contar("eventos que quedan para después de hoy");
                 continue;
             }
 
-            _reloj.Ahora = evento.Momento;
+            _reloj.Ahora = evento.Cuando;
             try
             {
                 await evento.Accion();
             }
-            catch (ErrorSemilla error)
+            catch (SemillaException error)
             {
-                throw new ErrorSemilla($"{evento.Momento:dd/MM/yyyy HH:mm} {evento.Que}: {error.Message}");
+                throw new SemillaException($"{evento.Cuando:dd/MM/yyyy HH:mm} {evento.Que}: {error.Message}");
             }
 
             if (++hechos % 100 == 0)
             {
-                Console.WriteLine($"  {evento.Momento:dd/MM/yyyy}: {hechos} eventos");
+                Console.WriteLine($"  {evento.Cuando:dd/MM/yyyy}: {hechos} eventos");
             }
         }
     }
@@ -319,8 +323,8 @@ public sealed class Semilla(Opciones opciones)
     /// <summary>GET /alertas genera las órdenes preventivas vencidas y las reparte (HU-019); aquí se toman para ejecutarlas.</summary>
     private async Task RevisarAlertasAsync()
     {
-        await _api.GetAsync(Laura, "/alertas");
-        var asignadas = await _api.GetAsync(Laura, "/ordenes?estado=asignada&pageSize=100");
+        await Api.GetAsync(Laura, "/alertas");
+        var asignadas = await Api.GetAsync(Laura, "/ordenes?estado=asignada&pageSize=100");
         foreach (var o in asignadas.GetProperty("items").EnumerateArray())
         {
             var id = o.GetProperty("id").GetGuid();
@@ -349,63 +353,63 @@ public sealed class Semilla(Opciones opciones)
         var equipo = candidatos[_azar.Next(candidatos.Count)];
         var tipoFalla = TiposFalla[_azar.Next(TiposFalla.Length)];
         var falla = Fallas[tipoFalla][_azar.Next(Fallas[tipoFalla].Length)];
-        var criticidad = _azar.NextDouble() switch { < 0.2 => "baja", < 0.6 => "media", < 0.9 => "alta", _ => "critica" };
+        var criticidad = _azar.NextDouble() switch { < 0.2 => "baja", < 0.6 => "media", < 0.9 => "alta", _ => Critica };
         var clinico = equipo.Ubicacion switch
         {
-            "UCI Adultos" or "Neonatos" => "paula.herrera",
-            "Urgencias" => "mateo.vargas",
-            "Quirófano 1" or "Quirófano 2" => "natalia.rios",
+            Uci or Neonatos => "paula.herrera",
+            Urgencias => "mateo.vargas",
+            Quirofano1 or Quirofano2 => "natalia.rios",
             _ => new[] { "paula.herrera", "mateo.vargas", "natalia.rios" }[_azar.Next(3)],
         };
 
-        var tiquete = await _api.PostAsync(Usuario(clinico).Correo, "/tiquetes",
+        var tiquete = await Api.PostAsync(Usuario(clinico).Correo, "/tiquetes",
             new { equipoId = equipo.Id, tipoFalla, descripcion = falla.Descripcion, criticidad });
         equipo.Ocupado++;
         Contar("tiquetes");
-        var espera = criticidad == "critica" ? TimeSpan.FromMinutes(_azar.Next(10, 40)) : TimeSpan.FromMinutes(_azar.Next(30, 300));
-        var tiqueteId = Id(tiquete);
+        var espera = criticidad == Critica ? TimeSpan.FromMinutes(_azar.Next(10, 40)) : TimeSpan.FromMinutes(_azar.Next(30, 300));
+        var tiqueteId = IdRespuesta(tiquete);
         Agendar(_reloj.Ahora + espera, "asignación de orden", async () =>
         {
             var tecnico = Tecnicos[_azar.Next(Tecnicos.Length)];
             var ingeniero = _azar.Next(3) == 0 ? Andres : Laura;
-            var orden = await _api.PostAsync(ingeniero, "/ordenes",
-                new { tiqueteId, tecnicoId = IdDe(Usuario(tecnico).Correo), prioridad = criticidad, fechaProgramada = Hoy().AddDays(criticidad is "critica" or "alta" ? 0 : 1) });
-            var demo = new OrdenDemo(Id(orden), equipo, Usuario(tecnico).Correo, false, tipoFalla);
+            var orden = await Api.PostAsync(ingeniero, "/ordenes",
+                new { tiqueteId, tecnicoId = IdDe(Usuario(tecnico).Correo), prioridad = criticidad, fechaProgramada = Hoy().AddDays(criticidad is Critica or "alta" ? 0 : 1) });
+            var demo = new OrdenDemo(IdRespuesta(orden), equipo, Usuario(tecnico).Correo, false, tipoFalla);
             _ordenes[demo.Id] = demo;
             Contar("órdenes correctivas");
-            ProgramarEjecucion(demo, horasHastaInicio: criticidad == "critica" ? 1 : _azar.Next(2, 30));
+            ProgramarEjecucion(demo, horasHastaInicio: criticidad == Critica ? 1 : _azar.Next(2, 30));
         });
     }
 
     private void ProgramarEjecucion(OrdenDemo orden, int horasHastaInicio)
     {
         var inicio = _reloj.Ahora.AddHours(horasHastaInicio).AddMinutes(_azar.Next(0, 60));
-        Agendar(inicio, "inicio de orden", () => _api.PatchAsync(orden.Tecnico, $"/ordenes/{orden.Id}/estado", new { accion = "iniciar" }));
+        Agendar(inicio, "inicio de orden", () => Api.PatchAsync(orden.Tecnico, $"/ordenes/{orden.Id}/estado", new { accion = "iniciar" }));
 
         var reanudar = inicio;
         if (!orden.Preventiva && _azar.NextDouble() < 0.15)
         {
             var pausa = inicio.AddHours(_azar.Next(1, 3));
             reanudar = pausa.AddDays(_azar.Next(1, 4));
-            Agendar(pausa, "pausa por repuesto", () => _api.PatchAsync(orden.Tecnico, $"/ordenes/{orden.Id}/estado", new { accion = "pausar" }));
-            Agendar(reanudar, "reanudación de orden", () => _api.PatchAsync(orden.Tecnico, $"/ordenes/{orden.Id}/estado", new { accion = "iniciar" }));
+            Agendar(pausa, "pausa por repuesto", () => Api.PatchAsync(orden.Tecnico, $"/ordenes/{orden.Id}/estado", new { accion = "pausar" }));
+            Agendar(reanudar, "reanudación de orden", () => Api.PatchAsync(orden.Tecnico, $"/ordenes/{orden.Id}/estado", new { accion = "iniciar" }));
         }
 
         var cierre = reanudar.AddHours(_azar.Next(1, 6)).AddMinutes(_azar.Next(0, 60));
-        var sale = !orden.Preventiva && _azar.NextDouble() < 0.07 ? "Fuera de servicio" : "Operativo";
+        var sale = !orden.Preventiva && _azar.NextDouble() < 0.07 ? "Fuera de servicio" : Operativo;
         Agendar(cierre, "cierre de orden", async () =>
         {
-            await _api.PutAsync(orden.Tecnico, $"/ordenes/{orden.Id}/intervencion", Hoja(orden, sale));
-            await _api.PatchAsync(orden.Tecnico, $"/ordenes/{orden.Id}/estado", new { accion = "cerrar" });
+            await Api.PutAsync(orden.Tecnico, $"/ordenes/{orden.Id}/intervencion", Hoja(orden, sale));
+            await Api.PatchAsync(orden.Tecnico, $"/ordenes/{orden.Id}/estado", new { accion = "cerrar" });
             Contar("intervenciones");
         });
 
         Agendar(cierre.AddHours(_azar.Next(3, 60)), "aprobación de orden", async () =>
         {
             var ingeniero = _azar.Next(3) == 0 ? Usuario("andres.castano") : Usuario("laura.gomez");
-            await _api.PostAsync(ingeniero.Correo, $"/ordenes/{orden.Id}/aprobacion", new { firma = $"{ingeniero.NombreCompleto}, Ingeniero(a) Biomédico(a)" });
+            await Api.PostAsync(ingeniero.Correo, $"/ordenes/{orden.Id}/aprobacion", new { firma = $"{ingeniero.NombreCompleto}, Ingeniero(a) Biomédico(a)" });
             orden.Equipo.Ocupado--;
-            orden.Equipo.Operativo = sale == "Operativo";
+            orden.Equipo.Operativo = sale == Operativo;
             Contar("órdenes aprobadas");
         });
     }
@@ -422,10 +426,11 @@ public sealed class Semilla(Opciones opciones)
         }
         else
         {
-            var falla = Fallas[orden.TipoFalla!][_azar.Next(Fallas[orden.TipoFalla!].Length)];
-            diagnostico = sale == "Operativo" ? falla.Diagnostico : $"{falla.Diagnostico}. Requiere repuesto importado; el equipo queda fuera de servicio";
-            acciones = sale == "Operativo" ? falla.Acciones : "Se diagnosticó la falla, se aisló el equipo y se solicitó cotización del repuesto al proveedor";
-            if (sale == "Operativo")
+            var fallas = Fallas[orden.TipoFalla ?? TiposFalla[0]];
+            var falla = fallas[_azar.Next(fallas.Length)];
+            diagnostico = sale == Operativo ? falla.Diagnostico : $"{falla.Diagnostico}. Requiere repuesto importado; el equipo queda fuera de servicio";
+            acciones = sale == Operativo ? falla.Acciones : "Se diagnosticó la falla, se aisló el equipo y se solicitó cotización del repuesto al proveedor";
+            if (sale == Operativo)
             {
                 repuestos.AddRange(falla.Repuestos.Select(r => new { nombre = r.Nombre, cantidad = 1, costoUnitario = r.Costo }));
             }
@@ -434,15 +439,15 @@ public sealed class Semilla(Opciones opciones)
         var campos = new Dictionary<string, object>();
         switch (orden.Equipo.Tipo)
         {
-            case "Bomba de infusión":
+            case Bomba:
                 campos["tasa_de_goteo"] = Math.Round(95 + (_azar.NextDouble() * 10), 1);
                 campos["prueba_de_oclusion"] = "Aprobada";
                 break;
-            case "Monitor multiparámetro":
+            case MonitorMultiparametro:
                 campos["prueba_de_alarmas"] = true;
                 campos["corriente_de_fuga"] = Math.Round(20 + (_azar.NextDouble() * 60), 1);
                 break;
-            case "Desfibrilador":
+            case Desfibrilador:
                 campos["energia_entregada"] = Math.Round(194 + (_azar.NextDouble() * 10), 1);
                 break;
         }
@@ -462,33 +467,33 @@ public sealed class Semilla(Opciones opciones)
     private async Task CalibrarAsync(EquipoDemo equipo, DateOnly fecha)
     {
         var tecnico = Usuario(Tecnicos[_azar.Next(Tecnicos.Length)]).Correo;
-        var calibracion = await _api.PostAsync(tecnico, "/calibraciones", new
+        var calibracion = await Api.PostAsync(tecnico, "/calibraciones", new
         {
             equipoId = equipo.Id,
             fechaCalibracion = fecha,
             patronReferencia = equipo.Tipo switch
             {
-                "Desfibrilador" => "Analizador Fluke Impulse 7000DP",
-                "Bomba de infusión" => "Analizador Fluke IDA-5",
-                "Ventilador mecánico" => "Analizador Fluke VT650",
-                "Incubadora neonatal" => "Analizador Fluke INCU II",
-                "Electrobisturí" => "Analizador Fluke QA-ES III",
-                "Tensiómetro digital" => "Manómetro patrón Fluke BP Pump 2",
+                Desfibrilador => "Analizador Fluke Impulse 7000DP",
+                Bomba => "Analizador Fluke IDA-5",
+                Ventilador => "Analizador Fluke VT650",
+                Incubadora => "Analizador Fluke INCU II",
+                Electrobisturi => "Analizador Fluke QA-ES III",
+                Tensiometro => "Manómetro patrón Fluke BP Pump 2",
                 _ => "Simulador Fluke ProSim 8",
             },
             resultado = "conforme",
             numeroCertificado = $"MC-{fecha:yyyyMM}-{_azar.Next(1000, 9999)}",
             proveedorId = _proveedores[2],
         });
-        await _api.EnviarAsync(Laura, HttpMethod.Patch, $"/calibraciones/{Id(calibracion)}/aprobacion");
-        equipo.VenceCalibracion = fecha.AddMonths(Tipo(equipo).MesesCalibracion!.Value);
+        await Api.EnviarAsync(Laura, HttpMethod.Patch, $"/calibraciones/{IdRespuesta(calibracion)}/aprobacion");
+        equipo.VenceCalibracion = fecha.AddMonths(Tipo(equipo).MesesCalibracion ?? 12);
         Contar("calibraciones");
     }
 
     private void ProgramarRenovacion(EquipoDemo equipo)
     {
-        var cuando = equipo.VenceCalibracion!.Value.AddDays(-_azar.Next(3, 12));
-        var momento = Momento(cuando < Hoy() ? Hoy() : cuando, _azar.Next(8, 16), _azar.Next(0, 60));
+        var cuando = (equipo.VenceCalibracion ?? Hoy()).AddDays(-_azar.Next(3, 12));
+        var momento = Hora(cuando < Hoy() ? Hoy() : cuando, _azar.Next(8, 16), _azar.Next(0, 60));
         Agendar(momento, "renovación de calibración", async () =>
         {
             await CalibrarAsync(equipo, Hoy());
@@ -503,7 +508,7 @@ public sealed class Semilla(Opciones opciones)
         var lineas = new List<string>
         {
             $"# {Institucion}: usuarios de la demo local (archivo ignorado por git; no lo subas).",
-            $"# Generado el {DateTimeOffset.Now:dd/MM/yyyy HH:mm}. Todos usan la misma contraseña.",
+            $"# Generado el {DateTimeOffset.Now:dd/MM/yyyy HH:mm}. Los usuarios comparten la misma contraseña.",
             $"Contraseña: {opciones.Clave}",
             string.Empty,
         };
@@ -533,13 +538,13 @@ public sealed class Semilla(Opciones opciones)
 
     private DateOnly Hoy() => DateOnly.FromDateTime(_reloj.Ahora.ToOffset(Colombia).DateTime);
 
-    private static DateTimeOffset Momento(DateOnly dia, int hora, int minuto) => new(dia.ToDateTime(new TimeOnly(hora, minuto)), Colombia);
+    private static DateTimeOffset Hora(DateOnly dia, int hora, int minuto) => new(dia.ToDateTime(new TimeOnly(hora, minuto)), Colombia);
 
     private static TipoDemo Tipo(EquipoDemo e) => Tipos.Single(t => t.Nombre == e.Tipo);
 
     private Guid IdDe(string correo) => _correoPorUsuario.Single(p => p.Value == correo).Key;
 
-    private static Guid Id(JsonElement cuerpo) => cuerpo.GetProperty("id").GetGuid();
+    private static Guid IdRespuesta(JsonElement cuerpo) => cuerpo.GetProperty("id").GetGuid();
 
     private void Contar(string que) => _cuenta[que] = _cuenta.GetValueOrDefault(que) + 1;
 }

@@ -4,6 +4,35 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [Sin publicar]
 
+## [1.0.0] - 2026-11-16
+
+Cierre del MVP. Incluye todo lo de la versión 0.2.0.
+
+### Agregado
+- HU-006 Campos dinámicos por tipo de equipo (UI-018): versiones publicadas por el Ingeniero en `configuracion_campos` (MongoDB); el Administrador y el Técnico consultan (CP-009, CP-010).
+- HU-003 y HU-018 Reporte de fallas (UI-009): tiquete `TQT-######` consecutivo por institución, criticidad con ayuda y MSG-006; una falla crítica deja el equipo «Fuera de servicio» en la misma transacción (RN-005) (CP-006, CP-022).
+- HU-017 Seguimiento de tiquetes por código e historial (UI-010); el Personal Clínico ve solo los suyos (CP-021).
+- HU-004 Asignación de órdenes (UI-011): bandeja por criticidad y panel de técnicos activos con su carga (RN-003) (CP-007).
+- HU-005 Ejecución de la orden (UI-012, UI-013): iniciar, pausar y registrar la intervención en MongoDB con los campos dinámicos de la versión activa; si MongoDB falla la orden no cambia (RT-002) (CP-008).
+- HU-021 Cierre y aprobación con firma (UI-014): la orden y su intervención quedan inalterables (RN-004); RN-007 bloquea el cierre «Operativo» con calibración vencida (CP-025).
+- HU-019 y HU-020 Planes preventivos y alertas (UI-015, UI-016): órdenes preventivas generadas al consultar las alertas y avance del plan al aprobarlas (CP-023, CP-024).
+- HU-022 Calibraciones y vigencia (UI-017): próximo vencimiento según la periodicidad (RN-010) (CP-026).
+- HU-023 Línea de tiempo del equipo en la pestaña «Historial» de la hoja de vida (CP-027).
+- HU-007 y HU-027 Reportes (UI-022): historial de órdenes en PDF (QuestPDF) y Excel (ClosedXML) y hoja de vida en PDF, en menos de 10 s con 1 000 registros (RNF-007) (CP-013, CP-031).
+- HU-026 Tablero de indicadores (UI-021): cumplimiento preventivo, MTTR, MTBF, costo por equipo y equipos fuera de servicio (CP-030).
+- HU-008 y HU-009 Analítica (UI-023): lote en Python con métricas y K-Means que escribe en `resultados_analitica`; vista con dispersión por grupo y resumen (CP-011, CP-012).
+- HU-028 Planes y solicitud de servicio desde el inicio de sesión, y cambio de plan para el Administrador (CP-032).
+- Regresión final: `scripts/regresion.sh` con PostgreSQL y MongoDB en Docker, prueba transversal de aislamiento entre instituciones (CP-036) e informe en `docs/pruebas/regresion.md`.
+- Documentación final: DOC-03 a DOC-06 actualizados, DOC-07 Plan de calidad y diagramas (C4, secuencias, despliegue, modelos de datos, clases, flujos y QA) con sus fuentes; matriz de trazabilidad y Go/No-Go en `docs/pruebas/`.
+
+### Corregido
+- Las fechas de los reportes se convierten a UTC antes de consultar PostgreSQL.
+- Las pruebas de endpoints de reportes ya no dependen de cadenas de conexión (CI sin bases).
+
+### Pendiente (fuera de esta versión)
+- HU-014 Cambio de estado y baja lógica del equipo (la API aún no ofrece el cambio de estado), HU-015 Documentos adjuntos y fotografía, HU-016 Importación masiva (CP-018, CP-019, CP-020, CP-035).
+- CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes.
+
 ## [0.2.0] - 2026-11-12
 
 Cierre del Sprint 3. Incluye todo lo anterior a esta versión.

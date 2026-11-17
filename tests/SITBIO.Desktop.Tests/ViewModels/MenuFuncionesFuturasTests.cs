@@ -38,13 +38,19 @@ public class MenuFuncionesFuturasTests
     }
 
     [Fact]
-    public void ImportarInventario_MuestraDisponibleEnUnaProximaVersion()
+    public void ImportarInventario_AbreLaPantallaDeImportacion_YYaNoEsProximaVersion()
     {
-        var pantalla = Assert.IsType<ProximaVersionViewModel>(new FabricaPantallas(new ServiciosSimulados("AC-01")).Crear("UI-008"));
+        Assert.IsType<ImportacionViewModel>(new FabricaPantallas(new ServiciosSimulados("AC-01")).Crear("UI-008"));
+        Assert.False(ProximaVersionViewModel.Opciones.ContainsKey("UI-008"));
+    }
 
-        Assert.Equal("UI-008", pantalla.IdOpcion);
+    [Fact]
+    public void HistorialGeneral_MuestraDisponibleEnUnaProximaVersion()
+    {
+        var pantalla = Assert.IsType<ProximaVersionViewModel>(new FabricaPantallas(new ServiciosSimulados("AC-01")).Crear("HIST"));
+
         Assert.Equal("Disponible en una próxima versión", ProximaVersionViewModel.Titulo);
-        Assert.Contains("CSV o Excel", pantalla.Detalle);
+        Assert.Contains("historial", pantalla.Detalle);
     }
 
     /// <summary>

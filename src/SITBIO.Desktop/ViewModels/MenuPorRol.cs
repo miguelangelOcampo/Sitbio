@@ -29,6 +29,7 @@ public static class MenuPorRol
         [Administracion] = ("Admin", "Icono.Riel.Admin"),
     };
 
+    private static readonly OpcionMenu Panel = new("UI-003", "Dashboard");
     private static readonly OpcionMenu Equipos = new("UI-005", "Equipos biomédicos", "Inventario");
     private static readonly OpcionMenu Importar = new("UI-008", "Importar inventario", "Inventario");
     private static readonly OpcionMenu Historial = new("HIST", "Historial de intervenciones", "Inventario");
@@ -43,8 +44,9 @@ public static class MenuPorRol
 
     private static readonly Dictionary<string, (string Inicio, (string Modulo, OpcionMenu[] Opciones)[] Modulos)> Menus = new()
     {
-        ["AC-01"] = ("UI-004",
+        ["AC-01"] = ("UI-003",
         [
+            (General, [Panel]),
             (Administracion, [new("UI-004", "Usuarios y roles"), Configuracion, Auditoria]),
             (Gestion, [Equipos, Importar, Ordenes, Mantenimientos, Historial]),
             (Solicitudes, [Seguimiento]),
@@ -52,7 +54,7 @@ public static class MenuPorRol
         ]),
         ["AC-02"] = ("UI-003",
         [
-            (General, [new("UI-003", "Dashboard")]),
+            (General, [Panel]),
             (Gestion, [Equipos, Ordenes, Mantenimientos, Historial]),
             (Solicitudes, [new("UI-009", "Reportar falla"), Seguimiento, new("UI-011", "Bandeja")]),
             (Analisis, [Reportes, Analitica, Exportacion]),
@@ -68,17 +70,20 @@ public static class MenuPorRol
             (General, [new("UI-009", "Reportar falla"), new("UI-010", "Mis tiquetes")]),
             (Gestion, [Equipos]),
         ]),
-        ["AC-05"] = ("UI-021",
+        ["AC-05"] = ("UI-003",
         [
+            (General, [Panel]),
             (Analisis, [Reportes, Analitica, Exportacion]),
             (Gestion, [Equipos, Mantenimientos, Historial]),
         ]),
-        ["AC-06"] = ("UI-021",
+        ["AC-06"] = ("UI-003",
         [
+            (General, [Panel]),
             (Analisis, [Reportes, Analitica]),
         ]),
-        ["AC-07"] = ("UI-005",
+        ["AC-07"] = ("UI-003",
         [
+            (General, [Panel]),
             (Gestion, [Equipos, Ordenes, Mantenimientos, Historial]),
             (Solicitudes, [Seguimiento]),
             (Analisis, [Reportes, Analitica, Exportacion]),

@@ -40,6 +40,9 @@
     <DataTemplate DataType="{x:Type vm:MantenimientosViewModel}">
       <views:MantenimientosView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PanelViewModel}">
+      <views:PanelView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ReportesViewModel}">
       <views:ReportesView />
     </DataTemplate>

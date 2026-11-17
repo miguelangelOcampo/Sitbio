@@ -72,6 +72,17 @@ public sealed class RepositorioEquipos(SitbioDbContext contexto, IContextoUsuari
             .Select(p => new ElementoCatalogo(p.Id, p.Nombre, p.EstadoActivo))
             .SingleOrDefaultAsync(cancellationToken);
 
+    public async Task<CatalogosEquipo> CatalogosAsync(CancellationToken cancellationToken)
+    {
+        var tipos = await contexto.TiposEquipo.AsNoTracking()
+            .Select(t => new ElementoCatalogo(t.Id, t.Nombre, t.EstadoActivo)).ToListAsync(cancellationToken);
+        var ubicaciones = await contexto.Ubicaciones.AsNoTracking()
+            .Select(u => new ElementoCatalogo(u.Id, u.Nombre, u.EstadoActivo)).ToListAsync(cancellationToken);
+        var proveedores = await contexto.Proveedores.AsNoTracking()
+            .Select(p => new ElementoCatalogo(p.Id, p.Nombre, p.EstadoActivo)).ToListAsync(cancellationToken);
+        return new CatalogosEquipo(tipos, ubicaciones, proveedores);
+    }
+
     public async Task<Duplicados> DuplicadosAsync(string numeroSerie, string placaInventario, Guid? exceptoEquipoId, CancellationToken cancellationToken)
     {
         // Mismo criterio que los índices únicos: comparación exacta dentro del tenant.

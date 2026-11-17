@@ -34,6 +34,6 @@ public sealed class RenovarSesion(IRepositorioSesiones repositorio, IGeneradorTo
         await repositorio.GuardarAsync(cancellationToken);
 
         return new ResultadoInicioSesion(
-            emitido.Token, emitido.Expiracion, acceso.CodigoRol, usuario.CambioContrasenaObligatorio, usuario.Nombres, usuario.Apellidos, acceso.Institucion);
+            emitido.Token, emitido.Expiracion, acceso.CodigoRol, usuario.CambioContrasenaObligatorio, usuario.Nombres, usuario.Apellidos, acceso.Institucion, usuario.Correo);
     }
 }

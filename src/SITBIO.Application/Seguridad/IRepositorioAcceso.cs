@@ -15,4 +15,5 @@ public interface IRepositorioAcceso
     Task GuardarAsync(Usuario usuario, SesionToken? sesion, CancellationToken cancellationToken);
 }
 
-public sealed record UsuarioParaAcceso(Usuario Usuario, string CodigoRol, bool InstitucionActiva);
+/// <summary>Usuario con su rol y su institución; el nombre de la institución se muestra en el panel de inicio (UI-003).</summary>
+public sealed record UsuarioParaAcceso(Usuario Usuario, string CodigoRol, bool InstitucionActiva, string Institucion = "");

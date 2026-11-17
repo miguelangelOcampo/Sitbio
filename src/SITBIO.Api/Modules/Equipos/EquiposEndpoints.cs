@@ -8,6 +8,7 @@ namespace Sitbio.Api.Modules.Equipos;
 /// edición solo para el Ingeniero Biomédico (AC-02). Sin token responde 401; con otro rol, 403.
 /// El permiso se valida aquí, no en WPF (RNF-003). El cambio de estado, la baja lógica y su
 /// reversión (PATCH /estado, HU-014) son solo de AC-02; el historial lo consultan los mismos roles.
+/// Los documentos (API-EQ-DOC, HU-015) siguen las mismas dos políticas: ver <see cref="DocumentosEndpoints"/>.
 /// </summary>
 public static class EquiposEndpoints
 {
@@ -18,6 +19,7 @@ public static class EquiposEndpoints
     {
         services.AddScoped<GestionEquipos>();
         services.AddScoped<ConsultaLineaTiempo>();
+        services.AddScoped<GestionDocumentos>();
         services.AddAuthorizationBuilder()
             .AddPolicy(PoliticaConsulta, politica => politica.RequireRole(
                 CodigosRol.AdministradorSistema,
@@ -81,6 +83,9 @@ public static class EquiposEndpoints
                 Results.Ok(await caso.HistorialAsync(id, cancellationToken)))
             .WithName("HistorialEstadosEquipo")
             .RequireAuthorization(PoliticaConsulta);
+
+        // API-EQ-DOC (HU-015): documentos de la hoja de vida.
+        grupo.MapDocumentosEquipo();
 
         return api;
     }

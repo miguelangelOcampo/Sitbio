@@ -32,6 +32,7 @@ public partial class App : Application
         servicios.AddTransient<IServicioInstitucion, ServicioInstitucionHttp>();
         servicios.AddTransient<MiInstitucionViewModel>();
         servicios.AddTransient<IServicioEquipos, ServicioEquiposHttp>();
+        servicios.AddTransient<IServicioDocumentosEquipo, ServicioDocumentosEquipoHttp>();
         servicios.AddTransient<IServicioCatalogos, ServicioCatalogosHttp>();
         servicios.AddTransient<CatalogosViewModel>();
         servicios.AddTransient<IServicioConfiguracionCampos, ServicioConfiguracionCamposHttp>();
@@ -51,6 +52,7 @@ public partial class App : Application
         servicios.AddTransient<IServicioReportes, ServicioReportesHttp>();
         servicios.AddSingleton<IDialogoArchivos, DialogoArchivosWpf>();
         servicios.AddTransient<ReportesViewModel>();
+        servicios.AddTransient<PanelViewModel>();
         servicios.AddTransient<ExportacionViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
         servicios.AddSingleton(TimeProvider.System);

@@ -4,6 +4,9 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [Sin publicar]
 
+### Agregado
+- HU-015 Documentos adjuntos del equipo (API-EQ-DOC): el Ingeniero Biomédico adjunta PDF, JPG o PNG de hasta 10 MB a la hoja de vida, todos los roles que la consultan los descargan y el Ingeniero los desactiva sin borrar el archivo; el tamaño cuenta en el almacenamiento del plan (RN-009, MSG-019). Pestaña «Documentos» en UI-006. Migración V010 (CP-019).
+
 ## [1.0.0] - 2026-11-16
 
 Cierre del MVP. Incluye todo lo de la versión 0.2.0.

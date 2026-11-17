@@ -7,7 +7,7 @@ namespace Sitbio.Desktop.ViewModels;
 /// <summary>
 /// UI-006 Hoja de vida del equipo (HU-002; RF-030, RN-010). Pestañas «Resumen», «Información
 /// técnica», «Mantenimientos» (plan, órdenes y calibraciones), «Historial» (línea de tiempo, HU-023) y
-/// «Documentos», que por ahora solo anuncia que llega en una próxima versión (HU-015).
+/// «Documentos» (HU-015).
 /// AC-02 edita (UI-007), da de baja y revierte la baja (HU-014) desde aquí; la API lo valida.
 /// </summary>
 public partial class DetalleEquipoViewModel(
@@ -20,7 +20,9 @@ public partial class DetalleEquipoViewModel(
     Func<Task>? alCambiarEstado = null,
     IServicioMantenimiento? mantenimiento = null,
     IServicioOrdenes? ordenes = null,
-    string? rol = null) : ObservableObject
+    string? rol = null,
+    IServicioDocumentosEquipo? documentos = null,
+    IDialogoArchivos? dialogo = null) : ObservableObject
 {
     public string Placa { get; } = placa;
 
@@ -94,13 +96,6 @@ public partial class DetalleEquipoViewModel(
         set => Elegir(Pestana.Mantenimientos, value);
     }
 
-    /// <summary>«Documentos» (HU-015): visible, con el texto «Disponible en una próxima versión».</summary>
-    public bool EnDocumentos
-    {
-        get => _pestana == Pestana.Documentos;
-        set => Elegir(Pestana.Documentos, value);
-    }
-
     /// <summary>Contenido de la pestaña «Mantenimientos»; null hasta abrirla.</summary>
     [ObservableProperty]
     private MantenimientosEquipoViewModel? _mantenimientos;
@@ -111,6 +106,20 @@ public partial class DetalleEquipoViewModel(
         get => _pestana == Pestana.Historial;
         set => Elegir(Pestana.Historial, value);
     }
+
+    /// <summary>«Documentos» (HU-015): se cargan la primera vez que se abre la pestaña.</summary>
+    public bool EnDocumentos
+    {
+        get => _pestana == Pestana.Documentos;
+        set => Elegir(Pestana.Documentos, value);
+    }
+
+    /// <summary>La pestaña existe si el cliente tiene el servicio de documentos.</summary>
+    public bool TieneDocumentos => documentos is not null && dialogo is not null;
+
+    /// <summary>ViewModel de la pestaña Documentos; null hasta abrirla.</summary>
+    [ObservableProperty]
+    private DocumentosEquipoViewModel? _documentos;
 
     private void Elegir(Pestana pestana, bool elegida)
     {
@@ -128,6 +137,13 @@ public partial class DetalleEquipoViewModel(
         if (pestana == Pestana.Historial && Eventos is null && !CargandoHistorial)
         {
             _ = CargarHistorialCommand.ExecuteAsync(null);
+        }
+
+        if (pestana == Pestana.Documentos && Documentos is null && documentos is not null && dialogo is not null)
+        {
+            // Solo AC-02 agrega y desactiva, y no en un equipo de baja (la API también lo valida).
+            Documentos = new DocumentosEquipoViewModel(documentos, dialogo, equipoId, Placa, PuedeEditar);
+            _ = Documentos.CargarCommand.ExecuteAsync(null);
         }
 
         if (pestana == Pestana.Mantenimientos && Mantenimientos is null)

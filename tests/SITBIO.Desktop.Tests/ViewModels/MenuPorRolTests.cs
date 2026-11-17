@@ -18,13 +18,27 @@ public class MenuPorRolTests
     }
 
     [Fact]
-    public void Administrador_EmpiezaEnAdminConUsuariosYRoles()
+    public void Administrador_EntraAlPanelYLuegoVeAdminConUsuariosYRoles()
     {
-        var admin = MenuPorRol.Para("AC-01")[0];
+        var modulos = MenuPorRol.Para("AC-01");
 
-        Assert.Equal("Admin", admin.Corto);
-        Assert.Contains(admin.Opciones, o => o.Id == "UI-004" && o.Etiqueta == "Usuarios y roles");
-        Assert.Equal("UI-004", MenuPorRol.Inicio("AC-01"));
+        Assert.Equal("Inicio", modulos[0].Corto);
+        Assert.Equal("Admin", modulos[1].Corto);
+        Assert.Contains(modulos[1].Opciones, o => o.Id == "UI-004" && o.Etiqueta == "Usuarios y roles");
+        Assert.Equal("UI-003", MenuPorRol.Inicio("AC-01"));
+    }
+
+    [Theory]
+    [InlineData("AC-01", "UI-003")]
+    [InlineData("AC-02", "UI-003")]
+    [InlineData("AC-03", "UI-012")]
+    [InlineData("AC-04", "UI-009")]
+    [InlineData("AC-05", "UI-003")]
+    [InlineData("AC-06", "UI-003")]
+    [InlineData("AC-07", "UI-003")]
+    public void CadaRol_EntraASuPantallaDeInicio(string rol, string inicio)
+    {
+        Assert.Equal(inicio, MenuPorRol.Inicio(rol));
     }
 
     [Fact]
@@ -36,11 +50,11 @@ public class MenuPorRolTests
     }
 
     [Fact]
-    public void Directiva_SoloVeAnalisis()
+    public void Directiva_SoloVeElPanelYAnalisis()
     {
-        var modulo = Assert.Single(MenuPorRol.Para("AC-06"));
+        var cortos = MenuPorRol.Para("AC-06").Select(m => m.Corto).ToList();
 
-        Assert.Equal("Análisis", modulo.Corto);
+        Assert.Equal(["Inicio", "Análisis"], cortos);
     }
 
     [Fact]

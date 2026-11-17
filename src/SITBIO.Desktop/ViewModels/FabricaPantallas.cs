@@ -87,6 +87,9 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var bitacora = servicios.GetRequiredService<BitacoraViewModel>();
                 bitacora.CargarCommand.Execute(null);
                 return bitacora;
+            // D-06: opciones cuya pantalla llega en una próxima versión (UI-008, UI-003, HIST).
+            case var id when ProximaVersionViewModel.Opciones.TryGetValue(id, out var detalle):
+                return new ProximaVersionViewModel(id, detalle);
             default:
                 return null;
         }

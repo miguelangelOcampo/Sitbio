@@ -211,3 +211,29 @@ public sealed class HistorialEstadoEquipoConfiguracion : IEntityTypeConfiguratio
         historial.HasOne<Usuario>().WithMany().HasForeignKey(h => h.UsuarioId).IsRequired();
     }
 }
+
+/// <summary>Tabla <c>documento_equipo</c> (script 01 + V010; HU-015). Desactivación lógica, sin borrado.</summary>
+public sealed class DocumentoEquipoConfiguracion : IEntityTypeConfiguration<DocumentoEquipo>
+{
+    public void Configure(EntityTypeBuilder<DocumentoEquipo> documento)
+    {
+        documento.ToTable("documento_equipo");
+        documento.HasKey(d => d.Id);
+        documento.Property(d => d.Id).HasColumnName("id_documento");
+        documento.Property(d => d.EquipoId).HasColumnName("equipo_id");
+        documento.Property(d => d.SubidoPorId).HasColumnName("subido_por_id");
+        documento.Property(d => d.TipoDocumento).HasColumnName("tipo_documento").HasMaxLength(DocumentoEquipo.LongitudMaximaTipo).IsRequired();
+        documento.Property(d => d.NombreArchivo).HasColumnName("nombre_archivo").HasMaxLength(DocumentoEquipo.LongitudMaximaNombre).IsRequired();
+        documento.Property(d => d.RutaAlmacenamiento).HasColumnName("ruta_almacenamiento").HasMaxLength(300).IsRequired();
+        documento.Property(d => d.TipoMime).HasColumnName("tipo_mime").HasMaxLength(80).IsRequired();
+        documento.Property(d => d.TamanoBytes).HasColumnName("tamano_bytes");
+        documento.Property(d => d.FechaCarga).HasColumnName("fecha_carga");
+        documento.Property(d => d.EstadoActivo).HasColumnName("estado_activo");
+        documento.Property(d => d.FechaDesactivacion).HasColumnName("fecha_desactivacion");
+        documento.Property(d => d.DesactivadoPorId).HasColumnName("desactivado_por_id");
+
+        documento.HasOne<EquipoBiomedico>().WithMany().HasForeignKey(d => d.EquipoId).IsRequired();
+        documento.HasOne<Usuario>().WithMany().HasForeignKey(d => d.SubidoPorId).IsRequired();
+        documento.HasOne<Usuario>().WithMany().HasForeignKey(d => d.DesactivadoPorId);
+    }
+}

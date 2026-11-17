@@ -628,3 +628,32 @@ Con `SITBIO_PRUEBAS_POSTGRES` definida: `dotnet test SITBIO.sln --filter "FullyQ
 - **Cambio de plan desde Mi institución (UI-019):** la API ya lo admite para AC-01; falta el botón en la pantalla del Administrador.
 - **Número de CP:** HU-028 aún no tiene caso de prueba asignado en el plan de pruebas.
 - **Gestión de las solicitudes por el proveedor (ST-10):** pasar a «en gestión» o «cerrada» queda fuera de la aplicación (DT-010).
+
+## HU-015 · Documentos adjuntos del equipo
+
+Caso de uso CU-002 · RF-015 · RN-008 · RN-009 · SEC-003 · API-EQ-DOC (DOC-06). Migración V010 (desactivación lógica de `documento_equipo`). La fotografía del equipo (CA-HU-015-03 y 04, RF-031) se prueba con E-04 y E-05.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-019 | CA-HU-015-01: el archivo permitido queda vinculado al equipo y visible en su hoja de vida. | RF-015 | Integración (API + PostgreSQL + MongoDB + disco): `CriteriosHu015Tests.CA_HU_015_01_ArchivoPermitido_QuedaVinculadoYVisibleEnLaHojaDeVida` (fila en `documento_equipo` con quién lo subió, archivo en `<tenant>/<equipo>/<id>.pdf`, lista y descarga para AC-01, AC-03, AC-04, AC-05 y AC-07, bitácora CREAR sin el nombre del archivo); `CA_HU_015_01_JpgYPng_SeAceptanYSeListanDelMasRecienteAlMasAntiguo`. Aplicación: `GestionDocumentosTests.CA_HU_015_01_*` (4). | Aprobado |
+| CP-019 | CA-HU-015-02: un formato no permitido se rechaza con un mensaje claro. | RF-015 | Integración: `CriteriosHu015Tests.CA_HU_015_02_FormatoNoPermitido_SeRechazaCon400YNoSeGuarda` (.exe, .txt, .docx, .webp y un .pdf con otro contenido: 400 «Solo se aceptan PDF, JPG o PNG.», sin fila ni archivo); `CA_HU_015_02_ArchivoMayorAlMaximoOSinTipo_SeRechazaCon400`. Aplicación: `GestionDocumentosTests.CA_HU_015_02_*` (4), `ArchivoVacioMayorAlMaximoOTipoDesconocido_*`. | Aprobado |
+
+Pruebas adicionales de la historia:
+
+- **Permisos (RNF-003):** `CriteriosHu015Tests.SoloElIngenieroCargaYDesactiva_LaDirectivaNoConsulta` (5 roles sin carga ni desactivación, AC-06 sin consulta, 401 sin token).
+- **Aislamiento entre instituciones (RN-008, SEC-003):** `CriteriosHu015Tests.OtraInstitucion_NoVeNiDescargaNiCargaNiDesactivaDocumentos`; `GestionDocumentosTests.EquipoDeOtraInstitucion_NoExiste`.
+- **Almacenamiento del plan (RN-009, MSG-019):** `CriteriosHu015Tests.AlmacenamientoDelPlanLleno_RechazaConMsg019YLaConsultaSigue`; `GestionDocumentosTests.RN_009_*`.
+- **Desactivación lógica:** `CriteriosHu015Tests.Desactivar_DejaDeMostrarseConservaElArchivoYQuedaEnLaBitacora` (bitácora ELIMINAR); `GestionDocumentosTests.Desactivar_*`, `SiNoSePuedeRegistrar_SeBorraElArchivoGuardado`; nombre repetido en el equipo: `MismoNombreEnElEquipo_ResponderConflicto` (409 `DOC-001`).
+
+### Contrato implementado: `/api/v1/equipos/{id}/documentos` (API-EQ-DOC)
+
+| Método y ruta | Uso | Respuestas |
+|---|---|---|
+| `GET /equipos/{id}/documentos` | Documentos activos, del más reciente al más antiguo (AC-01 a AC-05 y AC-07) | 200 `[{ id, equipoId, tipo, nombre, tipoMime, tamanoBytes, fechaCarga, subidoPor }]`; 404 |
+| `POST /equipos/{id}/documentos` | Solo AC-02. `multipart/form-data` con `tipo` (Manual de usuario, Certificado de calibración, Protocolo de mantenimiento, Ficha técnica, Fotografía u Otro) y `archivo` (PDF, JPG o PNG hasta `Storage:TamanoMaximoMb`) | 201 con el documento; 400 por campo (`tipo`, `archivo`); 404; 409 `DOC-001` (nombre repetido) o `RN-009` (MSG-019) |
+| `GET /equipos/{id}/documentos/{documentoId}/archivo` | Descarga con el nombre original (mismos roles que la consulta) | 200 con el archivo; 404 |
+| `DELETE /equipos/{id}/documentos/{documentoId}` | Solo AC-02. Desactivación lógica: deja de mostrarse y el archivo se conserva | 204; 404 |
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES`, `SITBIO_PRUEBAS_MONGO` y V010 aplicada: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu015Tests|FullyQualifiedName~GestionDocumentosTests"`. Los archivos van a una carpeta temporal que se borra al terminar.

@@ -71,6 +71,8 @@ public class SitbioDbContext : DbContext
 
     public DbSet<HistorialEstadoEquipo> HistorialEstados => Set<HistorialEstadoEquipo>();
 
+    public DbSet<DocumentoEquipo> DocumentosEquipo => Set<DocumentoEquipo>();
+
     /// <summary>Tenant del token; EF Core lo evalúa en cada consulta.</summary>
     protected Guid TenantActual => _contextoUsuario.TenantId;
 

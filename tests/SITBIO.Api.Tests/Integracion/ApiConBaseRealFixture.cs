@@ -46,6 +46,9 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
 
     public string Correo(string nombre) => $"{nombre}.{_sufijo}@demo.co";
 
+    /// <summary>Carpeta temporal de los documentos adjuntos (Storage:AttachmentsPath, HU-015); se borra al terminar.</summary>
+    public string RaizAdjuntos => Path.Combine(Path.GetTempPath(), $"sitbio_adjuntos_{_sufijo}");
+
     /// <summary>Base temporal de MongoDB de este fixture; se borra al terminar.</summary>
     public string BaseMongo => $"sitbio_pruebas_api_{_sufijo}";
 
@@ -114,6 +117,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         builder.UseSetting("ConnectionStrings:Mongo", string.IsNullOrWhiteSpace(_cadenaMongo) ? "mongodb://localhost:27017" : _cadenaMongo);
         builder.UseSetting("Mongo:Database", BaseMongo);
         builder.UseSetting("Jwt:Clave", ClaveJwt);
+        builder.UseSetting("Storage:AttachmentsPath", RaizAdjuntos);
         builder.UseSetting(AutenticacionEndpoints.SeccionLimite, "1000");
         builder.UseSetting(Sitbio.Api.Modules.Instituciones.SolicitudesServicioEndpoints.SeccionLimite, "1000");
     }
@@ -312,6 +316,19 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             .ToListAsync();
     }
 
+    /// <summary>Documentos del equipo tal como quedaron en la base, activos o no (solo para comprobar, HU-015).</summary>
+    public async Task<List<DocumentoEquipo>> LeerDocumentosAsync(Guid equipoId)
+    {
+        using var alcance = Services.CreateScope();
+        var contexto = alcance.ServiceProvider.GetRequiredService<SitbioDbContext>();
+        return await contexto.DocumentosEquipo.IgnoreQueryFilters().AsNoTracking().Where(d => d.EquipoId == equipoId).ToListAsync();
+    }
+
+    /// <summary>Registra en la base un documento que ya ocupa <paramref name="bytes"/> del almacenamiento del plan (RN-009).</summary>
+    public Task OcuparAlmacenamientoAsync(Guid tenant, Guid equipoId, Guid usuarioId, long bytes) =>
+        EjecutarSqlAsync(contexto => contexto.Database.ExecuteSqlAsync(
+            $"INSERT INTO sitbio.documento_equipo (tenant_id, equipo_id, subido_por_id, tipo_documento, nombre_archivo, ruta_almacenamiento, tipo_mime, tamano_bytes) VALUES ({tenant}, {equipoId}, {usuarioId}, {"Otro"}, {"ocupado.pdf"}, {"ocupado.pdf"}, {"application/pdf"}, {bytes})"));
+
     /// <summary>Planes preventivos del equipo, sin pasar por el filtro (solo para comprobar).</summary>
     public async Task<List<PlanPreventivo>> LeerPlanesAsync(Guid equipoId)
     {
@@ -398,6 +415,7 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
             Guid[] tenants = [TenantA, TenantB, .. _tenantsAdicionales];
             await EjecutarSqlAsync(async contexto =>
             {
+                await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.documento_equipo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.historial_estado_equipo WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.calibracion WHERE tenant_id = ANY({tenants})");
                 await contexto.Database.ExecuteSqlAsync($"DELETE FROM sitbio.orden_trabajo WHERE tenant_id = ANY({tenants})");
@@ -420,6 +438,11 @@ public sealed class ApiConBaseRealFixture : WebApplicationFactory<Program>, IAsy
         if (!string.IsNullOrWhiteSpace(_cadenaMongo))
         {
             await new MongoClient(_cadenaMongo).DropDatabaseAsync(BaseMongo);
+        }
+
+        if (Directory.Exists(RaizAdjuntos))
+        {
+            Directory.Delete(RaizAdjuntos, recursive: true);
         }
 
         await base.DisposeAsync();

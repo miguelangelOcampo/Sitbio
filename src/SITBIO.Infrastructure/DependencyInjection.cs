@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 using Sitbio.Application.Analitica;
 using Sitbio.Application.Auditoria;
+using Sitbio.Application.Busqueda;
 using Sitbio.Application.Catalogos;
 using Sitbio.Application.ConfiguracionCampos;
 using Sitbio.Application.Equipos;
@@ -17,6 +18,7 @@ using Sitbio.Application.Seguridad;
 using Sitbio.Application.Tiquetes;
 using Sitbio.Application.Usuarios;
 using Sitbio.Infrastructure.Auditoria;
+using Sitbio.Infrastructure.Busqueda;
 using Sitbio.Infrastructure.Catalogos;
 using Sitbio.Infrastructure.Indicadores;
 using Sitbio.Infrastructure.Instituciones;
@@ -84,6 +86,9 @@ public static class DependencyInjection
         // Reportes (HU-007, HU-027; ADR-009).
         services.AddScoped<IRepositorioReportes, RepositorioReportes>();
         services.AddScoped<IRepositorioIndicadores, RepositorioIndicadores>();
+
+        // Búsqueda global de la barra superior (D-04).
+        services.AddScoped<IRepositorioBusqueda, RepositorioBusqueda>();
         services.AddSingleton<IGeneradorReportes, GeneradorReportes>();
 
         // Configuración de la institución (HU-024).

@@ -15,7 +15,7 @@ public partial class OrdenesViewModel(
     IServicioOrdenes ordenes,
     IServicioEquipos equipos,
     IServicioConfiguracionCampos configuracion,
-    SesionActual sesion) : ObservableObject
+    SesionActual sesion) : ObservableObject, IRecibeParametro
 {
     public const string IdPantalla = "UI-012";
     public const int TamanoPagina = 20;
@@ -154,6 +154,41 @@ public partial class OrdenesViewModel(
         var revision = new RevisionViewModel(ordenes, equipos, configuracion, fila.Orden, Volver);
         Revision = revision;
         revision.CargarCommand.Execute(null);
+    }
+
+    /// <summary>
+    /// La búsqueda global (D-04) abre la orden por su id: el Ingeniero revisa la cerrada (UI-014); la que tiene
+    /// intervención, o la que el técnico ejecuta, abre UI-013. Las demás quedan en la lista.
+    /// </summary>
+    public void Recibir(string parametro)
+    {
+        if (Guid.TryParse(parametro, out var id))
+        {
+            _ = AbrirDesdeBusquedaAsync(id);
+        }
+    }
+
+    private async Task AbrirDesdeBusquedaAsync(Guid id)
+    {
+        try
+        {
+            var fila = new FilaOrden(await ordenes.ObtenerAsync(id, CancellationToken.None), EsTecnico, EsIngeniero);
+            if (fila.PuedeAprobar)
+            {
+                AbrirRevision(fila);
+            }
+            else if (fila.MuestraIntervencion)
+            {
+                AbrirIntervencion(fila);
+            }
+        }
+        catch (ErrorApi error)
+        {
+            Aviso = new Aviso(
+                error.SinConexion ? "Sin conexión" : "No se pudo abrir la orden",
+                error.Message,
+                error.SinConexion ? "MSG-011" : error.Codigo);
+        }
     }
 
     private void Volver(Orden? actualizada)

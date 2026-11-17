@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Sitbio.Desktop.Services;
 
 namespace Sitbio.Desktop.ViewModels;
 
@@ -16,12 +17,23 @@ public partial class ShellViewModel : ObservableObject
     private readonly IFabricaPantallas? _pantallas;
     private readonly Func<CambioClaveViewModel>? _crearCambioClave;
 
-    public ShellViewModel(string codigoRol, IFabricaPantallas? pantallas = null, Func<CambioClaveViewModel>? crearCambioClave = null)
+    public ShellViewModel(
+        string codigoRol,
+        IFabricaPantallas? pantallas = null,
+        Func<CambioClaveViewModel>? crearCambioClave = null,
+        IServicioBusqueda? busqueda = null)
     {
         _codigoRol = codigoRol;
         _pantallas = pantallas;
         _crearCambioClave = crearCambioClave;
         Modulos = MenuPorRol.Para(codigoRol).Select(m => new ModuloViewModel(m)).ToList();
+
+        // D-04: la caja de la barra superior busca en todo el sistema; la Directiva (AC-06) solo consulta el tablero.
+        if (busqueda is not null && RolesBusquedaGlobal.Contains(codigoRol))
+        {
+            BusquedaGlobal = new BusquedaGlobalViewModel(busqueda, TieneOpcion);
+            BusquedaGlobal.AperturaSolicitada += AlSolicitarNavegacion;
+        }
 
         // UI-016: el centro de alertas se consulta al abrir la aplicación (CA-HU-020-01), solo para AC-02 y AC-03.
         if (CentroAlertasViewModel.Roles.Contains(codigoRol) && pantallas?.Crear(CentroAlertasViewModel.IdPantalla) is CentroAlertasViewModel alertas)
@@ -41,6 +53,14 @@ public partial class ShellViewModel : ObservableObject
     }
 
     public string Rol => _codigoRol;
+
+    /// <summary>Roles con búsqueda global (los mismos que acepta GET /busqueda).</summary>
+    public static IReadOnlyList<string> RolesBusquedaGlobal { get; } = ["AC-01", "AC-02", "AC-03", "AC-04", "AC-05", "AC-07"];
+
+    /// <summary>Búsqueda global de la barra superior (Ctrl + K); null si el rol no la usa.</summary>
+    public BusquedaGlobalViewModel? BusquedaGlobal { get; }
+
+    public bool TieneBusquedaGlobal => BusquedaGlobal is not null;
 
     /// <summary>Centro de alertas (UI-016) de la campana del riel; null para los roles que no reciben alertas.</summary>
     public CentroAlertasViewModel? Alertas { get; }
@@ -194,6 +214,8 @@ public partial class ShellViewModel : ObservableObject
             pantalla.Recibir(parametro);
         }
     }
+
+    private bool TieneOpcion(string idOpcion) => Modulos.SelectMany(m => m.Opciones).Any(o => o.Opcion.Id == idOpcion);
 
     [RelayCommand]
     private void AlternarPanel() => PanelVisible = !PanelVisible;

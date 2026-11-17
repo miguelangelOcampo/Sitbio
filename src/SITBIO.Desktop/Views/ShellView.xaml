@@ -135,7 +135,7 @@
 
     <!-- Riel de módulos -->
     <Grid Grid.Column="0" Background="{DynamicResource Brush.BrandPanel}" ClipToBounds="True">
-      <Ellipse Width="190" Height="190" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-95,0,0,-70"
+      <Ellipse Grid.RowSpan="2" Width="190" Height="190" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="-95,0,0,-70"
                Stroke="{DynamicResource Brush.BrandRing}" StrokeThickness="1" Opacity="0.26" IsHitTestVisible="False" />
       <DockPanel Margin="0,14,0,12">
         <Button DockPanel.Dock="Bottom" Style="{StaticResource RailButton}"
@@ -183,7 +183,7 @@
                                     Content="{Binding Icono, Converter={StaticResource Recurso}}" />
                     <TextBlock Text="{Binding Corto}" HorizontalAlignment="Center" Margin="0,5,0,0" />
                   </StackPanel>
-                  <Ellipse Width="8" Height="8" Fill="{DynamicResource Brush.Danger}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                  <Ellipse Grid.RowSpan="2" Width="8" Height="8" Fill="{DynamicResource Brush.Danger}" HorizontalAlignment="Right" VerticalAlignment="Top"
                            Margin="0,-2,-6,0" Visibility="{Binding TienePendientes, Converter={StaticResource Visible}}" />
                 </Grid>
               </RadioButton>
@@ -256,18 +256,115 @@
 
     <!-- Área principal con anillos de fondo (detrás del contenido, sin interacción) -->
     <Grid Grid.Column="2" ClipToBounds="True">
-      <Ellipse Width="520" Height="520" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-230,-210,0"
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition />
+      </Grid.RowDefinitions>
+      <Ellipse Grid.RowSpan="2" Width="520" Height="520" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-230,-210,0"
                Stroke="{DynamicResource Brush.Primary}" StrokeThickness="1" Opacity="0.13" IsHitTestVisible="False" />
-      <Ellipse Width="340" Height="340" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-140,-120,0"
+      <Ellipse Grid.RowSpan="2" Width="340" Height="340" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,-140,-120,0"
                Stroke="{DynamicResource Brush.Action}" StrokeThickness="1" Opacity="0.32" IsHitTestVisible="False" />
-      <Ellipse Width="620" Height="620" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-260,-420"
+      <Ellipse Grid.RowSpan="2" Width="620" Height="620" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-260,-420"
                Stroke="{DynamicResource Brush.Primary}" StrokeThickness="1" Opacity="0.13" IsHitTestVisible="False" />
+
+      <!-- D-04 Barra superior: búsqueda global (Ctrl + K) de equipos, tiquetes y órdenes (prototipo App.tsx, busqueda-global) -->
+      <Border Grid.Row="0" DataContext="{Binding BusquedaGlobal}" Margin="40,16,40,0" HorizontalAlignment="Left" Width="460"
+              Visibility="{Binding DataContext.TieneBusquedaGlobal, RelativeSource={RelativeSource AncestorType=views:ShellView}, Converter={StaticResource Visible}}">
+        <Grid>
+          <Border x:Name="CajaBusqueda" Style="{StaticResource FieldBox}" MinHeight="38" Padding="10,0">
+            <DockPanel>
+              <ContentControl Style="{StaticResource Icono}" Width="16" Height="16" Content="{StaticResource Icono.Buscar}" Margin="0,0,8,0" />
+              <Border DockPanel.Dock="Right" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="4" Padding="6,1"
+                      VerticalAlignment="Center" Margin="8,0,0,0">
+                <TextBlock Text="Ctrl K" FontSize="11" Foreground="{DynamicResource Brush.Text3}" />
+              </Border>
+              <Grid>
+                <TextBlock Text="Buscar equipo, código de activo, tiquete u orden…" FontSize="13" Foreground="{DynamicResource Brush.Text3}"
+                           VerticalAlignment="Center" Margin="2,0,0,0" IsHitTestVisible="False"
+                           Visibility="{Binding SinTexto, Converter={StaticResource Visible}}" />
+                <TextBox x:Name="BusquedaGlobalTexto" Style="{StaticResource FieldInput}" FontSize="13"
+                         Text="{Binding Texto, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.Name="Buscar equipos, códigos de activo, tiquetes u órdenes"
+                         ToolTip="Busca en todo el sistema (Ctrl + K)">
+                  <TextBox.InputBindings>
+                    <KeyBinding Key="Down" Command="{Binding SeleccionarSiguienteCommand}" />
+                    <KeyBinding Key="Up" Command="{Binding SeleccionarAnteriorCommand}" />
+                    <KeyBinding Key="Enter" Command="{Binding AbrirCommand}" />
+                    <KeyBinding Key="Escape" Command="{Binding CerrarCommand}" />
+                  </TextBox.InputBindings>
+                </TextBox>
+              </Grid>
+            </DockPanel>
+          </Border>
+          <Popup IsOpen="{Binding Abierto, Mode=OneWay}" PlacementTarget="{Binding ElementName=CajaBusqueda}" Placement="Bottom"
+                 VerticalOffset="4" Width="460" AllowsTransparency="True" StaysOpen="True" Focusable="False">
+            <Border Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="1"
+                    CornerRadius="8" Padding="6">
+              <StackPanel>
+                <TextBlock Text="Buscando…" Style="{StaticResource Muted}" FontSize="13" Margin="10"
+                           Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+                <TextBlock Text="{Binding TextoSinResultados}" Style="{StaticResource Muted}" FontSize="13" Margin="10"
+                           Visibility="{Binding SinResultados, Converter={StaticResource Visible}}" />
+                <TextBlock Text="{Binding Aviso}" Foreground="{DynamicResource Brush.DangerText}" FontSize="13" TextWrapping="Wrap" Margin="10"
+                           AutomationProperties.LiveSetting="Assertive" Visibility="{Binding Aviso, Converter={StaticResource TextoVisible}}" />
+                <ListBox ItemsSource="{Binding Resultados}" SelectedItem="{Binding Seleccionado, Mode=TwoWay}"
+                         BorderThickness="0" Background="Transparent" Focusable="False" MaxHeight="420"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Resultados de la búsqueda"
+                         PreviewMouseLeftButtonUp="AlElegirResultado">
+                  <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                      <Setter Property="Focusable" Value="False" />
+                      <Setter Property="AutomationProperties.Name" Value="{Binding Codigo}" />
+                      <Setter Property="Template">
+                        <Setter.Value>
+                          <ControlTemplate TargetType="ListBoxItem">
+                            <ContentPresenter />
+                          </ControlTemplate>
+                        </Setter.Value>
+                      </Setter>
+                    </Style>
+                  </ListBox.ItemContainerStyle>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:ResultadoEncontrado}">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Grupo}" Style="{StaticResource Overline}" Margin="10,8,0,4"
+                                   Visibility="{Binding EncabezaGrupo, Converter={StaticResource Visible}}" />
+                        <Border x:Name="Fila" CornerRadius="6" Padding="10,7" Background="Transparent" Cursor="Hand">
+                          <DockPanel>
+                            <ContentControl Style="{StaticResource Icono}" Width="16" Height="16" Margin="0,0,10,0"
+                                            Content="{Binding Icono, Converter={StaticResource Recurso}}" />
+                            <TextBlock DockPanel.Dock="Right" Text="{Binding Codigo}" FontFamily="Consolas" FontSize="12"
+                                       Foreground="{DynamicResource Brush.Text3}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                            <TextBlock TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="13">
+                              <Run Text="{Binding Titulo, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                              <Run Text=" · " Foreground="{DynamicResource Brush.Text3}" />
+                              <Run Text="{Binding Detalle, Mode=OneWay}" Foreground="{DynamicResource Brush.Text3}" />
+                            </TextBlock>
+                          </DockPanel>
+                        </Border>
+                      </StackPanel>
+                      <DataTemplate.Triggers>
+                        <Trigger SourceName="Fila" Property="IsMouseOver" Value="True">
+                          <Setter TargetName="Fila" Property="Background" Value="{DynamicResource Brush.Surface2}" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                          <Setter TargetName="Fila" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+                        </DataTrigger>
+                      </DataTemplate.Triggers>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </StackPanel>
+            </Border>
+          </Popup>
+        </Grid>
+      </Border>
 
       <!-- Pantalla de la opción actual (DataTemplate por ViewModel) -->
-      <ContentControl Content="{Binding Contenido}" Focusable="False" />
+      <ContentControl Grid.Row="1" Content="{Binding Contenido}" Focusable="False" />
 
       <!-- UI-016 Centro de alertas: panel lateral sobre el área principal (NAV-011: abrir una alerta lo cierra) -->
-      <Border HorizontalAlignment="Right" Width="380" Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}"
+      <Border Grid.RowSpan="2" HorizontalAlignment="Right" Width="380" Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}"
               BorderThickness="1,0,0,0" DataContext="{Binding Alertas}" AutomationProperties.Name="Centro de alertas"
               Visibility="{Binding Abierto, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
         <DockPanel>
@@ -322,7 +419,7 @@
       </Border>
 
       <!-- Confirmación breve del marco (por ejemplo, «Contraseña actualizada») -->
-      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
+      <Border Grid.Row="1" Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
               HorizontalAlignment="Right" VerticalAlignment="Bottom" MaxWidth="460" Margin="0,0,32,28"
               AutomationProperties.LiveSetting="Polite" Visibility="{Binding Confirmacion, Converter={StaticResource TextoVisible}}">
         <DockPanel>
@@ -334,7 +431,7 @@
         </DockPanel>
       </Border>
 
-      <StackPanel Margin="40,36" MaxWidth="760" HorizontalAlignment="Left"
+      <StackPanel Grid.Row="1" Margin="40,36" MaxWidth="760" HorizontalAlignment="Left"
                   Visibility="{Binding EnConstruccion, Converter={StaticResource Visible}}">
         <TextBlock Text="{Binding TituloModuloActual}" Style="{StaticResource Overline}" />
         <TextBlock Text="{Binding OpcionActual.Etiqueta}" Style="{StaticResource PageTitle}" Margin="0,6,0,24" />

@@ -15,6 +15,7 @@ public partial class MainViewModel : ObservableObject
     private readonly ControlSesion _control;
     private readonly IFabricaPantallas? _pantallas;
     private readonly IServicioSesion? _servicioSesion;
+    private readonly IServicioBusqueda? _servicioBusqueda;
     private readonly SynchronizationContext? _interfaz = SynchronizationContext.Current;
 
     public MainViewModel(
@@ -22,13 +23,15 @@ public partial class MainViewModel : ObservableObject
         SesionActual sesionActual,
         ControlSesion control,
         IFabricaPantallas? pantallas = null,
-        IServicioSesion? servicioSesion = null)
+        IServicioSesion? servicioSesion = null,
+        IServicioBusqueda? servicioBusqueda = null)
     {
         _crearLogin = crearLogin;
         _sesionActual = sesionActual;
         _control = control;
         _pantallas = pantallas;
         _servicioSesion = servicioSesion;
+        _servicioBusqueda = servicioBusqueda;
         _control.SesionTerminada += (_, cierre) => EnLaInterfaz(() => Cierre = cierre);
         _vistaActual = NuevoLogin();
     }
@@ -90,7 +93,7 @@ public partial class MainViewModel : ObservableObject
         Func<CambioClaveViewModel>? cambioVoluntario = _servicioSesion is { } servicio
             ? () => new CambioClaveViewModel(servicio, obligatorio: false)
             : null;
-        var shell = new ShellViewModel(rol, _pantallas, cambioVoluntario) { Confirmacion = confirmacion };
+        var shell = new ShellViewModel(rol, _pantallas, cambioVoluntario, _servicioBusqueda) { Confirmacion = confirmacion };
         shell.CierreSolicitado += async (_, _) => await CerrarSesionAsync();
         return shell;
     }

@@ -262,7 +262,7 @@ La base local debe tener aplicada V008 (`database/README.md`). Con `SITBIO_PRUEB
 
 - **Gestión de catálogos (HU-025):** resuelto en los commits 40 y 41: dominio, repositorio, catálogo de tipos de falla (V009) y `POST`/`PUT`/`GET` por id con permisos por rol y bitácora (`CREAR`/`ACTUALIZAR` sobre `tipo_equipo`, `ubicacion`, `proveedor` o `tipo_falla`; el detalle lleva el nombre y los campos que cambiaron, nunca el contacto del proveedor). La pantalla UI-020 quedó en el commit 43.
 - **DOC-06 (DAT-CATALOGOS):** debe incluir la tabla `tipo_falla` de la V009 (hoy lista `ubicacion`, `tipo_equipo` y `proveedor`). El .docx lo actualiza el responsable de documentación.
-- **Fotografía del equipo (RF-031):** V008 ya tiene `foto_documento_id` y la API devuelve `tieneFoto`; la subida y API-EQ-FOTO llegan con HU-015.
+- **Fotografía del equipo (RF-031):** V008 tiene `foto_documento_id` y la API devuelve `tieneFoto`; la carga y la consulta por tamaño están en API-EQ-FOTO (ver «RF-031 · Fotografía del equipo»).
 - **Cambio de estado y baja:** resuelto con HU-014 (`PATCH /equipos/{id}/estado`; ver la sección HU-014).
 - **Alerta del plan vencido (RF-020):** el plan se marca vencido y la interfaz lo avisa; la alerta en el módulo de alertas llega con su historia.
 - **Numeración de CP:** con esta historia se corrigió la tabla de HU-011 a CP-015, como asigna el DOC-04; antes usaba CP-004 a CP-006, que corresponden a HU-002 y HU-003.
@@ -631,7 +631,7 @@ Con `SITBIO_PRUEBAS_POSTGRES` definida: `dotnet test SITBIO.sln --filter "FullyQ
 
 ## HU-015 · Documentos adjuntos del equipo
 
-Caso de uso CU-002 · RF-015 · RN-008 · RN-009 · SEC-003 · API-EQ-DOC (DOC-06). Migración V010 (desactivación lógica de `documento_equipo`). La fotografía del equipo (CA-HU-015-03 y 04, RF-031) se prueba con E-04 y E-05.
+Caso de uso CU-002 · RF-015 · RN-008 · RN-009 · SEC-003 · API-EQ-DOC (DOC-06). Migración V010 (desactivación lógica de `documento_equipo`). La fotografía del equipo (CA-HU-015-03 y 04, RF-031) tiene su sección: «RF-031 · Fotografía del equipo».
 
 | CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
 |---|---|---|---|---|
@@ -657,3 +657,29 @@ Pruebas adicionales de la historia:
 ### Cómo reproducir
 
 Con `SITBIO_PRUEBAS_POSTGRES`, `SITBIO_PRUEBAS_MONGO` y V010 aplicada: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu015Tests|FullyQualifiedName~GestionDocumentosTests"`. Los archivos van a una carpeta temporal que se borra al terminar.
+
+## RF-031 · Fotografía del equipo
+
+HU-015 · RF-031 · RN-008 · RN-009 · SEC-003 · API-EQ-FOTO (DOC-06) · Ley 1581 de 2012. Sin migración nueva: la foto es un `documento_equipo` de tipo «Fotografía» y `equipo_biomedico.foto_documento_id` la señala (V008, `ON DELETE SET NULL`).
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-035 | CA-HU-015-03: la foto se reduce a 128 y 512 px, no se conserva el original, se muestra el aviso de datos de pacientes y su tamaño cuenta en el plan. | RF-031, RN-009 | Integración (API + PostgreSQL + MongoDB + disco): `CriteriosRf031Tests.CA_HU_015_03_SeGuardanSoloLas2VersionesReducidas_CuentanEnElPlanYQuedaEnLaBitacora` (un documento «Fotografía» con el tamaño de las dos versiones, en disco solo `<id>.webp` y `<id>-128.webp`, fuera de la lista de documentos, bitácora CREAR con `aviso_datos_personales`); `CA_HU_015_03_ImagenSinReducirOSinAviso_SeRechazaCon400YNoSeGuarda` (vista de 4032 px, miniatura de 256 px, sin aviso o sin ser imagen: 400 por campo, nada guardado); `CA_HU_015_03_AlmacenamientoDelPlanLleno_RechazaConMsg019`. Aplicación: `GestionFotoEquipoTests` (8). Dominio: `FotografiaEquipoTests` (cabeceras JPG, PNG y WebP VP8, VP8L y VP8X). La reducción en el cliente y el aviso en pantalla llegan con E-06. | Aprobado (API) |
+| CP-035 | CA-HU-015-04: se muestra la foto en lugar del ícono según la preferencia del usuario y se puede ampliar. | RF-031 | Integración: `CriteriosRf031Tests.CA_HU_015_04_LaHojaDeVidaIndicaQueHayFoto_YLaEntregaPorTamanoALosRolesQueConsultan` (`tieneFoto` y `GET ?tam=128|512` para AC-01 a AC-05 y AC-07; 400 con otro tamaño); `CambiarYQuitar_LaAnteriorSeDesactivaYLaHojaDeVidaVuelveAlIcono`. La preferencia y la ampliación son del cliente (E-06). | Aprobado (API) |
+
+Pruebas adicionales:
+
+- **Permisos (RNF-003):** `CriteriosRf031Tests.SoloElIngenieroSubeOQuita_LaDirectivaNoConsulta`.
+- **Aislamiento entre instituciones (RN-008, SEC-003):** `CriteriosRf031Tests.OtraInstitucion_NoVeNiCambiaNiQuitaLaFoto`; `GestionFotoEquipoTests.SinFotoOEquipoDeOtraInstitucion_EsNoEncontrado`.
+
+### Contrato implementado: `/api/v1/equipos/{id}/foto` (API-EQ-FOTO)
+
+| Método y ruta | Uso | Respuestas |
+|---|---|---|
+| `GET /equipos/{id}/foto?tam=128\|512` | Miniatura (128 × 128) o vista (hasta 512 px; por defecto), en línea (AC-01 a AC-05 y AC-07) | 200 con la imagen; 400 `tam`; 404 sin foto |
+| `PUT /equipos/{id}/foto` | Solo AC-02. `multipart/form-data` con `miniatura`, `vista` (JPG, PNG o WebP del mismo formato, hasta 2 MB cada una) y `avisoAceptado=true`. Reemplaza la anterior, que se desactiva | 200 `{ documentoId, equipoId, tipoMime, tamanoBytes, fechaCarga }`; 400 por campo (`miniatura`, `vista`, `aviso`); 404; 409 `RN-009` (MSG-019) |
+| `DELETE /equipos/{id}/foto` | Solo AC-02. Desactiva el documento y deja `foto_documento_id` en nulo | 204; 404 |
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO`: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosRf031Tests|FullyQualifiedName~GestionFotoEquipoTests|FullyQualifiedName~FotografiaEquipoTests"`.

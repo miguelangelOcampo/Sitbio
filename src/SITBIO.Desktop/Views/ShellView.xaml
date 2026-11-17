@@ -40,11 +40,31 @@
     <DataTemplate DataType="{x:Type vm:MantenimientosViewModel}">
       <views:MantenimientosView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PanelViewModel}">
+      <views:PanelView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ReportesViewModel}">
       <views:ReportesView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ExportacionViewModel}">
       <views:ExportacionView />
+    </DataTemplate>
+    <!-- D-06: opción del menú cuya pantalla llega en una próxima versión (ícono + texto, sin «en construcción») -->
+    <DataTemplate DataType="{x:Type vm:ProximaVersionViewModel}">
+      <StackPanel Margin="40,36" MaxWidth="760" HorizontalAlignment="Left">
+        <TextBlock Text="{Binding DataContext.TituloModuloActual, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource Overline}" />
+        <TextBlock Text="{Binding DataContext.OpcionActual.Etiqueta, RelativeSource={RelativeSource AncestorType=UserControl}}" Style="{StaticResource PageTitle}" Margin="0,6,0,24" />
+        <Border Style="{StaticResource Section}">
+          <DockPanel>
+            <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Reloj}"
+                            Foreground="{DynamicResource Brush.Primary}" VerticalAlignment="Top" Margin="0,2,12,0" />
+            <StackPanel>
+              <TextBlock Text="{x:Static vm:ProximaVersionViewModel.Titulo}" Style="{StaticResource SectionTitle}" />
+              <TextBlock Text="{Binding Detalle}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+      </StackPanel>
     </DataTemplate>
 
     <!-- Tarjeta de alerta de UI-016: estado con punto y texto (ACC-001); la revisada se atenúa. -->

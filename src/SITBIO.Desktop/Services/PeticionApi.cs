@@ -62,7 +62,16 @@ internal static class PeticionApi
         HttpResponseMessage respuesta;
         try
         {
-            using var solicitud = new HttpRequestMessage(metodo, ruta) { Content = cuerpo is null ? null : JsonContent.Create(cuerpo) };
+            // Un HttpContent (por ejemplo multipart, HU-015) se envía tal cual; lo demás va como JSON.
+            using var solicitud = new HttpRequestMessage(metodo, ruta)
+            {
+                Content = cuerpo switch
+                {
+                    null => null,
+                    HttpContent contenido => contenido,
+                    _ => JsonContent.Create(cuerpo),
+                },
+            };
             respuesta = await cliente.Http.SendAsync(solicitud, cancellationToken);
         }
         catch (HttpRequestException)

@@ -20,6 +20,7 @@ using Sitbio.Application.Usuarios;
 using Sitbio.Infrastructure.Auditoria;
 using Sitbio.Infrastructure.Busqueda;
 using Sitbio.Infrastructure.Catalogos;
+using Sitbio.Infrastructure.Configuracion;
 using Sitbio.Infrastructure.Indicadores;
 using Sitbio.Infrastructure.Instituciones;
 using Sitbio.Infrastructure.Inventario;
@@ -82,6 +83,11 @@ public static class DependencyInjection
         services.AddScoped<IRepositorioCalibraciones, RepositorioCalibraciones>();
         services.AddScoped<IRepositorioLineaTiempo, RepositorioLineaTiempo>();
         services.AddScoped<IRepositorioCatalogos, RepositorioCatalogos>();
+
+        // Documentos del equipo (HU-015): registro en PostgreSQL y archivo en Storage:AttachmentsPath (EXT-003).
+        services.AddSingleton(OpcionesAlmacenamiento.Desde(configuration));
+        services.AddScoped<IRepositorioDocumentos, RepositorioDocumentos>();
+        services.AddSingleton<IAlmacenDocumentos, AlmacenDocumentosLocal>();
 
         // Reportes (HU-007, HU-027; ADR-009).
         services.AddScoped<IRepositorioReportes, RepositorioReportes>();

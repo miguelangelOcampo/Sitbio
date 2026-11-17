@@ -7,7 +7,15 @@ public interface IServicioAutenticacion
 }
 
 /// <summary>Sesión abierta: el token se adjunta a las solicitudes siguientes (commit 11).</summary>
-public sealed record SesionUsuario(string Token, DateTimeOffset ExpiraEn, string Rol, bool DebeCambiarClave);
+/// <summary>Sesión del usuario; nombres, apellidos e institución vienen de la respuesta del inicio de sesión (saludo de UI-003).</summary>
+public sealed record SesionUsuario(
+    string Token,
+    DateTimeOffset ExpiraEn,
+    string Rol,
+    bool DebeCambiarClave,
+    string Nombres = "",
+    string Apellidos = "",
+    string Institucion = "");
 
 public enum FalloLogin
 {

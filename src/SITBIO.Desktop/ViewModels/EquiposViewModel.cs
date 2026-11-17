@@ -14,8 +14,12 @@ public partial class EquiposViewModel(
     IServicioEquipos servicio,
     IServicioCatalogos catalogos,
     SesionActual sesion,
-    TimeProvider tiempo) : ObservableObject, IRecibeParametro
+    TimeProvider tiempo,
+    IServicioDocumentosEquipo? documentos = null,
+    IDialogoArchivos? dialogo = null) : ObservableObject, IRecibeParametro
 {
+    public const string IdPantalla = "UI-005";
+
     public const int TamanoPagina = 20;
 
     private const string Calibra = "cal-si";
@@ -156,7 +160,7 @@ public partial class EquiposViewModel(
             return Task.CompletedTask;
         }
 
-        var detalle = new DetalleEquipoViewModel(servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina));
+        var detalle = new DetalleEquipoViewModel(servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), documentos, dialogo);
         Detalle = detalle;
         return detalle.CargarCommand.ExecuteAsync(null);
     }

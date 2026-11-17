@@ -294,6 +294,24 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
     }
 
     [FactIntegracion(Variable)]
+    public async Task Listar_PorEquipo_DeLaMasRecienteALaMasAntigua()
+    {
+        var ahora = DateTimeOffset.UtcNow;
+        var antigua = await Asignar(await Reportar(Criticidades.Critica), _tecnicoA, ahora.AddDays(-3));
+        var reciente = await Asignar(await Reportar(Criticidades.Baja), _otroTecnicoA, ahora);
+
+        var (contexto, ordenes, _) = Crear(_tenantA);
+        await using (contexto)
+        {
+            var (delEquipo, total) = await ordenes.ListarAsync(new FiltroOrdenes(null, EquipoId: _equipoA), null, CancellationToken.None);
+            Assert.Equal([reciente, antigua], delEquipo.Select(o => o.Orden.Id));
+            Assert.Equal(2, total);
+
+            Assert.Equal(0, (await ordenes.ListarAsync(new FiltroOrdenes(null, EquipoId: Guid.NewGuid()), null, CancellationToken.None)).Total);
+        }
+    }
+
+    [FactIntegracion(Variable)]
     public async Task Listar_FiltraPorTecnicoYOrdenaPorPrioridad()
     {
         var baja = await Asignar(await Reportar(Criticidades.Baja), _tecnicoA);

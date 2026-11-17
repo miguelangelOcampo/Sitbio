@@ -82,6 +82,197 @@
       </DataTemplate.Triggers>
     </DataTemplate>
 
+    <!-- Encabezado de columna de las tablas abiertas de la hoja de vida -->
+    <Style x:Key="EncabezadoTabla" TargetType="TextBlock" BasedOn="{StaticResource Overline}">
+      <Setter Property="Margin" Value="0,0,12,8" />
+    </Style>
+
+    <!-- UI-006 pestaña Mantenimientos (prototipo HojaVida.tsx, sección 3): plan vigente, órdenes y calibraciones -->
+    <DataTemplate DataType="{x:Type vm:MantenimientosEquipoViewModel}">
+      <StackPanel>
+        <TextBlock Text="Consultando el plan, las órdenes y las calibraciones…" Style="{StaticResource Muted}" Margin="0,0,0,14"
+                   Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+        <Button Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,0,0,14"
+                AutomationProperties.Name="Volver a consultar los mantenimientos"
+                Visibility="{Binding HayAviso, Converter={StaticResource Visible}}" />
+
+        <!-- Plan preventivo vigente (HU-019) -->
+        <Border Style="{StaticResource Section}">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,14">
+              <TextBlock DockPanel.Dock="Right" Text="HU-019" Style="{StaticResource Overline}" VerticalAlignment="Center" />
+              <TextBlock Text="Plan preventivo vigente" Style="{StaticResource SectionTitle}" />
+            </DockPanel>
+            <ContentControl Content="{Binding AvisoPlan}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+            <TextBlock Text="Este equipo no tiene un plan preventivo activo." Style="{StaticResource Muted}"
+                       Visibility="{Binding SinPlan, Converter={StaticResource Visible}}" />
+            <StackPanel Visibility="{Binding HayPlan, Converter={StaticResource Visible}}">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition />
+                  <ColumnDefinition />
+                  <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <StackPanel Margin="0,0,24,0">
+                  <TextBlock Text="Periodicidad" Style="{StaticResource Muted}" FontSize="13" />
+                  <TextBlock Text="{Binding Periodicidad}" Foreground="{DynamicResource Brush.Text}" FontSize="15" Margin="0,3,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,0,24,0">
+                  <TextBlock Text="Última ejecución" Style="{StaticResource Muted}" FontSize="13" />
+                  <TextBlock Text="{Binding UltimaEjecucion}" Foreground="{DynamicResource Brush.Text}" FontSize="15" Margin="0,3,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="2">
+                  <TextBlock Text="Próxima fecha" Style="{StaticResource Muted}" FontSize="13" />
+                  <TextBlock Text="{Binding ProximaFecha}" FontSize="15" Margin="0,3,0,0">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding PlanVencido}" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                  <TextBlock Text="{Binding DetalleProxima}" Style="{StaticResource Muted}" FontSize="13" />
+                </StackPanel>
+              </Grid>
+              <TextBlock Text="{Binding DescripcionPlan}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,14,0,0"
+                         Visibility="{Binding DescripcionPlan, Converter={StaticResource TextoVisible}}" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Órdenes de trabajo del equipo (API-OT); AC-05 no las consulta -->
+        <Border Style="{StaticResource Section}" Margin="0,14,0,0" Visibility="{Binding PuedeVerOrdenes, Converter={StaticResource Visible}}">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,14">
+              <TextBlock DockPanel.Dock="Right" Text="{Binding ResumenOrdenes}" Style="{StaticResource Overline}" VerticalAlignment="Center" />
+              <TextBlock Text="Órdenes de trabajo" Style="{StaticResource SectionTitle}" />
+            </DockPanel>
+            <TextBlock Text="Solo ves las órdenes asignadas a ti." Style="{StaticResource Muted}" FontSize="13" Margin="0,0,0,10"
+                       Visibility="{Binding SoloSuyas, Converter={StaticResource Visible}}" />
+            <ContentControl Content="{Binding AvisoOrdenes}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+            <TextBlock Text="Este equipo aún no tiene órdenes de trabajo." Style="{StaticResource Muted}"
+                       Visibility="{Binding SinOrdenes, Converter={StaticResource Visible}}" />
+            <Grid Visibility="{Binding ResumenOrdenes, Converter={StaticResource TextoVisible}}">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="110" />
+                <ColumnDefinition Width="110" />
+                <ColumnDefinition Width="130" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="140" />
+              </Grid.ColumnDefinitions>
+              <TextBlock Text="FECHA" Style="{StaticResource EncabezadoTabla}" />
+              <TextBlock Grid.Column="1" Text="TIPO" Style="{StaticResource EncabezadoTabla}" />
+              <TextBlock Grid.Column="2" Text="ORIGEN" Style="{StaticResource EncabezadoTabla}" />
+              <TextBlock Grid.Column="3" Text="FALLA O TRABAJO" Style="{StaticResource EncabezadoTabla}" />
+              <TextBlock Grid.Column="4" Text="TÉCNICO" Style="{StaticResource EncabezadoTabla}" />
+              <TextBlock Grid.Column="5" Text="ESTADO" Style="{StaticResource EncabezadoTabla}" />
+            </Grid>
+            <ItemsControl ItemsSource="{Binding OrdenesEquipo}" Focusable="False" AutomationProperties.Name="Órdenes de trabajo del equipo">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaOrdenEquipo}">
+                  <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="0,10">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="130" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="160" />
+                        <ColumnDefinition Width="140" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="{Binding Fecha}" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Grid.Column="1" Text="{Binding Tipo}" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Grid.Column="2" Text="{Binding Origen}" FontFamily="Consolas" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Grid.Column="3" Text="{Binding Detalle}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,0,12,0" />
+                      <TextBlock Grid.Column="4" Text="{Binding Tecnico}" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis" Margin="0,0,12,0" />
+                      <StackPanel Grid.Column="5" Orientation="Horizontal">
+                        <Ellipse Style="{StaticResource PuntoEstado}" />
+                        <TextBlock Text="{Binding Estado}" Foreground="{DynamicResource Brush.Text}" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- Calibraciones (HU-022): vigencia de la más reciente o «No aplica» (RN-010) -->
+        <Border Style="{StaticResource Section}" Margin="0,14,0,0">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,14">
+              <TextBlock DockPanel.Dock="Right" Text="HU-022 · RN-010" Style="{StaticResource Overline}" VerticalAlignment="Center" />
+              <TextBlock Text="Calibraciones" Style="{StaticResource SectionTitle}" />
+            </DockPanel>
+            <StackPanel Margin="0,0,0,14">
+              <TextBlock Text="Vigencia" Style="{StaticResource Muted}" FontSize="13" />
+              <TextBlock Text="{Binding Vigencia}" FontSize="18" FontWeight="SemiBold" Margin="0,3,0,0" AutomationProperties.Name="Vigencia de la calibración">
+                <TextBlock.Style>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                    <Style.Triggers>
+                      <DataTrigger Binding="{Binding TonoVigencia}" Value="{x:Static vm:TonoEstado.Critico}">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TonoVigencia}" Value="{x:Static vm:TonoEstado.Advertencia}">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.WarningText}" />
+                      </DataTrigger>
+                      <DataTrigger Binding="{Binding TonoVigencia}" Value="{x:Static vm:TonoEstado.Exito}">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+                      </DataTrigger>
+                    </Style.Triggers>
+                  </Style>
+                </TextBlock.Style>
+              </TextBlock>
+              <TextBlock Text="{Binding DetalleVigencia}" Style="{StaticResource Muted}" FontSize="13"
+                         Visibility="{Binding DetalleVigencia, Converter={StaticResource TextoVisible}}" />
+            </StackPanel>
+            <ContentControl Content="{Binding AvisoCalibraciones}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+            <TextBlock Text="Aún no hay calibraciones registradas para este equipo." Style="{StaticResource Muted}"
+                       Visibility="{Binding SinCalibraciones, Converter={StaticResource Visible}}" />
+            <ItemsControl ItemsSource="{Binding Calibraciones}" Focusable="False" AutomationProperties.Name="Calibraciones del equipo">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:FilaCalibracion}">
+                  <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="0,10">
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="120" />
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="190" />
+                      </Grid.ColumnDefinitions>
+                      <TextBlock Text="{Binding Fecha}" Foreground="{DynamicResource Brush.Text}" />
+                      <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                        <TextBlock Text="{Binding Certificado}" FontFamily="Consolas" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding Calibracion.Proveedor}" Style="{StaticResource Muted}" FontSize="12"
+                                   Visibility="{Binding Calibracion.Proveedor, Converter={StaticResource NuloVisible}}" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="2" Text="{Binding Resultado}" Foreground="{DynamicResource Brush.Text}" />
+                      <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
+                        <Ellipse Style="{StaticResource PuntoEstado}" />
+                        <StackPanel>
+                          <TextBlock Text="{Binding Vigencia}" Foreground="{DynamicResource Brush.Text}" />
+                          <TextBlock Text="{Binding Vence, StringFormat='Vence {0}'}" Style="{StaticResource Muted}" FontSize="12" />
+                        </StackPanel>
+                      </StackPanel>
+                      <TextBlock Grid.Column="4" Text="{Binding Aprobacion}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </DataTemplate>
+
     <!-- UI-006 Hoja de vida -->
     <DataTemplate DataType="{x:Type vm:DetalleEquipoViewModel}">
       <StackPanel>
@@ -199,7 +390,10 @@
           <StackPanel Orientation="Horizontal" Margin="0,20,0,0">
             <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Resumen" IsChecked="{Binding EnResumen}" />
             <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Información técnica" IsChecked="{Binding EnTecnica}" />
+            <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Mantenimientos" IsChecked="{Binding EnMantenimientos}"
+                         Visibility="{Binding MuestraMantenimientos, Converter={StaticResource Visible}}" />
             <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Historial" IsChecked="{Binding EnHistorial}" />
+            <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Documentos" IsChecked="{Binding EnDocumentos}" />
           </StackPanel>
           <Border Height="1" Background="{DynamicResource Brush.Border}" />
 
@@ -302,6 +496,21 @@
               </StackPanel>
             </Border>
           </StackPanel>
+
+          <!-- Mantenimientos: plan vigente, órdenes y calibraciones -->
+          <ContentControl Content="{Binding Mantenimientos}" Focusable="False" IsTabStop="False" Margin="0,22,0,0"
+                          Visibility="{Binding EnMantenimientos, Converter={StaticResource Visible}}" />
+
+          <!-- Documentos (HU-015): llega en una próxima versión -->
+          <Border Style="{StaticResource Section}" Margin="0,22,0,0" Visibility="{Binding EnDocumentos, Converter={StaticResource Visible}}">
+            <StackPanel HorizontalAlignment="Center" Margin="0,24">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}" Width="28" Height="28"
+                              Foreground="{DynamicResource Brush.Primary}" HorizontalAlignment="Center" />
+              <TextBlock Text="Disponible en una próxima versión" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" Margin="0,10,0,0" />
+              <TextBlock Text="Aquí podrás adjuntar el manual, la ficha técnica y los certificados de calibración del equipo." Style="{StaticResource Muted}"
+                         HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" Margin="0,6,0,0" />
+            </StackPanel>
+          </Border>
 
           <!-- Historial: línea de tiempo (HU-023, CMP-UI-014) -->
           <StackPanel Visibility="{Binding EnHistorial, Converter={StaticResource Visible}}" Margin="0,22,0,0">

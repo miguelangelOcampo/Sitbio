@@ -69,8 +69,11 @@ public sealed record OrdenDto(
 /// </summary>
 public sealed record DatosOrden(Guid? TiqueteId, Guid? TecnicoId, string? Prioridad, DateOnly? FechaProgramada);
 
-/// <summary>Filtros de GET /ordenes: estado y «asignadas=me» (las del técnico que consulta), con paginación.</summary>
-public sealed record FiltroOrdenes(string? Estado, bool AsignadasAMi = false, int Pagina = 1, int Tamano = 20);
+/// <summary>
+/// Filtros de GET /ordenes: estado, «asignadas=me» (las del técnico que consulta) y equipo (pestaña
+/// «Mantenimientos» de la hoja de vida UI-006), con paginación.
+/// </summary>
+public sealed record FiltroOrdenes(string? Estado, bool AsignadasAMi = false, int Pagina = 1, int Tamano = 20, Guid? EquipoId = null);
 
 /// <summary>Orden con los datos del equipo, del técnico y del tiquete de origen, para armar el DTO.</summary>
 public sealed record OrdenLeida(

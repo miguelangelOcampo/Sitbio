@@ -22,11 +22,21 @@ public sealed class RepositorioOrdenes(SitbioDbContext contexto) : IRepositorioO
             ordenes = ordenes.Where(o => o.Estado == estado);
         }
 
+        if (filtro.EquipoId is { } equipo)
+        {
+            ordenes = ordenes.Where(o => o.EquipoId == equipo);
+        }
+
         var total = await ordenes.CountAsync(cancellationToken);
-        var pagina = ordenes
-            .OrderBy(o => o.Prioridad == Criticidades.Critica ? 0 : o.Prioridad == Criticidades.Alta ? 1 : o.Prioridad == Criticidades.Media ? 2 : 3)
-            .ThenByDescending(o => o.FechaCreacion)
-            .ThenBy(o => o.Id)
+
+        // Las de un equipo (hoja de vida) van de la más reciente a la más antigua; las demás, de la más urgente a la menos.
+        var ordenadas = filtro.EquipoId is not null
+            ? ordenes.OrderByDescending(o => o.FechaCreacion).ThenBy(o => o.Id)
+            : ordenes
+                .OrderBy(o => o.Prioridad == Criticidades.Critica ? 0 : o.Prioridad == Criticidades.Alta ? 1 : o.Prioridad == Criticidades.Media ? 2 : 3)
+                .ThenByDescending(o => o.FechaCreacion)
+                .ThenBy(o => o.Id);
+        var pagina = ordenadas
             .Skip((filtro.Pagina - 1) * filtro.Tamano)
             .Take(filtro.Tamano);
         var items = await Leer(pagina).ToListAsync(cancellationToken);

@@ -38,6 +38,25 @@ public static class TextosEquipo
 
     public static string Fecha(DateOnly? fecha) => fecha?.ToString("dd/MM/yyyy", Cultura) ?? SinDato;
 
+    /// <summary>Distancia en días a una fecha: «hoy», «mañana», «en 5 días», «hace 3 días».</summary>
+    public static string DiasHasta(DateOnly? fecha, DateOnly hoy)
+    {
+        if (fecha is not { } f)
+        {
+            return string.Empty;
+        }
+
+        var dias = f.DayNumber - hoy.DayNumber;
+        return dias switch
+        {
+            0 => "hoy",
+            1 => "mañana",
+            > 1 => $"en {dias} días",
+            -1 => "hace 1 día",
+            _ => $"hace {-dias} días",
+        };
+    }
+
     public static string Clase(string? clase) =>
         clase is not null && DescripcionClase.TryGetValue(clase, out var descripcion) ? $"{clase} · {descripcion}" : SinDato;
 

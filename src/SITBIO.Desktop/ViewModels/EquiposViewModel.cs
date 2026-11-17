@@ -14,7 +14,9 @@ public partial class EquiposViewModel(
     IServicioEquipos servicio,
     IServicioCatalogos catalogos,
     SesionActual sesion,
-    TimeProvider tiempo) : ObservableObject
+    TimeProvider tiempo,
+    IServicioMantenimiento? mantenimiento = null,
+    IServicioOrdenes? ordenes = null) : ObservableObject
 {
     public const int TamanoPagina = 20;
 
@@ -156,7 +158,8 @@ public partial class EquiposViewModel(
             return Task.CompletedTask;
         }
 
-        var detalle = new DetalleEquipoViewModel(servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina));
+        var detalle = new DetalleEquipoViewModel(
+            servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), mantenimiento, ordenes, sesion.Sesion?.Rol);
         Detalle = detalle;
         return detalle.CargarCommand.ExecuteAsync(null);
     }

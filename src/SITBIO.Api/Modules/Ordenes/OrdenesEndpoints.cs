@@ -47,6 +47,7 @@ public static class OrdenesEndpoints
                 CancellationToken cancellationToken,
                 string? estado = null,
                 string? asignadas = null,
+                Guid? equipoId = null,
                 int page = 1,
                 int pageSize = 20) =>
             {
@@ -55,7 +56,7 @@ public static class OrdenesEndpoints
                     throw ErrorValidacion.DeCampo("asignadas", "El filtro «asignadas» solo admite «me».");
                 }
 
-                return Results.Ok(await caso.ListarAsync(new FiltroOrdenes(estado, asignadas is not null, page, pageSize), cancellationToken));
+                return Results.Ok(await caso.ListarAsync(new FiltroOrdenes(estado, asignadas is not null, page, pageSize, equipoId), cancellationToken));
             })
             .WithName("ListarOrdenes")
             .RequireAuthorization(PoliticaConsulta);

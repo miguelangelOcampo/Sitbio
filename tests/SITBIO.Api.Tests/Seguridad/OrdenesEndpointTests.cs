@@ -156,6 +156,17 @@ public class OrdenesEndpointTests(WebApplicationFactory<Program> fabrica) : ICla
         await _repositorio.Received(1).ListarAsync(new FiltroOrdenes(EstadosOrden.Asignada), soloSuyas, Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task FiltroEquipo_LlegaAlRepositorio()
+    {
+        var equipo = Guid.NewGuid();
+
+        var respuesta = await Cliente(CodigosRol.IngenieroBiomedico).GetAsync($"{Ruta}?equipoId={equipo}&pageSize=50");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        await _repositorio.Received(1).ListarAsync(new FiltroOrdenes(null, Tamano: 50, EquipoId: equipo), null, Arg.Any<CancellationToken>());
+    }
+
     [Theory]
     [InlineData(CodigosRol.PersonalClinico)]
     [InlineData(CodigosRol.GerenteBiomedico)]

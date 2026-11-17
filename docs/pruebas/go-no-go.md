@@ -25,7 +25,7 @@ Valores medidos el 16/11/2026 sobre `main` (`46bf36c`, PR #29), después de inte
 | CP-017 | RF-012 | HU-013 | `CambiarContrasenaTests`, `CambioClaveEndpointTests`, `UsuariosEndpointTests` | Aprobado |
 | CP-018 | RF-014 | HU-014 | `CriteriosHu014Tests` | Aprobado |
 | CP-019 | RF-015 | HU-015 | — | **Fuera del alcance** de esta entrega (mejora futura) |
-| CP-020 | RF-016, RN-001 | HU-016 | — | **Fuera del alcance** de esta entrega (mejora futura) |
+| CP-020 | RF-016, RN-001 | HU-016 | `CriteriosHu016Tests`, `PlanillaImportacionTests` | Aprobado en la API (v1.1); la pantalla UI-008 llega con E-09 |
 | CP-021 | RF-017 | HU-017 | `CriteriosHu017Tests` | Aprobado |
 | CP-022 | RF-018, RN-005 | HU-018 | `CriteriosHu003Tests` (CA-HU-018) | Aprobado |
 | CP-023 | RF-019 | HU-019 | `CriteriosHu019Tests` | Aprobado |

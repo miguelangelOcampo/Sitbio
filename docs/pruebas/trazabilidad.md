@@ -657,3 +657,30 @@ Pruebas adicionales de la historia:
 ### Cómo reproducir
 
 Con `SITBIO_PRUEBAS_POSTGRES`, `SITBIO_PRUEBAS_MONGO` y V010 aplicada: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu015Tests|FullyQualifiedName~GestionDocumentosTests"`. Los archivos van a una carpeta temporal que se borra al terminar.
+
+## HU-016 · Importación masiva de equipos
+
+Caso de uso CU-002 · RF-016 · RN-001 · RN-008 · RN-009 · RN-010 · API-EQ-IMP (DOC-06) · bitácora IMPORTAR_CSV. Sin migración nueva: cada fila se registra como el alta de HU-002 (estado «Operativo» y su historial).
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-020 | CA-HU-016-01: con un archivo válido, al confirmar, los equipos se registran en mi institución. | RF-016 | Integración (API + PostgreSQL + MongoDB): `CriteriosHu016Tests.CA_HU_016_01_ArchivoValido_LaVistaPreviaNoGuardaYAlConfirmarSeRegistranEnLaInstitucion` (la vista previa no guarda; al confirmar quedan «Operativo» con tipo y ubicación buscados sin tildes ni mayúsculas; bitácora IMPORTAR_CSV con conteos y sin placas); `CA_HU_016_01_LaPlantillaDeExcel_SeLlenaYSeImporta` (plantilla .xlsx con la hoja «Valores permitidos» de la institución y plantilla .csv con el mismo encabezado). Infraestructura: `PlanillaImportacionTests` (separador, comillas, ceros a la izquierda, archivo dañado). | Aprobado (API) |
+| CP-020 | CA-HU-016-02: las filas con series o placas duplicadas se omiten y hay un informe de errores por fila (RN-001). | RF-016, RN-001, RN-010 | Integración: `CA_HU_016_02_DuplicadosYFilasInvalidas_SeOmitenConInformePorFila_YLasValidasSeImportan` (placa ya registrada, placa repetida en el archivo, tipo inexistente, vigencia faltante y clase inválida: cada error con fila y columna; las filas válidas se registran); `CA_HU_016_02_ArchivoSinLasColumnasOConOtroFormato_SeRechazaCon400`. | Aprobado (API) |
+| CP-020 | CA-HU-016-03: con más equipos válidos que la capacidad del plan, se informa cuántos caben y no se supera el máximo (RN-009). | RF-016, RN-009 | Integración: `CA_HU_016_03_MasFilasValidasQueElCupo_InformaCuantasCabenYNoSuperaElPlan` (`cupoDisponible` e `importables`; las filas sobrantes salen en el informe con la columna «Plan»; con el plan lleno no se importa nada). | Aprobado (API) |
+
+Pruebas adicionales:
+
+- **Permisos (RNF-003):** `CriteriosHu016Tests.SoloElAdministradorYElIngenieroImportan` (AC-01 y AC-02 importan y descargan la plantilla; AC-03 a AC-07, 403; sin token, 401).
+- **Aislamiento entre instituciones (RN-008, SEC-003):** `CriteriosHu016Tests.OtraInstitucion_NoUsaLosCatalogosNiRecibeLosEquipos` (los catálogos de otra institución no existen para la fila; la misma placa se puede usar en otra institución; la plantilla solo trae los valores propios).
+
+### Contrato implementado: `/api/v1/equipos/importacion` (API-EQ-IMP)
+
+| Método y ruta | Uso | Respuestas |
+|---|---|---|
+| `GET /equipos/importacion/plantilla?formato=xlsx\|csv` | Plantilla con las columnas de la hoja de vida y la información regulatoria; en Excel, una hoja con los valores permitidos de la institución | 200 con el archivo; 400 `formato` |
+| `POST /equipos/importacion` | `multipart/form-data` con `archivo` (.csv o .xlsx, hasta 5 MB y 500 filas) y `confirmar` (`false` = vista previa, `true` = registrar las válidas que caben en el plan) | 200 `{ confirmada, totalFilas, filasValidas, cupoDisponible, importables, importadas, errores: [{ fila, placa, columna, mensaje }] }`; 400 `archivo` (formato, columnas faltantes, vacío o ilegible) |
+
+### Cómo reproducir
+
+Con `SITBIO_PRUEBAS_POSTGRES` y `SITBIO_PRUEBAS_MONGO`: `dotnet test SITBIO.sln --filter "FullyQualifiedName~CriteriosHu016Tests|FullyQualifiedName~PlanillaImportacionTests"`.
+

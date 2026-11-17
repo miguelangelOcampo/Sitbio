@@ -18,7 +18,7 @@ public partial class EquiposViewModel(
     IServicioMantenimiento? mantenimiento = null,
     IServicioOrdenes? ordenes = null,
     IServicioDocumentosEquipo? documentos = null,
-    IDialogoArchivos? dialogo = null) : ObservableObject
+    IDialogoArchivos? dialogo = null) : ObservableObject, IRecibeParametro
 {
     public const string IdPantalla = "UI-005";
 
@@ -166,6 +166,24 @@ public partial class EquiposViewModel(
             servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), mantenimiento, ordenes, sesion.Sesion?.Rol, documentos, dialogo);
         Detalle = detalle;
         return detalle.CargarCommand.ExecuteAsync(null);
+    }
+
+    /// <summary>Dato para abrir la hoja de vida desde otra pantalla (búsqueda global, D-04): «id|placa».</summary>
+    public static string ParametroDetalle(Guid id, string placa) => $"{id}|{placa}";
+
+    /// <summary>La búsqueda global abre la hoja de vida (UI-006) del equipo; al volver queda la lista.</summary>
+    public void Recibir(string parametro)
+    {
+        var partes = parametro.Split('|', 2);
+        if (!Guid.TryParse(partes[0], out var id))
+        {
+            return;
+        }
+
+        var placa = partes.Length > 1 ? partes[1] : string.Empty;
+        var detalle = new DetalleEquipoViewModel(servicio, tiempo, id, placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina));
+        Detalle = detalle;
+        detalle.CargarCommand.Execute(null);
     }
 
     [RelayCommand]

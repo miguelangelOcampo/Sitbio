@@ -55,6 +55,7 @@ public partial class App : Application
         servicios.AddTransient<PanelViewModel>();
         servicios.AddTransient<ExportacionViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
+        servicios.AddTransient<IServicioBusqueda, ServicioBusquedaHttp>();
         servicios.AddSingleton(TimeProvider.System);
         servicios.AddSingleton<ControlSesion>(sp => new ControlSesion(
             sp.GetRequiredService<IServicioSesion>(), sp.GetRequiredService<SesionActual>(), sp.GetRequiredService<TimeProvider>()));

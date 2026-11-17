@@ -23,6 +23,9 @@ public interface IServicioOrdenes
     /// <summary>PATCH /ordenes/{id}/estado: «iniciar», «pausar» o «cerrar» (solo el técnico asignado).</summary>
     Task<Orden> CambiarEstadoAsync(Guid ordenId, string accion, CancellationToken cancellationToken);
 
+    /// <summary>GET /ordenes/{id}: la orden con su estado actual (la búsqueda global la abre por su id).</summary>
+    Task<Orden> ObtenerAsync(Guid ordenId, CancellationToken cancellationToken);
+
     /// <summary>GET /ordenes/{id}/intervencion; null si aún no se registró.</summary>
     Task<Intervencion?> ObtenerIntervencionAsync(Guid ordenId, CancellationToken cancellationToken);
 
@@ -179,6 +182,9 @@ public sealed class ServicioOrdenesHttp(ClienteApi cliente) : IServicioOrdenes
         return PeticionApi.EnviarAsync<PaginaOrdenes>(cliente, HttpMethod.Get, ruta, null, MensajeConsulta, cancellationToken);
     }
 
+    public Task<Orden> ObtenerAsync(Guid ordenId, CancellationToken cancellationToken) =>
+        PeticionApi.EnviarAsync<Orden>(cliente, HttpMethod.Get, $"ordenes/{ordenId}", null, MensajeObtener, cancellationToken);
+
     public Task<Orden> CambiarEstadoAsync(Guid ordenId, string accion, CancellationToken cancellationToken) =>
         PeticionApi.EnviarAsync<Orden>(cliente, HttpMethod.Patch, $"ordenes/{ordenId}/estado", new { accion }, MensajeEjecucion, cancellationToken);
 
@@ -216,6 +222,14 @@ public sealed class ServicioOrdenesHttp(ClienteApi cliente) : IServicioOrdenes
         403 => "Tu rol no permite asignar órdenes de trabajo.",
         404 => "Ese tiquete ya no está en la bandeja de tu institución. Actualiza la lista.",
         >= 500 => "El servidor no pudo crear la orden. Intenta de nuevo en unos minutos.",
+        _ => null,
+    };
+
+    private static string? MensajeObtener(int estado) => estado switch
+    {
+        403 => "Tu rol no permite consultar órdenes de trabajo.",
+        404 => "La orden ya no está disponible para ti. Actualiza la lista.",
+        >= 500 => "El servidor no pudo consultar la orden. Intenta de nuevo en unos minutos.",
         _ => null,
     };
 

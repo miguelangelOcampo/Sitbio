@@ -10,6 +10,8 @@
   <Geometry x:Key="Icono.FlechaDerecha">M5,12 H19 M12,5 L19,12 L12,19</Geometry>
   <Geometry x:Key="Icono.Alerta">M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z M12,8 V12 M12,16 H12.01</Geometry>
   <Geometry x:Key="Icono.Campana">M18,8 A6,6 0 0 0 6,8 C6,15 3,17 3,17 H21 C21,17 18,15 18,8 Z M13.7,21 A2,2 0 0 1 10.3,21</Geometry>
+  <!-- Reloj: «Disponible en una próxima versión» (D-06) -->
+  <Geometry x:Key="Icono.Reloj">M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z M12,6 V12 L16,14</Geometry>
   <Geometry x:Key="Icono.Info">M12,2 A10,10 0 1 0 12,22 A10,10 0 1 0 12,2 Z M12,16 V12 M12,8 H12.01</Geometry>
 
   <Geometry x:Key="Icono.Buscar">M11,4 A7,7 0 1 0 11,18 A7,7 0 1 0 11,4 Z M21,21 L16,16</Geometry>

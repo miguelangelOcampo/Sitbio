@@ -108,6 +108,43 @@ public partial class ShellViewModel : ObservableObject
     [RelayCommand]
     private void CerrarConfirmacion() => Confirmacion = null;
 
+    /// <summary>
+    /// «Mi perfil» o «Preferencias» (D-03) desde el pie del panel. No es una opción del menú: ninguna queda marcada y el
+    /// riel conserva el módulo abierto.
+    /// </summary>
+    [RelayCommand]
+    private void AbrirPerfil(string? pestana)
+    {
+        var perfil = Contenido as PerfilViewModel;
+        if (perfil is null)
+        {
+            perfil = _pantallas?.Crear(PerfilViewModel.IdPantalla) as PerfilViewModel;
+            if (perfil is null)
+            {
+                return;
+            }
+
+            if (Contenido is ISolicitaNavegacion anterior)
+            {
+                anterior.NavegacionSolicitada -= AlSolicitarNavegacion;
+            }
+
+            perfil.CambioClaveSolicitado += (_, _) => AbrirCambioClave();
+            if (OpcionActual is not null)
+            {
+                OpcionActual.EsActual = false;
+                OpcionActual = null;
+            }
+
+            Contenido = perfil;
+            ActualizarSeleccion();
+        }
+
+        perfil.Mostrar(pestana == "preferencias");
+    }
+
+    public bool PuedeAbrirPerfil => _pantallas is not null;
+
     public IReadOnlyList<ModuloViewModel> Modulos { get; }
 
     [ObservableProperty]
@@ -123,7 +160,7 @@ public partial class ShellViewModel : ObservableObject
 
     /// <summary>ViewModel de la pantalla de la opción actual; null mientras la pantalla no exista.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EnConstruccion))]
+    [NotifyPropertyChangedFor(nameof(EnConstruccion), nameof(TituloModuloActual))]
     private object? _contenido;
 
     public bool EnConstruccion => Contenido is null;
@@ -136,7 +173,9 @@ public partial class ShellViewModel : ObservableObject
     public ModuloViewModel? ModuloActual => Modulos.FirstOrDefault(m => OpcionActual is not null && m.Opciones.Contains(OpcionActual));
 
     /// <summary>Para el «Overline» del área principal (se escribe en mayúsculas).</summary>
-    public string TituloModuloActual => ModuloActual?.Nombre.ToUpper(CultureInfo.CurrentCulture) ?? string.Empty;
+    public string TituloModuloActual => Contenido is PerfilViewModel
+        ? "CUENTA"
+        : ModuloActual?.Nombre.ToUpper(CultureInfo.CurrentCulture) ?? string.Empty;
 
     public bool MostrarBuscador => ModuloEnPanel?.Opciones.Count > 3;
 

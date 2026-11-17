@@ -13,8 +13,6 @@ public sealed class ProximaVersionViewModel(string idOpcion, string detalle)
     {
         // HU-016: E-07 a E-09 la reemplazan por la pantalla Importar inventario.
         ["UI-008"] = "La importación masiva de equipos desde CSV o Excel, con plantilla descargable, revisión por fila e informe de errores, llega con la próxima versión.",
-        // D-01 y D-02 la reemplazan por el panel de inicio por rol.
-        ["UI-003"] = "El panel de inicio con los indicadores del día, la atención requerida y la actividad de mantenimiento llega con la próxima versión.",
         // Sin fila asignada: el historial ya se consulta en la hoja de vida de cada equipo y en Exportación.
         ["HIST"] = "La consulta del historial de intervenciones de todos los equipos llega con la próxima versión. Mientras tanto, consulta el historial en la hoja de vida de cada equipo o descárgalo desde Exportación.",
     };

@@ -58,6 +58,13 @@ dotnet user-secrets set "Jwt:Clave" "<clave aleatoria de al menos 32 caracteres>
 
 La clave JWT firma los tokens (ADR-003): cada integrante genera la suya en desarrollo, y en los demás entornos se define con la variable de entorno `Jwt__Clave`. Nunca va en `appsettings.json`.
 
+Instalador del cliente de escritorio (RNF-011): publica el cliente autocontenido para `win-x64` y, si está instalado [Inno Setup 6](https://jrsoftware.org/isdl.php), compila `installer/SITBIO.iss` en `dist/SITBIO-Setup-<versión>.exe`. El asistente crea el acceso directo, registra la desinstalación y pide la dirección de la API, que guarda en la variable de usuario `SITBIO_API_URL`.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/instalador.ps1 -ApiUrl https://<servidor>/api/v1/
+# Instalación silenciosa en un equipo: SITBIO-Setup-<versión>.exe /VERYSILENT /API=https://<servidor>/api/v1/
+```
+
 Analítica:
 
 ```powershell

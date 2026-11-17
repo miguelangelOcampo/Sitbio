@@ -18,6 +18,8 @@ public partial class EquiposViewModel(
     IServicioDocumentosEquipo? documentos = null,
     IDialogoArchivos? dialogo = null) : ObservableObject
 {
+    public const string IdPantalla = "UI-005";
+
     public const int TamanoPagina = 20;
 
     private const string Calibra = "cal-si";

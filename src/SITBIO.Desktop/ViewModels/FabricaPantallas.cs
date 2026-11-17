@@ -16,6 +16,11 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
     {
         switch (idOpcion)
         {
+            // UI-003 Panel de inicio: pantalla de entrada de AC-01, AC-02, AC-05, AC-06 y AC-07.
+            case PanelViewModel.IdPantalla:
+                var panel = servicios.GetRequiredService<PanelViewModel>();
+                panel.CargarCommand.Execute(null);
+                return panel;
             case "UI-004":
                 var usuarios = servicios.GetRequiredService<UsuariosViewModel>();
                 usuarios.CargarCommand.Execute(null);

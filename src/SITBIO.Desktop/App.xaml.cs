@@ -52,6 +52,7 @@ public partial class App : Application
         servicios.AddTransient<IServicioReportes, ServicioReportesHttp>();
         servicios.AddSingleton<IDialogoArchivos, DialogoArchivosWpf>();
         servicios.AddTransient<ReportesViewModel>();
+        servicios.AddTransient<PanelViewModel>();
         servicios.AddTransient<ExportacionViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();
         servicios.AddSingleton(TimeProvider.System);

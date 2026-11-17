@@ -11,8 +11,6 @@ public sealed class ProximaVersionViewModel(string idOpcion, string detalle)
     /// <summary>Opciones del menú que muestran este estado, con el texto que explica qué llegará.</summary>
     public static readonly IReadOnlyDictionary<string, string> Opciones = new Dictionary<string, string>
     {
-        // HU-016: E-07 a E-09 la reemplazan por la pantalla Importar inventario.
-        ["UI-008"] = "La importación masiva de equipos desde CSV o Excel, con plantilla descargable, revisión por fila e informe de errores, llega con la próxima versión.",
         // Sin fila asignada: el historial ya se consulta en la hoja de vida de cada equipo y en Exportación.
         ["HIST"] = "La consulta del historial de intervenciones de todos los equipos llega con la próxima versión. Mientras tanto, consulta el historial en la hoja de vida de cada equipo o descárgalo desde Exportación.",
     };

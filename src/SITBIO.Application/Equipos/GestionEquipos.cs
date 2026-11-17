@@ -64,11 +64,29 @@ public sealed class GestionEquipos(
         var v = await Validar(datos, null, hoy, cancellationToken);
         await ExigirSinDuplicados(v.Serie, v.Placa, null, cancellationToken);
 
+        var (equipo, plan) = AgregarNuevo(v, datos.FechaAdquisicion);
+        await repositorio.GuardarAsync(cancellationToken);
+        await Auditar(AccionesAuditoria.Crear, equipo, v.Tipo, cancellationToken);
+
+        var leido = new EquipoLeido(equipo, v.Tipo.Nombre, v.Ubicacion.Nombre, v.Proveedor?.Nombre, EstadosEquipo.CodigoOperativo, EstadosEquipo.NombreOperativo, plan);
+        return EquipoDto.Desde(leido, hoy);
+    }
+
+    /// <summary>
+    /// Valida un equipo nuevo como en el formulario (obligatorios, catálogos de la institución, RN-010)
+    /// sin consultar el cupo ni los duplicados; la importación masiva (HU-016) los revisa para todo el archivo.
+    /// </summary>
+    internal Task<Validados> ValidarNuevoAsync(DatosEquipo datos, CancellationToken cancellationToken) =>
+        Validar(datos, null, FechaColombia.Hoy(tiempo), cancellationToken);
+
+    /// <summary>Agrega el equipo «Operativo», su alta en el historial y su plan preventivo, sin guardar.</summary>
+    internal (EquipoBiomedico Equipo, PlanPreventivo? Plan) AgregarNuevo(Validados v, DateOnly? fechaAdquisicion)
+    {
         var ahora = tiempo.GetUtcNow();
         var equipo = Construir(() =>
         {
             var nuevo = new EquipoBiomedico(
-                contexto.TenantId, v.Tipo.Id, v.Ubicacion.Id, v.Serie, v.Placa, v.Marca, v.Modelo, ahora, v.Proveedor?.Id, datos.FechaAdquisicion);
+                contexto.TenantId, v.Tipo.Id, v.Ubicacion.Id, v.Serie, v.Placa, v.Marca, v.Modelo, ahora, v.Proveedor?.Id, fechaAdquisicion);
             nuevo.DefinirInformacionRegulatoria(v.TipoAutorizacion, v.Registro, v.Vence, v.Clase, v.RequiereCalibracion, v.Periodicidad);
             return nuevo;
         });
@@ -83,11 +101,7 @@ public sealed class GestionEquipos(
             repositorio.Agregar(plan);
         }
 
-        await repositorio.GuardarAsync(cancellationToken);
-        await Auditar(AccionesAuditoria.Crear, equipo, v.Tipo, cancellationToken);
-
-        var leido = new EquipoLeido(equipo, v.Tipo.Nombre, v.Ubicacion.Nombre, v.Proveedor?.Nombre, EstadosEquipo.CodigoOperativo, EstadosEquipo.NombreOperativo, plan);
-        return EquipoDto.Desde(leido, hoy);
+        return (equipo, plan);
     }
 
     /// <summary>Edita el equipo; RN-010 se exige también al editar. Editar no consume capacidad del plan (RN-009).</summary>
@@ -266,9 +280,9 @@ public sealed class GestionEquipos(
         return diferencias;
     }
 
-    private sealed record PlanCalculado(int Dias, DateOnly? Ultima, DateOnly Proxima, string Descripcion);
+    internal sealed record PlanCalculado(int Dias, DateOnly? Ultima, DateOnly Proxima, string Descripcion);
 
-    private sealed record Validados(
+    internal sealed record Validados(
         TipoEquipo Tipo,
         ElementoCatalogo Ubicacion,
         ElementoCatalogo? Proveedor,

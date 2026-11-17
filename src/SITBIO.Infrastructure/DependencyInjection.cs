@@ -96,6 +96,7 @@ public static class DependencyInjection
         // Búsqueda global de la barra superior (D-04).
         services.AddScoped<IRepositorioBusqueda, RepositorioBusqueda>();
         services.AddSingleton<IGeneradorReportes, GeneradorReportes>();
+        services.AddSingleton<IPlanillaImportacion, PlanillaImportacion>();
 
         // Configuración de la institución (HU-024).
         services.AddScoped<IRepositorioInstitucion, RepositorioInstitucion>();

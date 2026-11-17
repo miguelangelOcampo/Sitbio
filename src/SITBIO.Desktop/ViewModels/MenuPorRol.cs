@@ -55,7 +55,7 @@ public static class MenuPorRol
         ["AC-02"] = ("UI-003",
         [
             (General, [Panel]),
-            (Gestion, [Equipos, Ordenes, Mantenimientos, Historial]),
+            (Gestion, [Equipos, Importar, Ordenes, Mantenimientos, Historial]),
             (Solicitudes, [new("UI-009", "Reportar falla"), Seguimiento, new("UI-011", "Bandeja")]),
             (Analisis, [Reportes, Analitica, Exportacion]),
             (Administracion, [Configuracion]),

@@ -102,7 +102,12 @@ public sealed class DialogoArchivosWpf : IDialogoArchivos
         {
             FileName = nombreSugerido,
             DefaultExt = extension,
-            Filter = extension == ".xlsx" ? "Libro de Excel (*.xlsx)|*.xlsx" : "Documento PDF (*.pdf)|*.pdf",
+            Filter = extension switch
+            {
+                ".xlsx" => "Libro de Excel (*.xlsx)|*.xlsx",
+                ".csv" => "Archivo CSV (*.csv)|*.csv",
+                _ => "Documento PDF (*.pdf)|*.pdf",
+            },
             AddExtension = true,
         };
         return dialogo.ShowDialog() == true ? dialogo.FileName : null;

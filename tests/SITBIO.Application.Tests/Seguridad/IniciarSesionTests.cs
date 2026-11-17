@@ -38,7 +38,7 @@ public class IniciarSesionTests
     {
         var usuario = new Usuario(Tenant, 3, "Ana", "Pérez", "ana.perez@demo-a.co", Hash);
         _repositorio.BuscarPorCorreoAsync("ana.perez@demo-a.co", Arg.Any<CancellationToken>())
-            .Returns(new UsuarioParaAcceso(usuario, "AC-03", institucionActiva));
+            .Returns(new UsuarioParaAcceso(usuario, "AC-03", institucionActiva, "Hospital Demo A"));
         return usuario;
     }
 
@@ -56,6 +56,7 @@ public class IniciarSesionTests
         Assert.Equal("AC-03", resultado.Rol);
         Assert.Equal(Ahora.AddMinutes(30), resultado.ExpiraEn);
         Assert.Equal(Ahora, usuario.UltimoAcceso);
+        Assert.Equal(("Ana", "Pérez", "Hospital Demo A"), (resultado.Nombres, resultado.Apellidos, resultado.Institucion));
         _contexto.Received(1).Establecer(Tenant, usuario.Id, "AC-03");
         await _repositorio.Received(1).GuardarAsync(
             usuario, Arg.Is<SesionToken>(s => s.Jti == "jti-1" && s.UsuarioId == usuario.Id && s.TenantId == Tenant), Arg.Any<CancellationToken>());

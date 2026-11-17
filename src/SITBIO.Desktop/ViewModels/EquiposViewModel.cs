@@ -16,6 +16,8 @@ public partial class EquiposViewModel(
     SesionActual sesion,
     TimeProvider tiempo) : ObservableObject
 {
+    public const string IdPantalla = "UI-005";
+
     public const int TamanoPagina = 20;
 
     private const string Calibra = "cal-si";

@@ -19,12 +19,12 @@ public sealed class RepositorioAcceso(SitbioDbContext contexto) : IRepositorioAc
             return null;
         }
 
-        var institucionActiva = await contexto.Tenants
+        var institucion = await contexto.Tenants
             .Where(t => t.Id == usuario.TenantId)
-            .Select(t => t.EstadoActivo)
+            .Select(t => new { t.EstadoActivo, t.Nombre })
             .SingleOrDefaultAsync(cancellationToken);
 
-        return new UsuarioParaAcceso(usuario, usuario.Rol!.Codigo, institucionActiva);
+        return new UsuarioParaAcceso(usuario, usuario.Rol!.Codigo, institucion?.EstadoActivo ?? false, institucion?.Nombre ?? string.Empty);
     }
 
     public async Task GuardarAsync(Usuario usuario, SesionToken? sesion, CancellationToken cancellationToken)

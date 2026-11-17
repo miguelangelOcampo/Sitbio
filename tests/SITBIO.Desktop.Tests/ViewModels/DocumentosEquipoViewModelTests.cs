@@ -232,7 +232,7 @@ public class DocumentosEquipoViewModelTests
         var equipo = estado == "BAJA" ? Equipo(estado: "BAJA", baja: DateTimeOffset.Now) : Equipo();
         equipos.ObtenerAsync(equipo.Id, Arg.Any<CancellationToken>()).Returns(equipo);
         _servicio.ListarAsync(equipo.Id, Arg.Any<CancellationToken>()).Returns([Documento()]);
-        var detalle = new DetalleEquipoViewModel(equipos, new Reloj(), equipo.Id, equipo.PlacaInventario, () => { }, puedeEditar, null, _servicio, _dialogo);
+        var detalle = new DetalleEquipoViewModel(equipos, new Reloj(), equipo.Id, equipo.PlacaInventario, () => { }, puedeEditar, null, documentos: _servicio, dialogo: _dialogo);
         await detalle.CargarCommand.ExecuteAsync(null);
         Assert.True(detalle.TieneDocumentos);
         Assert.Null(detalle.Documentos);

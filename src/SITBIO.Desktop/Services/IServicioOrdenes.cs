@@ -110,10 +110,11 @@ public sealed record Orden(
     DateTimeOffset? FechaCierre = null,
     Guid? AprobadoPorId = null,
     DateTimeOffset? FechaAprobacion = null,
-    string? FirmaAprobacion = null);
+    string? FirmaAprobacion = null,
+    DateTimeOffset? FechaCreacion = null);
 
-/// <summary>Filtros de GET /ordenes.</summary>
-public sealed record FiltroOrdenes(string? Estado = null, bool AsignadasAMi = false, int Pagina = 1, int Tamano = 20);
+/// <summary>Filtros de GET /ordenes; con <c>EquipoId</c>, las de ese equipo de la más reciente a la más antigua.</summary>
+public sealed record FiltroOrdenes(string? Estado = null, bool AsignadasAMi = false, int Pagina = 1, int Tamano = 20, Guid? EquipoId = null);
 
 public sealed record PaginaOrdenes(IReadOnlyList<Orden> Items, int Page, int PageSize, int Total);
 
@@ -168,6 +169,11 @@ public sealed class ServicioOrdenesHttp(ClienteApi cliente) : IServicioOrdenes
         if (filtro.AsignadasAMi)
         {
             ruta += "&asignadas=me";
+        }
+
+        if (filtro.EquipoId is { } equipo)
+        {
+            ruta += $"&equipoId={equipo}";
         }
 
         return PeticionApi.EnviarAsync<PaginaOrdenes>(cliente, HttpMethod.Get, ruta, null, MensajeConsulta, cancellationToken);

@@ -125,6 +125,17 @@ public class ServicioOrdenesHttpTests
     }
 
     [Fact]
+    public async Task Listar_PorEquipo_AgregaElFiltro()
+    {
+        var equipo = Guid.Parse("44444444-4444-4444-4444-444444444444");
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, """{"items":[],"page":1,"pageSize":50,"total":0}"""));
+
+        await servicio.ListarAsync(new FiltroOrdenes(Tamano: 50, EquipoId: equipo), CancellationToken.None);
+
+        Assert.Equal($"GET /api/v1/ordenes?page=1&pageSize=50&equipoId={equipo}", manejador.Rutas.Single());
+    }
+
+    [Fact]
     public async Task CambiarEstado_EnviaLaAccion()
     {
         var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, OrdenJson));

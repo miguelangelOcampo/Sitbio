@@ -6,7 +6,8 @@ namespace Sitbio.Desktop.ViewModels;
 
 /// <summary>
 /// UI-006 Hoja de vida del equipo (HU-002; RF-030, RN-010). Pestañas «Resumen», «Información
-/// técnica», «Historial» (línea de tiempo, HU-023) y «Documentos» (HU-015).
+/// técnica», «Mantenimientos» (plan, órdenes y calibraciones), «Historial» (línea de tiempo, HU-023) y
+/// «Documentos» (HU-015).
 /// AC-02 edita (UI-007), da de baja y revierte la baja (HU-014) desde aquí; la API lo valida.
 /// </summary>
 public partial class DetalleEquipoViewModel(
@@ -17,6 +18,9 @@ public partial class DetalleEquipoViewModel(
     Action volver,
     bool puedeEditar = false,
     Func<Task>? alCambiarEstado = null,
+    IServicioMantenimiento? mantenimiento = null,
+    IServicioOrdenes? ordenes = null,
+    string? rol = null,
     IServicioDocumentosEquipo? documentos = null,
     IDialogoArchivos? dialogo = null) : ObservableObject
 {
@@ -63,6 +67,7 @@ public partial class DetalleEquipoViewModel(
     {
         Resumen,
         Tecnica,
+        Mantenimientos,
         Historial,
         Documentos,
     }
@@ -80,6 +85,20 @@ public partial class DetalleEquipoViewModel(
         get => _pestana == Pestana.Tecnica;
         set => Elegir(Pestana.Tecnica, value);
     }
+
+    /// <summary>La pestaña «Mantenimientos» solo aparece para los roles que consultan los planes (API-PLAN).</summary>
+    public bool MuestraMantenimientos => mantenimiento is not null && ordenes is not null && MantenimientosEquipoViewModel.PuedeVer(rol);
+
+    /// <summary>«Mantenimientos»: plan, órdenes y calibraciones se piden la primera vez que se abre la pestaña.</summary>
+    public bool EnMantenimientos
+    {
+        get => _pestana == Pestana.Mantenimientos;
+        set => Elegir(Pestana.Mantenimientos, value);
+    }
+
+    /// <summary>Contenido de la pestaña «Mantenimientos»; null hasta abrirla.</summary>
+    [ObservableProperty]
+    private MantenimientosEquipoViewModel? _mantenimientos;
 
     /// <summary>«Historial»: la línea de tiempo se pide la primera vez que se abre la pestaña.</summary>
     public bool EnHistorial
@@ -113,6 +132,7 @@ public partial class DetalleEquipoViewModel(
         OnPropertyChanged(nameof(EnResumen));
         OnPropertyChanged(nameof(EnTecnica));
         OnPropertyChanged(nameof(EnHistorial));
+        OnPropertyChanged(nameof(EnMantenimientos));
         OnPropertyChanged(nameof(EnDocumentos));
         if (pestana == Pestana.Historial && Eventos is null && !CargandoHistorial)
         {
@@ -124,6 +144,35 @@ public partial class DetalleEquipoViewModel(
             // Solo AC-02 agrega y desactiva, y no en un equipo de baja (la API también lo valida).
             Documentos = new DocumentosEquipoViewModel(documentos, dialogo, equipoId, Placa, PuedeEditar);
             _ = Documentos.CargarCommand.ExecuteAsync(null);
+        }
+
+        if (pestana == Pestana.Mantenimientos && Mantenimientos is null)
+        {
+            AbrirMantenimientos();
+        }
+    }
+
+    private void AbrirMantenimientos()
+    {
+        if (MuestraMantenimientos && Equipo is { } equipo)
+        {
+            Mantenimientos = new MantenimientosEquipoViewModel(mantenimiento!, ordenes!, tiempo, equipoId, equipo.RequiereCalibracion, rol);
+            _ = Mantenimientos.CargarCommand.ExecuteAsync(null);
+        }
+    }
+
+    /// <summary>Si el equipo cambió (edición, baja), la pestaña «Mantenimientos» se vuelve a consultar.</summary>
+    partial void OnEquipoChanged(Equipo? oldValue, Equipo? newValue)
+    {
+        if (Mantenimientos is null)
+        {
+            return;
+        }
+
+        Mantenimientos = null;
+        if (EnMantenimientos)
+        {
+            AbrirMantenimientos();
         }
     }
 
@@ -375,23 +424,7 @@ public partial class DetalleEquipoViewModel(
     [RelayCommand]
     private void Volver() => volver();
 
-    private string DiasHasta(DateOnly? fecha)
-    {
-        if (fecha is not { } f)
-        {
-            return string.Empty;
-        }
-
-        var dias = f.DayNumber - Hoy.DayNumber;
-        return dias switch
-        {
-            0 => "hoy",
-            1 => "mañana",
-            > 1 => $"en {dias} días",
-            -1 => "hace 1 día",
-            _ => $"hace {-dias} días",
-        };
-    }
+    private string DiasHasta(DateOnly? fecha) => TextosEquipo.DiasHasta(fecha, Hoy);
 }
 
 /// <summary>Par etiqueta–valor de la hoja de vida; <see cref="Codigo"/> usa letra monoespaciada.</summary>

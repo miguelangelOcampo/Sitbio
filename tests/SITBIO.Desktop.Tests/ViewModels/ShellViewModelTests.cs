@@ -142,4 +142,32 @@ public class ShellViewModelTests
         Assert.Equal((false, (CentroAlertasViewModel?)null), (shell.TieneAlertas, shell.Alertas));
         pantallas.DidNotReceive().Crear(CentroAlertasViewModel.IdPantalla);
     }
+
+    [Fact]
+    public void AbrirPerfil_MuestraPreferenciasSinMarcarOpcionesYCambiarContrasenaAbreUi002()
+    {
+        var preferencias = Substitute.For<IServicioPreferencias>();
+        preferencias.Leer().Returns(new Preferencias());
+        var sesion = new SesionActual();
+        sesion.Iniciar(new SesionUsuario("a.b.c", DateTimeOffset.Now.AddMinutes(30), "AC-02", false, "Laura", "Gómez"));
+        var pantallas = Substitute.For<IFabricaPantallas>();
+        pantallas.Crear(PerfilViewModel.IdPantalla).Returns(_ => new PerfilViewModel(sesion, preferencias, Substitute.For<ITemaAplicacion>()));
+        var shell = new ShellViewModel("AC-02", pantallas, () => new CambioClaveViewModel(Substitute.For<IServicioSesion>(), obligatorio: false));
+        Assert.True(shell.PuedeAbrirPerfil);
+
+        shell.AbrirPerfilCommand.Execute("preferencias");
+
+        var perfil = Assert.IsType<PerfilViewModel>(shell.Contenido);
+        Assert.True(perfil.EnPreferencias);
+        Assert.Null(shell.OpcionActual);
+        Assert.DoesNotContain(shell.Modulos.SelectMany(m => m.Opciones), o => o.EsActual);
+        Assert.Equal("CUENTA", shell.TituloModuloActual);
+
+        shell.AbrirPerfilCommand.Execute("perfil");
+        Assert.Same(perfil, shell.Contenido);
+        Assert.True(perfil.EnPerfil);
+
+        perfil.CambiarClaveCommand.Execute(null);
+        Assert.NotNull(shell.CambioClave);
+    }
 }

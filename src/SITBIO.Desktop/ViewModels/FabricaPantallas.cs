@@ -21,6 +21,9 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var panel = servicios.GetRequiredService<PanelViewModel>();
                 panel.CargarCommand.Execute(null);
                 return panel;
+            // D-03 «Mi perfil» y «Preferencias»: se abre desde el pie del panel, para todos los roles.
+            case PerfilViewModel.IdPantalla:
+                return servicios.GetRequiredService<PerfilViewModel>();
             case "UI-004":
                 var usuarios = servicios.GetRequiredService<UsuariosViewModel>();
                 usuarios.CargarCommand.Execute(null);
@@ -95,7 +98,7 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var bitacora = servicios.GetRequiredService<BitacoraViewModel>();
                 bitacora.CargarCommand.Execute(null);
                 return bitacora;
-            // D-06: opciones cuya pantalla llega en una próxima versión (UI-003, HIST).
+            // D-06: opciones cuya pantalla llega en una próxima versión (HIST).
             case var id when ProximaVersionViewModel.Opciones.TryGetValue(id, out var detalle):
                 return new ProximaVersionViewModel(id, detalle);
             default:

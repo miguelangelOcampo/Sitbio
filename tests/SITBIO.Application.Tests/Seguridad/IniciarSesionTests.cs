@@ -56,7 +56,7 @@ public class IniciarSesionTests
         Assert.Equal("AC-03", resultado.Rol);
         Assert.Equal(Ahora.AddMinutes(30), resultado.ExpiraEn);
         Assert.Equal(Ahora, usuario.UltimoAcceso);
-        Assert.Equal(("Ana", "Pérez", "Hospital Demo A"), (resultado.Nombres, resultado.Apellidos, resultado.Institucion));
+        Assert.Equal(("Ana", "Pérez", "Hospital Demo A", "ana.perez@demo-a.co"), (resultado.Nombres, resultado.Apellidos, resultado.Institucion, resultado.Correo));
         _contexto.Received(1).Establecer(Tenant, usuario.Id, "AC-03");
         await _repositorio.Received(1).GuardarAsync(
             usuario, Arg.Is<SesionToken>(s => s.Jti == "jti-1" && s.UsuarioId == usuario.Id && s.TenantId == Tenant), Arg.Any<CancellationToken>());

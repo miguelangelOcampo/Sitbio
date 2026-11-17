@@ -11,8 +11,6 @@ public sealed class ProximaVersionViewModel(string idOpcion, string detalle)
     /// <summary>Opciones del menú que muestran este estado, con el texto que explica qué llegará.</summary>
     public static readonly IReadOnlyDictionary<string, string> Opciones = new Dictionary<string, string>
     {
-        // D-01 y D-02 la reemplazan por el panel de inicio por rol.
-        ["UI-003"] = "El panel de inicio con los indicadores del día, la atención requerida y la actividad de mantenimiento llega con la próxima versión.",
         // Sin fila asignada: el historial ya se consulta en la hoja de vida de cada equipo y en Exportación.
         ["HIST"] = "La consulta del historial de intervenciones de todos los equipos llega con la próxima versión. Mientras tanto, consulta el historial en la hoja de vida de cada equipo o descárgalo desde Exportación.",
     };

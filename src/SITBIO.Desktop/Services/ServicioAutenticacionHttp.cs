@@ -11,7 +11,7 @@ namespace Sitbio.Desktop.Services;
 /// </summary>
 public sealed class ServicioAutenticacionHttp(HttpClient http) : IServicioAutenticacion
 {
-    private sealed record RespuestaLogin(string Token, DateTimeOffset ExpiraEn, string Rol, bool DebeCambiarClave, string? Nombres, string? Apellidos, string? Institucion);
+    private sealed record RespuestaLogin(string Token, DateTimeOffset ExpiraEn, string Rol, bool DebeCambiarClave, string? Nombres, string? Apellidos, string? Institucion, string? Correo);
 
     public async Task<ResultadoLogin> IniciarSesionAsync(string correo, string contrasena, CancellationToken cancellationToken)
     {
@@ -37,7 +37,7 @@ public sealed class ServicioAutenticacionHttp(HttpClient http) : IServicioAutent
                 var cuerpo = await respuesta.Content.ReadFromJsonAsync<RespuestaLogin>(cancellationToken);
                 return cuerpo is null
                     ? ResultadoLogin.Fallido(FalloLogin.Inesperado)
-                    : ResultadoLogin.Exitoso(new SesionUsuario(cuerpo.Token, cuerpo.ExpiraEn, cuerpo.Rol, cuerpo.DebeCambiarClave, cuerpo.Nombres ?? string.Empty, cuerpo.Apellidos ?? string.Empty, cuerpo.Institucion ?? string.Empty));
+                    : ResultadoLogin.Exitoso(new SesionUsuario(cuerpo.Token, cuerpo.ExpiraEn, cuerpo.Rol, cuerpo.DebeCambiarClave, cuerpo.Nombres ?? string.Empty, cuerpo.Apellidos ?? string.Empty, cuerpo.Institucion ?? string.Empty, cuerpo.Correo ?? string.Empty));
             }
 
             return respuesta.StatusCode switch

@@ -24,6 +24,7 @@ public static class EquiposEndpoints
         services.AddScoped<ConsultaLineaTiempo>();
         services.AddScoped<GestionDocumentos>();
         services.AddScoped<ImportacionEquipos>();
+        services.AddScoped<GestionFotoEquipo>();
         services.AddAuthorizationBuilder()
             .AddPolicy(PoliticaConsulta, politica => politica.RequireRole(
                 CodigosRol.AdministradorSistema,
@@ -92,6 +93,7 @@ public static class EquiposEndpoints
         // API-EQ-DOC (HU-015): documentos de la hoja de vida.
         grupo.MapDocumentosEquipo();
         grupo.MapImportacionEquipos();
+        grupo.MapFotoEquipo();
 
         return api;
     }

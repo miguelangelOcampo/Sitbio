@@ -6,7 +6,11 @@ using Sitbio.Infrastructure.Persistencia;
 
 namespace Sitbio.Infrastructure.Inventario;
 
-/// <summary>Documentos de los equipos sobre PostgreSQL; el filtro global limita todo al tenant del token.</summary>
+/// <summary>
+/// Documentos de los equipos sobre PostgreSQL; el filtro global limita todo al tenant del token.
+/// La fotografía vigente del equipo (RF-031) es un documento más, pero no sale en la lista de
+/// documentos ni se toca desde ella: se gestiona por API-EQ-FOTO.
+/// </summary>
 public sealed class RepositorioDocumentos(SitbioDbContext contexto, IContextoUsuario contextoUsuario) : IRepositorioDocumentos
 {
     public Task<bool> ExisteEquipoAsync(Guid equipoId, CancellationToken cancellationToken) =>
@@ -14,20 +18,19 @@ public sealed class RepositorioDocumentos(SitbioDbContext contexto, IContextoUsu
 
     public async Task<IReadOnlyList<DocumentoDto>> ListarAsync(Guid equipoId, CancellationToken cancellationToken) =>
         await (
-            from d in contexto.DocumentosEquipo.AsNoTracking()
+            from d in DocumentosSinFoto(equipoId).AsNoTracking()
             join u in contexto.Usuarios on d.SubidoPorId equals u.Id
-            where d.EquipoId == equipoId && d.EstadoActivo
             orderby d.FechaCarga descending
             select new DocumentoDto(d.Id, d.EquipoId, d.TipoDocumento, d.NombreArchivo, d.TipoMime, d.TamanoBytes, d.FechaCarga, u.Nombres + " " + u.Apellidos))
             .ToListAsync(cancellationToken);
 
     public Task<DocumentoEquipo?> ObtenerAsync(Guid equipoId, Guid documentoId, CancellationToken cancellationToken) =>
-        contexto.DocumentosEquipo.SingleOrDefaultAsync(d => d.Id == documentoId && d.EquipoId == equipoId && d.EstadoActivo, cancellationToken);
+        DocumentosSinFoto(equipoId).SingleOrDefaultAsync(d => d.Id == documentoId, cancellationToken);
 
     public Task<bool> NombreEnUsoAsync(Guid equipoId, string nombreArchivo, CancellationToken cancellationToken)
     {
         var nombre = nombreArchivo.ToLowerInvariant();
-        return contexto.DocumentosEquipo.AnyAsync(d => d.EquipoId == equipoId && d.EstadoActivo && d.NombreArchivo.ToLower() == nombre, cancellationToken);
+        return DocumentosSinFoto(equipoId).AnyAsync(d => d.NombreArchivo.ToLower() == nombre, cancellationToken);
     }
 
     public async Task<string> NombreUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken) =>
@@ -43,12 +46,27 @@ public sealed class RepositorioDocumentos(SitbioDbContext contexto, IContextoUsu
             .Select(t => new { t.Plan, t.MaxAlmacenamientoGb })
             .SingleAsync(cancellationToken);
 
-        // Los desactivados también cuentan: su archivo se conserva (V010).
+        // Los desactivados también cuentan: su archivo se conserva (V010). La fotografía, con sus dos versiones.
         var usados = await contexto.DocumentosEquipo.SumAsync(d => (long?)d.TamanoBytes, cancellationToken) ?? 0;
         return new CapacidadAlmacenamiento(plan.Plan, plan.MaxAlmacenamientoGb, usados);
     }
 
+    public Task<EquipoBiomedico?> ObtenerEquipoAsync(Guid equipoId, CancellationToken cancellationToken) =>
+        contexto.Equipos.SingleOrDefaultAsync(e => e.Id == equipoId, cancellationToken);
+
+    public Task<DocumentoEquipo?> ObtenerFotoAsync(Guid equipoId, CancellationToken cancellationToken) =>
+        (from e in contexto.Equipos
+         join d in contexto.DocumentosEquipo on e.FotoDocumentoId equals d.Id
+         where e.Id == equipoId && d.EquipoId == equipoId && d.EstadoActivo
+         select d).SingleOrDefaultAsync(cancellationToken);
+
     public void Agregar(DocumentoEquipo documento) => contexto.DocumentosEquipo.Add(documento);
 
     public Task GuardarAsync(CancellationToken cancellationToken) => contexto.SaveChangesAsync(cancellationToken);
+
+    private IQueryable<DocumentoEquipo> DocumentosSinFoto(Guid equipoId) =>
+        from d in contexto.DocumentosEquipo
+        where d.EquipoId == equipoId && d.EstadoActivo
+              && !contexto.Equipos.Any(e => e.Id == equipoId && e.FotoDocumentoId == d.Id)
+        select d;
 }

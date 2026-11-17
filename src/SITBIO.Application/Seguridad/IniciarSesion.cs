@@ -7,8 +7,8 @@ namespace Sitbio.Application.Seguridad;
 public sealed record SolicitudInicioSesion(string Correo, string Contrasena);
 
 /// <summary>
-/// Respuesta del inicio de sesión y de la renovación. Nombres, apellidos e institución son para el saludo del
-/// panel (UI-003); el token sigue sin datos personales.
+/// Respuesta del inicio de sesión y de la renovación. Nombres, apellidos, institución y correo son para el saludo
+/// del panel (UI-003) y «Mi perfil»; el token sigue sin datos personales.
 /// </summary>
 public sealed record ResultadoInicioSesion(
     string Token,
@@ -17,7 +17,8 @@ public sealed record ResultadoInicioSesion(
     bool DebeCambiarClave,
     string Nombres = "",
     string Apellidos = "",
-    string Institucion = "");
+    string Institucion = "",
+    string Correo = "");
 
 /// <summary>
 /// Inicio de sesión (HU-001, CU-001, RN-006). Las respuestas de error no revelan si el
@@ -89,7 +90,7 @@ public sealed class IniciarSesion(
         await auditoria.RegistrarAsync(usuario.Id, AccionesAuditoria.LoginOk, EntidadUsuario, usuario.Id.ToString(), cancellationToken: cancellationToken);
 
         return new ResultadoInicioSesion(
-            emitido.Token, emitido.Expiracion, acceso.CodigoRol, usuario.CambioContrasenaObligatorio, usuario.Nombres, usuario.Apellidos, acceso.Institucion);
+            emitido.Token, emitido.Expiracion, acceso.CodigoRol, usuario.CambioContrasenaObligatorio, usuario.Nombres, usuario.Apellidos, acceso.Institucion, usuario.Correo);
     }
 
     private Task RegistrarFalloAsync(Usuario usuario, string motivo, CancellationToken cancellationToken) =>

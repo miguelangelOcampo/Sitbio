@@ -18,6 +18,13 @@ public partial class App : Application
 
         var servicios = new ServiceCollection();
         servicios.AddSingleton<SesionActual>();
+
+        // D-03: el tema guardado en la estación se aplica antes de abrir la primera ventana.
+        var preferencias = new ServicioPreferenciasArchivo();
+        var tema = new TemaWpf();
+        tema.Aplicar(preferencias.Leer().Tema);
+        servicios.AddSingleton<IServicioPreferencias>(preferencias);
+        servicios.AddSingleton<ITemaAplicacion>(tema);
         servicios.AddTransient<ManejadorToken>();
         servicios.AddHttpClient<IServicioAutenticacion, ServicioAutenticacionHttp>(ConfigurarCliente);
 
@@ -54,6 +61,7 @@ public partial class App : Application
         servicios.AddSingleton<IDialogoArchivos, DialogoArchivosWpf>();
         servicios.AddTransient<ReportesViewModel>();
         servicios.AddTransient<PanelViewModel>();
+        servicios.AddTransient<PerfilViewModel>();
         servicios.AddTransient<ExportacionViewModel>();
         servicios.AddTransient<ImportacionViewModel>();
         servicios.AddTransient<IServicioSesion, ServicioSesionHttp>();

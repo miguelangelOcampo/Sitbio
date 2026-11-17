@@ -34,10 +34,10 @@ public interface IRepositorioDocumentos
     /// <summary>¿Existe el equipo en la institución? (otro tenant = no existe, SEC-003).</summary>
     Task<bool> ExisteEquipoAsync(Guid equipoId, CancellationToken cancellationToken);
 
-    /// <summary>Documentos activos del equipo, del más reciente al más antiguo.</summary>
+    /// <summary>Documentos activos del equipo, del más reciente al más antiguo, sin la fotografía vigente (RF-031).</summary>
     Task<IReadOnlyList<DocumentoDto>> ListarAsync(Guid equipoId, CancellationToken cancellationToken);
 
-    /// <summary>Documento activo del equipo; null si no existe, está desactivado o es de otro tenant.</summary>
+    /// <summary>Documento activo del equipo (no la fotografía vigente); null si no existe, está desactivado o es de otro tenant.</summary>
     Task<DocumentoEquipo?> ObtenerAsync(Guid equipoId, Guid documentoId, CancellationToken cancellationToken);
 
     /// <summary>¿El equipo ya tiene un documento activo con ese nombre (sin distinguir mayúsculas)?</summary>
@@ -48,6 +48,12 @@ public interface IRepositorioDocumentos
 
     /// <summary>Plan del tenant del token, su almacenamiento y lo que ocupan sus documentos (activos o no).</summary>
     Task<CapacidadAlmacenamiento> CapacidadAsync(CancellationToken cancellationToken);
+
+    /// <summary>Equipo de la institución para cambiar su fotografía (RF-031); null si no existe o es de otro tenant.</summary>
+    Task<EquipoBiomedico?> ObtenerEquipoAsync(Guid equipoId, CancellationToken cancellationToken);
+
+    /// <summary>Documento activo de la fotografía vigente del equipo; null si no tiene.</summary>
+    Task<DocumentoEquipo?> ObtenerFotoAsync(Guid equipoId, CancellationToken cancellationToken);
 
     void Agregar(DocumentoEquipo documento);
 

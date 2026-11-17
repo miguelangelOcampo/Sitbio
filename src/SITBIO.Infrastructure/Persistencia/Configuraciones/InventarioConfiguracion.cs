@@ -137,6 +137,8 @@ public sealed class EquipoBiomedicoConfiguracion : IEntityTypeConfiguration<Equi
         equipo.HasOne<Ubicacion>().WithMany().HasForeignKey(e => e.UbicacionId).IsRequired();
         equipo.HasOne<EstadoEquipo>().WithMany().HasForeignKey(e => e.EstadoEquipoId).IsRequired();
         equipo.HasOne<Proveedor>().WithMany().HasForeignKey(e => e.ProveedorId);
+        // V008: fk_equipo_foto ON DELETE SET NULL; también ordena el INSERT del documento antes del UPDATE del equipo.
+        equipo.HasOne<DocumentoEquipo>().WithMany().HasForeignKey(e => e.FotoDocumentoId).OnDelete(DeleteBehavior.SetNull);
 
         equipo.HasIndex(e => new { e.TenantId, e.PlacaInventario }).IsUnique().HasDatabaseName(IndicePlaca);
         equipo.HasIndex(e => new { e.TenantId, e.NumeroSerie }).IsUnique().HasDatabaseName(IndiceSerie);

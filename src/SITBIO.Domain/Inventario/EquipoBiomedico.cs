@@ -83,6 +83,13 @@ public sealed class EquipoBiomedico : EntidadTenant
 
     public bool DadoDeBaja => FechaBaja is not null;
 
+    /// <summary>Fija la fotografía vigente (RF-031): un documento «Fotografía» del mismo equipo.</summary>
+    public void AsignarFoto(Guid documentoId) =>
+        FotoDocumentoId = documentoId != Guid.Empty ? documentoId : throw new ArgumentException("Falta el documento de la fotografía.", nameof(documentoId));
+
+    /// <summary>Quita la fotografía: la hoja de vida vuelve al ícono del tipo de equipo.</summary>
+    public void QuitarFoto() => FotoDocumentoId = null;
+
     /// <summary>Datos de identificación y ubicación. Serie y placa se guardan sin espacios a los lados.</summary>
     public void ActualizarDatos(
         Guid tipoEquipoId,

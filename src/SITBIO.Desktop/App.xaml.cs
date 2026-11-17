@@ -32,6 +32,7 @@ public partial class App : Application
         servicios.AddTransient<IServicioInstitucion, ServicioInstitucionHttp>();
         servicios.AddTransient<MiInstitucionViewModel>();
         servicios.AddTransient<IServicioEquipos, ServicioEquiposHttp>();
+        servicios.AddTransient<IServicioDocumentosEquipo, ServicioDocumentosEquipoHttp>();
         servicios.AddTransient<IServicioCatalogos, ServicioCatalogosHttp>();
         servicios.AddTransient<CatalogosViewModel>();
         servicios.AddTransient<IServicioConfiguracionCampos, ServicioConfiguracionCamposHttp>();

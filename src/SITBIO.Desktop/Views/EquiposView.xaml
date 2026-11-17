@@ -200,6 +200,8 @@
             <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Resumen" IsChecked="{Binding EnResumen}" />
             <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Información técnica" IsChecked="{Binding EnTecnica}" />
             <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Historial" IsChecked="{Binding EnHistorial}" />
+            <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasEquipo" Content="Documentos" IsChecked="{Binding EnDocumentos}"
+                         Visibility="{Binding TieneDocumentos, Converter={StaticResource Visible}}" />
           </StackPanel>
           <Border Height="1" Background="{DynamicResource Brush.Border}" />
 
@@ -301,6 +303,98 @@
                 </ItemsControl>
               </StackPanel>
             </Border>
+          </StackPanel>
+
+          <!-- Documentos (HU-015; prototipo HojaVida.tsx, DocumentosEquipo) -->
+          <StackPanel Visibility="{Binding EnDocumentos, Converter={StaticResource Visible}}" Margin="0,22,0,0">
+            <StackPanel DataContext="{Binding Documentos}">
+              <ContentControl Content="{Binding Confirmacion}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,0,0,14"
+                              Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}" />
+              <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,0,0,10"
+                              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}" />
+              <Button Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,0,0,14"
+                      Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
+              <Border Style="{StaticResource Section}">
+                <StackPanel>
+                  <DockPanel Margin="0,0,0,8">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Command="{Binding AbrirAgregarCommand}" VerticalAlignment="Center"
+                            AutomationProperties.Name="Agregar documento" Visibility="{Binding PuedeGestionar, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
+                      <StackPanel Orientation="Horizontal">
+                        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Agregar}" Width="16" Height="16" Margin="0,0,8,0" />
+                        <TextBlock Text="Agregar documento" />
+                      </StackPanel>
+                    </Button>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                      <TextBlock Text="Documentos del equipo" Style="{StaticResource SectionTitle}" />
+                      <TextBlock Text="{Binding Cantidad}" Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center" Margin="12,2,0,0" />
+                    </StackPanel>
+                  </DockPanel>
+                  <TextBlock Text="Cargando los documentos…" Style="{StaticResource Muted}" Margin="0,8,0,0"
+                             Visibility="{Binding Cargando, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
+                  <!-- Estado vacío -->
+                  <StackPanel HorizontalAlignment="Center" Margin="0,28" Visibility="{Binding SinDocumentos, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
+                    <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Documento}" Width="28" Height="28"
+                                    Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Este equipo no tiene documentos" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                    <TextBlock Text="{Binding TextoVacio}" Style="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,4,0,0"
+                               Visibility="{Binding PuedeGestionar, Converter={StaticResource Visible}}" />
+                  </StackPanel>
+                  <ItemsControl ItemsSource="{Binding Filas}" Focusable="False" AutomationProperties.Name="Documentos del equipo">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="{x:Type vm:FilaDocumento}">
+                        <Border Style="{StaticResource ListRow}">
+                          <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                              <!-- Acciones secundarias como enlaces de texto (diseño clínico editorial) -->
+                              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Descargar}" Width="16" Height="16" Margin="0,0,6,0"
+                                              Foreground="{DynamicResource Brush.Primary}" VerticalAlignment="Center" />
+                              <Button Content="Descargar" Style="{StaticResource LinkButton}" VerticalAlignment="Center"
+                                      AutomationProperties.Name="{Binding Nombre, StringFormat=Descargar {0}}"
+                                      Command="{Binding DataContext.DescargarCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
+                              <Button Content="Desactivar" Style="{StaticResource LinkButton}" Foreground="{DynamicResource Brush.DangerText}" Margin="24,0,0,0" VerticalAlignment="Center"
+                                      AutomationProperties.Name="{Binding Nombre, StringFormat=Desactivar {0}}"
+                                      Command="{Binding DataContext.PedirDesactivarCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
+                                      Visibility="{Binding DataContext.PuedeGestionar, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Visible}}" />
+                            </StackPanel>
+                            <!-- Ícono por formato: imagen (azul) o documento (rojo), como el prototipo -->
+                            <Border Width="34" Height="34" CornerRadius="8" Margin="0,0,12,0" VerticalAlignment="Center">
+                              <Border.Style>
+                                <Style TargetType="Border">
+                                  <Setter Property="Background" Value="{DynamicResource Brush.DangerSoft}" />
+                                  <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.DangerText}" />
+                                  <Style.Triggers>
+                                    <DataTrigger Binding="{Binding EsImagen}" Value="True">
+                                      <Setter Property="Background" Value="{DynamicResource Brush.InfoSoft}" />
+                                      <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.InfoText}" />
+                                    </DataTrigger>
+                                  </Style.Triggers>
+                                </Style>
+                              </Border.Style>
+                              <ContentControl Width="16" Height="16">
+                                <ContentControl.Style>
+                                  <Style TargetType="ContentControl" BasedOn="{StaticResource Icono}">
+                                    <Setter Property="Content" Value="{StaticResource Icono.Documento}" />
+                                    <Style.Triggers>
+                                      <DataTrigger Binding="{Binding EsImagen}" Value="True">
+                                        <Setter Property="Content" Value="{StaticResource Icono.Imagen}" />
+                                      </DataTrigger>
+                                    </Style.Triggers>
+                                  </Style>
+                                </ContentControl.Style>
+                              </ContentControl>
+                            </Border>
+                            <StackPanel VerticalAlignment="Center">
+                              <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Text="{Binding Detalle}" Style="{StaticResource Muted}" FontSize="13" Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                          </DockPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+            </StackPanel>
           </StackPanel>
 
           <!-- Historial: línea de tiempo (HU-023, CMP-UI-014) -->
@@ -820,6 +914,93 @@
         </DockPanel>
       </Border>
     </Grid>
+    <!-- ================= HU-015 Agregar documento (solo AC-02; prototipo HojaVida.tsx) ================= -->
+    <Grid DataContext="{Binding Detalle.Documentos}" Visibility="{Binding Agregando, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CancelarAgregarCommand}" />
+      <Border Style="{StaticResource Dialog}" Width="520" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="Agregar documento">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Border Width="36" Height="36" CornerRadius="10" Margin="0,0,12,0" Background="{DynamicResource Brush.PrimarySoft}">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Documento}" Foreground="{DynamicResource Brush.Primary}" />
+            </Border>
+            <TextBlock Style="{StaticResource SectionTitle}" FontSize="18" VerticalAlignment="Center">
+              <Run Text="Agregar documento · " /><Run Text="{Binding Placa, Mode=OneWay}" />
+            </TextBlock>
+          </StackPanel>
+
+          <ContentControl Content="{Binding AvisoFormulario}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,16,0,0"
+                          Visibility="{Binding AvisoFormulario, Converter={StaticResource NuloVisible}}" />
+
+          <TextBlock Text="Tipo de documento" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+          <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:DocumentosEquipoViewModel.Tipos}" SelectedItem="{Binding Tipo}"
+                    AutomationProperties.Name="Tipo de documento" />
+          <TextBlock Text="{Binding ErrorTipo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorTipo, Converter={StaticResource TextoVisible}}" />
+
+          <TextBlock Text="Archivo" Style="{StaticResource FieldLabel}" Margin="0,16,0,6" />
+          <Border BorderThickness="1.5" CornerRadius="10" Padding="12,10" Background="{DynamicResource Brush.Surface3}">
+            <Border.Style>
+              <Style TargetType="Border">
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderStrong}" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding ErrorArchivo, Converter={StaticResource TextoVisible}}" Value="Visible">
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Border.Style>
+            <DockPanel>
+              <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Subir}" Foreground="{DynamicResource Brush.Text2}"
+                              VerticalAlignment="Center" Margin="0,0,10,0" />
+              <Button DockPanel.Dock="Right" Content="Elegir archivo…" Style="{StaticResource LinkButton}" Command="{Binding ElegirArchivoCommand}" VerticalAlignment="Center" />
+              <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0">
+                <Run Text="{Binding NombreArchivo, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                <Run Text="{Binding TamanoArchivo, Mode=OneWay}" Foreground="{DynamicResource Brush.Text2}" />
+              </TextBlock>
+            </DockPanel>
+          </Border>
+          <TextBlock Text="PDF, JPG o PNG de hasta 10 MB." FontSize="13" Margin="0,6,0,0">
+            <TextBlock.Style>
+              <Style TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding ErrorArchivo, Converter={StaticResource TextoVisible}}" Value="Visible">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </TextBlock.Style>
+          </TextBlock>
+          <TextBlock Text="{Binding ErrorArchivo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorArchivo, Converter={StaticResource TextoVisible}}" />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0" IsCancel="True"
+                    Command="{Binding CancelarAgregarCommand}" />
+            <Button Content="Adjuntar" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarAgregarCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ================= HU-015 Desactivar documento (confirmación) ================= -->
+    <Grid DataContext="{Binding Detalle.Documentos}" Visibility="{Binding PorDesactivar, Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CancelarDesactivarCommand}" />
+      <Border Style="{StaticResource Dialog}" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="¿Desactivar este documento?">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Border Width="36" Height="36" CornerRadius="10" Margin="0,0,12,0" Background="{DynamicResource Brush.DangerSoft}">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Papelera}" Foreground="{DynamicResource Brush.DangerText}" />
+            </Border>
+            <TextBlock Text="¿Desactivar este documento?" Style="{StaticResource SectionTitle}" FontSize="18" VerticalAlignment="Center" />
+          </StackPanel>
+          <TextBlock Text="{Binding TextoDesactivar}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,14,0,20" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0" IsCancel="True"
+                    Command="{Binding CancelarDesactivarCommand}" />
+            <Button Content="Desactivar" Style="{StaticResource DangerButton}" Command="{Binding ConfirmarDesactivarCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
     <!-- ================= HU-014 Dar de baja o revertir la baja (solo AC-02; prototipo HojaVida.tsx) ================= -->
     <Grid x:Name="DialogoBaja" DataContext="{Binding Detalle}" Visibility="{Binding Baja, Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}">
       <Button Style="{StaticResource Velo}" Command="{Binding CancelarBajaCommand}" />

@@ -83,6 +83,14 @@ public interface IDialogoArchivos
     string? ElegirDestino(string nombreSugerido);
 
     void Guardar(string ruta, byte[] contenido);
+
+    /// <summary>Archivo elegido para abrir (HU-015: PDF, JPG o PNG) o null si el usuario canceló.</summary>
+    string? ElegirArchivo(string titulo, string filtro);
+
+    /// <summary>Tamaño en bytes del archivo elegido.</summary>
+    long Tamano(string ruta);
+
+    byte[] Leer(string ruta);
 }
 
 public sealed class DialogoArchivosWpf : IDialogoArchivos
@@ -101,4 +109,14 @@ public sealed class DialogoArchivosWpf : IDialogoArchivos
     }
 
     public void Guardar(string ruta, byte[] contenido) => File.WriteAllBytes(ruta, contenido);
+
+    public string? ElegirArchivo(string titulo, string filtro)
+    {
+        var dialogo = new OpenFileDialog { Title = titulo, Filter = filtro, CheckFileExists = true, Multiselect = false };
+        return dialogo.ShowDialog() == true ? dialogo.FileName : null;
+    }
+
+    public long Tamano(string ruta) => new FileInfo(ruta).Length;
+
+    public byte[] Leer(string ruta) => File.ReadAllBytes(ruta);
 }

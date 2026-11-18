@@ -194,7 +194,7 @@ public partial class BusquedaGlobalViewModel : ObservableObject
         {
             grupos.Add(new GrupoResultados(GrupoEquipos, resultado.Equipos.Select(e => new ResultadoEncontrado(
                 GrupoEquipos,
-                "Icono.Equipo",
+                IconosTipoEquipo.Clave(e.TipoEquipo),
                 e.TipoEquipo,
                 $"{e.Ubicacion} · Serie {e.NumeroSerie}",
                 e.PlacaInventario,

@@ -322,6 +322,9 @@ public sealed record FilaBandeja(Tiquete Tiquete, string? AsignadoA = null)
 
     public string Equipo => $"{Tiquete.PlacaInventario} · {Tiquete.TipoEquipo}";
 
+    /// <summary>E-10: ícono del tipo de equipo.</summary>
+    public string IconoTipo => IconosTipoEquipo.Clave(Tiquete.TipoEquipo);
+
     public string Ubicacion => Tiquete.Ubicacion;
 
     public string TipoFalla => Tiquete.TipoFalla;

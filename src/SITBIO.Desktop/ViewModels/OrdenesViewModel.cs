@@ -298,6 +298,9 @@ public sealed record FilaOrden(Orden Orden, bool EsTecnico = false, bool EsIngen
 
     public string Equipo => string.IsNullOrEmpty(Orden.TipoEquipo) ? Orden.PlacaInventario : $"{Orden.PlacaInventario} · {Orden.TipoEquipo}";
 
+    /// <summary>E-10: ícono del tipo de equipo.</summary>
+    public string IconoTipo => IconosTipoEquipo.Clave(Orden.TipoEquipo);
+
     public string Ubicacion => Orden.Ubicacion;
 
     public string Falla => Orden.TipoFalla ?? "Mantenimiento programado";

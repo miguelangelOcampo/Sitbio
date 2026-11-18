@@ -116,13 +116,21 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
         }
     }
 
-    /// <summary>Asigna como lo hace GestionOrdenes: tiquete con seguimiento, orden e historial en un solo guardado.</summary>
+    /// <summary>
+    /// Asigna como lo hace GestionOrdenes: si el tiquete ya no está «recibido» responde OT-001 antes de crear la
+    /// orden; si no, guarda tiquete con seguimiento, orden e historial en un solo guardado.
+    /// </summary>
     private async Task<Guid> Asignar(Guid tiqueteId, Guid tecnico, DateTimeOffset? ahora = null)
     {
         var (contexto, ordenes, _) = Crear(_tenantA);
         await using (contexto)
         {
             var tiquete = (await ordenes.TiqueteAsync(tiqueteId, CancellationToken.None))!;
+            if (tiquete.Estado != EstadosTiquete.Recibido)
+            {
+                throw new ErrorConflicto(GestionOrdenes.CodigoTiqueteAsignado, "El tiquete ya tiene una orden de trabajo.");
+            }
+
             var (orden, cambio) = OrdenTrabajo.Correctiva(tiquete, tecnico, _ingenieroA, null, null, ahora ?? DateTimeOffset.UtcNow);
             await ordenes.RegistrarAsync(orden, cambio, CancellationToken.None);
             return orden.Id;

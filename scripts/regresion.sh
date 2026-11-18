@@ -25,6 +25,11 @@ export SITBIO_PRUEBAS_POSTGRES="Host=localhost;Port=5432;Database=${POSTGRES_DB:
 
 resultados="TestResults/regresion-$(date +%Y%m%d-%H%M)"
 dotnet build SITBIO.sln -c Release -nologo -v q
-dotnet test SITBIO.sln -c Release --no-build -nologo -v q --logger "trx" --results-directory "$resultados" \
-  | sed -E 's#(mongodb://|Password=)[^ ;@]*#\1***#g'
+# Un proyecto a la vez: en paralelo, las pruebas de tiempo y concurrencia fallan por carga del equipo.
+fallos=0
+for proyecto in tests/SITBIO.*.Tests/SITBIO.*.Tests.csproj; do
+  dotnet test "$proyecto" -c Release --no-build -nologo -v q --logger "trx" --results-directory "$resultados" \
+    | sed -E 's#(mongodb://|Password=)[^ ;@]*#\1***#g' || fallos=1
+done
 echo "Resultados TRX en $resultados"
+exit "$fallos"

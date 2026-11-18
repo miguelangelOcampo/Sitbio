@@ -21,6 +21,9 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var panel = servicios.GetRequiredService<PanelViewModel>();
                 panel.CargarCommand.Execute(null);
                 return panel;
+            // D-03 «Mi perfil» y «Preferencias»: se abre desde el pie del panel, para todos los roles.
+            case PerfilViewModel.IdPantalla:
+                return servicios.GetRequiredService<PerfilViewModel>();
             case "UI-004":
                 var usuarios = servicios.GetRequiredService<UsuariosViewModel>();
                 usuarios.CargarCommand.Execute(null);
@@ -32,6 +35,9 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
             // UI-019 Configuración: «Mi institución» solo para AC-01 (HU-024); «Catálogos» (UI-020, HU-025) y
             // «Campos dinámicos» (UI-018, HU-006) para AC-01 y AC-02. Campos dinámicos carga al abrir su pestaña.
             // UI-009 Reportar falla (HU-003, HU-018): pantalla de inicio de AC-04; también la usa AC-02.
+            // UI-008 Importar inventario (HU-016): AC-01 y AC-02; asistente sin carga inicial.
+            case ImportacionViewModel.IdPantalla:
+                return servicios.GetRequiredService<ImportacionViewModel>();
             case "UI-009":
                 var reporte = servicios.GetRequiredService<ReportarFallaViewModel>();
                 reporte.CargarCommand.Execute(null);
@@ -92,7 +98,7 @@ public sealed class FabricaPantallas(IServiceProvider servicios) : IFabricaPanta
                 var bitacora = servicios.GetRequiredService<BitacoraViewModel>();
                 bitacora.CargarCommand.Execute(null);
                 return bitacora;
-            // D-06: opciones cuya pantalla llega en una próxima versión (UI-008, UI-003, HIST).
+            // D-06: opciones cuya pantalla llega en una próxima versión (HIST).
             case var id when ProximaVersionViewModel.Opciones.TryGetValue(id, out var detalle):
                 return new ProximaVersionViewModel(id, detalle);
             default:

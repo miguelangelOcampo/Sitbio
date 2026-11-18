@@ -1,0 +1,192 @@
+<!-- D-03 «Mi perfil» y «Preferencias» (prototipo Perfil.tsx). Datos de la cuenta en solo lectura; el tema se
+     aplica al instante y se guarda en %LOCALAPPDATA%\SITBIO\preferencias.json. -->
+<UserControl x:Class="Sitbio.Desktop.Views.PerfilView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+
+    <!-- Par etiqueta–valor -->
+    <Style x:Key="Etiqueta" TargetType="TextBlock" BasedOn="{StaticResource Muted}">
+      <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style x:Key="Valor" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Margin" Value="0,3,0,18" />
+    </Style>
+
+    <!-- Opción de tema: tarjeta seleccionable con círculo, ícono, nombre y descripción -->
+    <Style x:Key="OpcionTema" TargetType="RadioButton">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTeclado}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="Caja" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="{StaticResource Radius.Field}"
+                    Background="{DynamicResource Brush.Surface}" Padding="14,12">
+              <DockPanel>
+                <Grid Width="18" Height="18" VerticalAlignment="Top" Margin="0,2,12,0">
+                  <Ellipse x:Name="Circulo" StrokeThickness="1.5" Stroke="{DynamicResource Brush.BorderControl}" />
+                  <Ellipse x:Name="Punto" Width="8" Height="8" Fill="{DynamicResource Brush.Primary}" Visibility="Collapsed" />
+                </Grid>
+                <ContentPresenter />
+              </DockPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Caja" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                <Setter TargetName="Caja" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+                <Setter TargetName="Circulo" Property="Stroke" Value="{DynamicResource Brush.Primary}" />
+                <Setter TargetName="Punto" Property="Visibility" Value="Visible" />
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Circulo" Property="Stroke" Value="{DynamicResource Brush.Primary}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+    <StackPanel Margin="40,32,40,40" MaxWidth="1080" HorizontalAlignment="Stretch">
+      <TextBlock Text="CUENTA" Style="{StaticResource Overline}" />
+      <TextBlock Text="{Binding Titulo}" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
+      <TextBlock Text="{Binding Subtitulo}" Style="{StaticResource Muted}" Margin="0,4,0,20" TextWrapping="Wrap" />
+
+      <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+        <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasPerfil" Content="Mi perfil" IsChecked="{Binding EnPerfil}" />
+        <RadioButton Style="{StaticResource Pestana}" GroupName="PestanasPerfil" Content="Preferencias" IsChecked="{Binding EnPreferencias}" />
+      </StackPanel>
+
+      <!-- Mi perfil -->
+      <Grid Visibility="{Binding EnPerfil, Converter={StaticResource Visible}}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="1.3*" />
+          <ColumnDefinition Width="32" />
+          <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel>
+          <DockPanel Margin="0,0,0,22">
+            <Border DockPanel.Dock="Left" Width="72" Height="72" CornerRadius="36" Background="{DynamicResource Brush.Primary}" Margin="0,0,16,0">
+              <TextBlock Text="{Binding Iniciales}" FontSize="24" FontWeight="SemiBold" Foreground="{DynamicResource Brush.OnPrimary}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <Border DockPanel.Dock="Right" CornerRadius="10" Padding="10,2" Background="{DynamicResource Brush.SuccessSoft}" VerticalAlignment="Center">
+              <TextBlock Text="Activo" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock Text="{Binding NombreCompleto}" Style="{StaticResource SectionTitle}" FontSize="20" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding NombreRol}" Style="{StaticResource Muted}" Margin="0,2,0,0" />
+            </StackPanel>
+          </DockPanel>
+
+          <Border Style="{StaticResource Section}">
+            <UniformGrid Columns="2">
+              <StackPanel Margin="0,0,24,0">
+                <TextBlock Text="Correo institucional" Style="{StaticResource Etiqueta}" />
+                <TextBlock Text="{Binding Correo}" Style="{StaticResource Valor}" />
+              </StackPanel>
+              <StackPanel>
+                <TextBlock Text="Rol" Style="{StaticResource Etiqueta}" />
+                <TextBlock Style="{StaticResource Valor}">
+                  <Run Text="{Binding CodigoRol, Mode=OneWay}" FontFamily="Consolas" FontWeight="SemiBold" /><Run Text=" · " /><Run Text="{Binding NombreRol, Mode=OneWay}" />
+                </TextBlock>
+              </StackPanel>
+              <StackPanel Margin="0,0,24,0">
+                <TextBlock Text="Institución" Style="{StaticResource Etiqueta}" />
+                <TextBlock Text="{Binding Institucion}" Style="{StaticResource Valor}" />
+              </StackPanel>
+            </UniformGrid>
+          </Border>
+
+          <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}" Margin="0,4,0,0">
+            <DockPanel>
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}" Foreground="{DynamicResource Brush.InfoText}"
+                              VerticalAlignment="Top" Margin="0,1,10,0" />
+              <StackPanel>
+                <TextBlock Text="¿Algún dato es incorrecto?" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+                <TextBlock Text="El nombre, el correo y el rol los gestiona el Administrador del Sistema (UI-004)." Foreground="{DynamicResource Brush.Text}"
+                           TextWrapping="Wrap" Margin="0,3,0,0" />
+              </StackPanel>
+            </DockPanel>
+          </Border>
+        </StackPanel>
+
+        <!-- Seguridad -->
+        <StackPanel Grid.Column="2">
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Escudo}" Width="16" Height="16"
+                            Foreground="{DynamicResource Brush.Text2}" Margin="0,0,8,0" VerticalAlignment="Center" />
+            <TextBlock Text="Seguridad" Style="{StaticResource SectionTitle}" />
+          </StackPanel>
+          <Border Style="{StaticResource Section}">
+            <StackPanel>
+              <TextBlock Text="Contraseña" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+              <TextBlock Text="Cámbiala cuando quieras; al guardarla se cierran tus demás sesiones abiertas." Style="{StaticResource Muted}"
+                         FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0" />
+              <Button Style="{StaticResource PrimaryButton}" Command="{Binding CambiarClaveCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"
+                      AutomationProperties.Name="Cambiar contraseña">
+                <StackPanel Orientation="Horizontal">
+                  <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Llave}" Width="16" Height="16" Margin="0,0,8,0" />
+                  <TextBlock Text="Cambiar contraseña" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Section}" Margin="0,16,0,0">
+            <StackPanel>
+              <TextBlock Text="Sesión actual" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+              <TextBlock Text="Este equipo · se cierra sola tras un tiempo sin actividad." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0" />
+            </StackPanel>
+          </Border>
+          <Border Style="{StaticResource Section}" Margin="0,16,0,0">
+            <StackPanel>
+              <TextBlock Text="Intentos fallidos" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+              <TextBlock Text="La cuenta se bloquea tras 5 intentos fallidos seguidos (RN-006)." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
+
+      <!-- Preferencias -->
+      <StackPanel Visibility="{Binding EnPreferencias, Converter={StaticResource Visible}}" MaxWidth="620" HorizontalAlignment="Left">
+        <TextBlock Text="Apariencia" Style="{StaticResource SectionTitle}" Margin="0,0,0,12" />
+        <UniformGrid Columns="2" AutomationProperties.Name="Tema">
+          <RadioButton Style="{StaticResource OpcionTema}" GroupName="Tema" IsChecked="{Binding EsClaro}" Margin="0,0,6,0" AutomationProperties.Name="Tema claro">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Sol}" Width="18" Height="18" Margin="0,0,6,0" />
+                <TextBlock Text="Claro" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="Fondo claro, ideal para áreas iluminadas." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Style="{StaticResource OpcionTema}" GroupName="Tema" IsChecked="{Binding EsOscuro}" Margin="6,0,0,0" AutomationProperties.Name="Tema oscuro">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Luna}" Width="18" Height="18" Margin="0,0,6,0" />
+                <TextBlock Text="Oscuro" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="Reduce el brillo en turnos nocturnos." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+          </RadioButton>
+        </UniformGrid>
+        <TextBlock Text="Se guarda en este equipo y se aplica de inmediato." Style="{StaticResource Muted}" FontSize="13" Margin="0,10,0,0" />
+
+        <Border Style="{StaticResource Section}" Margin="0,24,0,0">
+          <StackPanel>
+            <TextBlock Text="Idioma y formato" Style="{StaticResource Etiqueta}" />
+            <TextBlock Text="Español (Colombia) · dd/mm/aaaa · COP" Style="{StaticResource Valor}" Margin="0,3,0,10" />
+            <TextBlock Text="Tamaño de texto base: 16 px (RNF-017). Usa el escalado de Windows para ampliarlo." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

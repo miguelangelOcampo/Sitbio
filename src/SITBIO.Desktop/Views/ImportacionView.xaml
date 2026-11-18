@@ -1,0 +1,300 @@
+<!-- UI-008 Importar inventario (HU-016; prototipo screens/Importacion.tsx): cargar archivo, revisar filas y confirmar. -->
+<UserControl x:Class="Sitbio.Desktop.Views.ImportacionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
+             xmlns:views="clr-namespace:Sitbio.Desktop.Views">
+  <UserControl.Resources>
+    <BooleanToVisibilityConverter x:Key="Visible" />
+    <views:NuloVisibleConverter x:Key="NuloVisible" />
+    <views:TextoVisibleConverter x:Key="TextoVisible" />
+
+  </UserControl.Resources>
+
+  <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
+    <StackPanel Margin="40,32,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Descargar}" Foreground="{DynamicResource Brush.Primary}" Margin="0,0,6,0" />
+          <Button Style="{StaticResource LinkButton}" Content="Plantilla Excel" Command="{Binding DescargarPlantillaCommand}" CommandParameter="xlsx"
+                  IsEnabled="{Binding Libre}" AutomationProperties.Name="Descargar plantilla de Excel" />
+          <TextBlock Text="·" Style="{StaticResource Muted}" Margin="8,0" />
+          <Button Style="{StaticResource LinkButton}" Content="CSV" Command="{Binding DescargarPlantillaCommand}" CommandParameter="csv"
+                  IsEnabled="{Binding Libre}" AutomationProperties.Name="Descargar plantilla CSV" />
+        </StackPanel>
+        <StackPanel>
+          <TextBlock Text="INVENTARIO" Style="{StaticResource Overline}" />
+          <TextBlock Text="Importar inventario" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
+          <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,20" TextWrapping="Wrap"
+                     Text="Carga varios equipos a la vez desde la plantilla de Excel o CSV. Cada fila se revisa antes de guardar." />
+        </StackPanel>
+      </DockPanel>
+
+      <!-- Pasos -->
+      <Border Style="{StaticResource Section}" Padding="20,14" Margin="0,0,0,16">
+        <ItemsControl ItemsSource="{Binding PasosEstado}" Focusable="False" AutomationProperties.Name="Pasos de la importación">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:PasoAsistente}">
+              <StackPanel Orientation="Horizontal" Margin="0,0,28,0" AutomationProperties.Name="{Binding Nombre}">
+                <Border Width="26" Height="26" CornerRadius="13" Margin="0,0,8,0" BorderThickness="1">
+                  <Border.Style>
+                    <Style TargetType="Border">
+                      <Setter Property="Background" Value="{DynamicResource Brush.Surface3}" />
+                      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding Hecho}" Value="True">
+                          <Setter Property="Background" Value="{DynamicResource Brush.SuccessSoft}" />
+                          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Actual}" Value="True">
+                          <Setter Property="Background" Value="{DynamicResource Brush.Primary}" />
+                          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </Border.Style>
+                  <TextBlock Text="{Binding Marca}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="13">
+                    <TextBlock.Style>
+                      <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{DynamicResource Brush.Text2}" />
+                        <Style.Triggers>
+                          <DataTrigger Binding="{Binding Hecho}" Value="True">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding Actual}" Value="True">
+                            <Setter Property="Foreground" Value="White" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </TextBlock.Style>
+                  </TextBlock>
+                </Border>
+                <TextBlock Text="{Binding Nombre}" VerticalAlignment="Center">
+                  <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="Foreground" Value="{DynamicResource Brush.Text2}" />
+                      <Style.Triggers>
+                        <DataTrigger Binding="{Binding Actual}" Value="True">
+                          <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                          <Setter Property="FontWeight" Value="SemiBold" />
+                        </DataTrigger>
+                      </Style.Triggers>
+                    </Style>
+                  </TextBlock.Style>
+                </TextBlock>
+              </StackPanel>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+
+      <!-- Error -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,0,0,16"
+              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+        <StackPanel>
+          <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}">
+            <Run Text="{Binding Aviso.Titulo, Mode=OneWay}" />
+            <Run Text="{Binding Aviso.Codigo, Mode=OneWay}" FontWeight="Normal" />
+          </TextBlock>
+          <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+        </StackPanel>
+      </Border>
+
+      <!-- Guardado -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}" Margin="0,0,0,16"
+              Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
+        <DockPanel>
+          <Button DockPanel.Dock="Right" Style="{StaticResource IconButton}" Command="{Binding CerrarConfirmacionCommand}" AutomationProperties.Name="Cerrar aviso">
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Cerrar}" />
+          </Button>
+          <StackPanel>
+            <TextBlock Text="{Binding Confirmacion.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
+            <TextBlock Text="{Binding Confirmacion.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- Paso 1: cargar archivo -->
+      <Border Style="{StaticResource Section}" Visibility="{Binding EnCargar, Converter={StaticResource Visible}}">
+        <StackPanel>
+          <Border BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="2" CornerRadius="14" Padding="20,32" Background="{DynamicResource Brush.Surface3}">
+            <StackPanel HorizontalAlignment="Center">
+              <Border Width="52" Height="52" CornerRadius="14" Background="{DynamicResource Brush.PrimarySoft}" HorizontalAlignment="Center">
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Subir}" Width="24" Height="24" Foreground="{DynamicResource Brush.Primary}" />
+              </Border>
+              <TextBlock Text="{Binding NombreArchivo}" FontSize="16" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,10,0,0" />
+              <TextBlock HorizontalAlignment="Center" Style="{StaticResource Muted}" Margin="0,4,0,0">
+                <Run Text="{Binding TamanoArchivo, Mode=OneWay}" />
+                <Run Text="Formato .xlsx o .csv · máximo 5 MB · hasta 500 filas" />
+              </TextBlock>
+              <Button Style="{StaticResource LinkButton}" Content="Seleccionar archivo…" Command="{Binding ElegirArchivoCommand}" IsEnabled="{Binding Libre}"
+                      HorizontalAlignment="Center" Margin="0,10,0,0" />
+            </StackPanel>
+          </Border>
+          <TextBlock Text="{Binding ErrorArchivo}" Style="{StaticResource FieldError}" TextWrapping="Wrap"
+                     Visibility="{Binding ErrorArchivo, Converter={StaticResource TextoVisible}}" />
+          <Button Style="{StaticResource PrimaryButton}" Content="Revisar filas" Command="{Binding RevisarCommand}" IsEnabled="{Binding Libre}"
+                  HorizontalAlignment="Right" Margin="0,16,0,0" />
+        </StackPanel>
+      </Border>
+
+      <!-- Paso 2: revisar -->
+      <StackPanel Visibility="{Binding EnRevisar, Converter={StaticResource Visible}}">
+        <Border Style="{StaticResource KpiStrip}">
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition />
+              <ColumnDefinition />
+              <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Border Style="{StaticResource KpiItem}" BorderThickness="0" Padding="0,14,20,14">
+              <StackPanel>
+                <TextBlock Text="FILAS LEÍDAS" Style="{StaticResource Overline}" />
+                <TextBlock Text="{Binding TotalFilas}" Style="{StaticResource KpiValue}" />
+                <TextBlock Text="{Binding NombreArchivo}" Style="{StaticResource Muted}" FontSize="13" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource KpiItem}" Padding="20,14">
+              <StackPanel>
+                <TextBlock Text="VÁLIDAS" Style="{StaticResource Overline}" />
+                <TextBlock Text="{Binding FilasValidas}" Style="{StaticResource KpiValue}" />
+                <TextBlock Text="Se pueden importar" Style="{StaticResource Muted}" FontSize="13" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource KpiItem}" Padding="20,14">
+              <StackPanel>
+                <TextBlock Text="CON ERRORES" Style="{StaticResource Overline}" />
+                <TextBlock Text="{Binding FilasConError}" Style="{StaticResource KpiValue}" />
+                <TextBlock Text="No se importarán" Style="{StaticResource Muted}" FontSize="13" />
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Border>
+
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0"
+                Visibility="{Binding TextoSinCupo, Converter={StaticResource TextoVisible}}">
+          <StackPanel>
+            <TextBlock Text="Capacidad del plan · MSG-019 · RN-009" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+            <TextBlock Text="{Binding TextoSinCupo}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Section}" Margin="0,16,0,0">
+          <StackPanel>
+            <DockPanel Margin="0,0,0,10">
+              <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Descargar informe de errores" Command="{Binding DescargarInformeCommand}"
+                      Visibility="{Binding HayErrores, Converter={StaticResource Visible}}" IsEnabled="{Binding Libre}" VerticalAlignment="Center" />
+              <TextBlock Text="Filas que no se importarán" Style="{StaticResource SectionTitle}" />
+            </DockPanel>
+            <TextBlock Text="Todas las filas son válidas." Style="{StaticResource Muted}"
+                       Visibility="{Binding SinErrores, Converter={StaticResource Visible}}" />
+            <DataGrid Style="{StaticResource OpenGrid}" ItemsSource="{Binding FilasVisibles}" MaxHeight="360" RowHeight="NaN" MinRowHeight="44"
+                      Visibility="{Binding HayErrores, Converter={StaticResource Visible}}" AutomationProperties.Name="Filas con errores">
+              <DataGrid.Columns>
+                <DataGridTextColumn Header="FILA" Binding="{Binding Fila}" Width="70" />
+                <DataGridTextColumn Header="PLACA" Binding="{Binding PlacaTexto}" Width="160" FontFamily="Consolas" />
+                <DataGridTemplateColumn Header="MOTIVO" Width="*">
+                  <DataGridTemplateColumn.CellTemplate>
+                    <DataTemplate DataType="{x:Type vm:FilaRevision}">
+                      <ItemsControl ItemsSource="{Binding Motivos}" Focusable="False" Margin="0,6">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.DangerText}" />
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </DataTemplate>
+                  </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+              </DataGrid.Columns>
+            </DataGrid>
+          </StackPanel>
+        </Border>
+
+        <DockPanel Margin="0,16,0,0">
+          <Button DockPanel.Dock="Left" Style="{StaticResource LinkButton}" Content="Atrás" Command="{Binding AtrasCommand}" />
+          <Button Style="{StaticResource PrimaryButton}" Content="{Binding TextoContinuar}" Command="{Binding ContinuarCommand}"
+                  IsEnabled="{Binding PuedeContinuar}" HorizontalAlignment="Right" />
+        </DockPanel>
+      </StackPanel>
+
+      <!-- Paso 3: confirmar -->
+      <Border Style="{StaticResource Section}" MaxWidth="760" HorizontalAlignment="Left" Visibility="{Binding EnConfirmar, Converter={StaticResource Visible}}">
+        <Grid>
+          <!-- Antes de confirmar -->
+          <StackPanel Visibility="{Binding PorConfirmar, Converter={StaticResource Visible}}">
+            <TextBlock Text="Confirmar importación" Style="{StaticResource SectionTitle}" Margin="0,0,0,14" />
+            <Grid Margin="0,0,0,14">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+                <ColumnDefinition />
+              </Grid.ColumnDefinitions>
+              <StackPanel>
+                <TextBlock Text="Equipos a crear" Style="{StaticResource Muted}" />
+                <TextBlock Text="{Binding Importables}" FontSize="22" FontWeight="SemiBold" />
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Text="Filas omitidas" Style="{StaticResource Muted}" />
+                <TextBlock Text="{Binding FilasOmitidas}" FontSize="22" FontWeight="SemiBold" />
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="Estado inicial" Style="{StaticResource Muted}" />
+                <TextBlock Text="Operativo" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" Margin="0,4,0,0" />
+              </StackPanel>
+            </Grid>
+            <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}">
+              <StackPanel>
+                <TextBlock Text="Qué pasará" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                           Text="Los equipos se crean en una sola operación: si algo falla, no se guarda ninguno. Quedan sin plan preventivo; el Ingeniero Biomédico lo completa desde la hoja de vida o Mantenimientos." />
+              </StackPanel>
+            </Border>
+            <DockPanel Margin="0,16,0,0">
+              <Button DockPanel.Dock="Left" Style="{StaticResource LinkButton}" Content="Atrás" Command="{Binding AtrasCommand}" />
+              <Button Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarCommand}" IsEnabled="{Binding Libre}" HorizontalAlignment="Right">
+                <TextBlock>
+                  <Run Text="Importar" />
+                  <Run Text="{Binding Importables, Mode=OneWay}" />
+                  <Run Text="equipos" />
+                </TextBlock>
+              </Button>
+            </DockPanel>
+          </StackPanel>
+
+          <!-- Terminado -->
+          <StackPanel HorizontalAlignment="Center" Margin="0,16" Visibility="{Binding Terminado, Converter={StaticResource Visible}}">
+            <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource Brush.SuccessSoft}" HorizontalAlignment="Center">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}" Width="28" Height="28" Foreground="{DynamicResource Brush.SuccessText}" />
+            </Border>
+            <TextBlock Text="Importación completada" Style="{StaticResource SectionTitle}" HorizontalAlignment="Center" Margin="0,10,0,0" />
+            <TextBlock Text="{Binding TextoTerminado}" Style="{StaticResource Muted}" HorizontalAlignment="Center" TextWrapping="Wrap" Margin="0,4,0,0" />
+
+            <!-- MSG-015 -->
+            <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,14,0,0"
+                    Visibility="{Binding Msg015Visible, Converter={StaticResource Visible}}">
+              <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Descargar informe" Command="{Binding DescargarInformeCommand}"
+                        VerticalAlignment="Center" Margin="12,0,0,0" />
+                <StackPanel>
+                  <TextBlock Text="Importación con errores · MSG-015" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                  <TextBlock Text="{Binding TextoMsg015}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                </StackPanel>
+              </DockPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,16,0,0">
+              <Button Style="{StaticResource LinkButton}" Content="Importar otro archivo" Command="{Binding ImportarOtroCommand}" Margin="0,0,16,0" />
+              <Button Style="{StaticResource PrimaryButton}" Content="Ver inventario" Command="{Binding VerInventarioCommand}" />
+            </StackPanel>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

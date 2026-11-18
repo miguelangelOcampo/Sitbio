@@ -30,7 +30,7 @@ public sealed class ServicioSesionHttp(ClienteApi cliente) : IServicioSesion
     public const string MotivoVoluntario = "voluntario";
     public const string MotivoInactividad = "inactividad";
 
-    private sealed record RespuestaSesion(string Token, DateTimeOffset ExpiraEn, string Rol, bool DebeCambiarClave, string? Nombres, string? Apellidos, string? Institucion);
+    private sealed record RespuestaSesion(string Token, DateTimeOffset ExpiraEn, string Rol, bool DebeCambiarClave, string? Nombres, string? Apellidos, string? Institucion, string? Correo);
 
     public async Task<ResultadoRenovacion> RenovarAsync(CancellationToken cancellationToken)
     {
@@ -50,7 +50,7 @@ public sealed class ServicioSesionHttp(ClienteApi cliente) : IServicioSesion
             var cuerpo = await respuesta.Content.ReadFromJsonAsync<RespuestaSesion>(cancellationToken);
             return cuerpo is null
                 ? ResultadoRenovacion.SinConexion
-                : new ResultadoRenovacion(new SesionUsuario(cuerpo.Token, cuerpo.ExpiraEn, cuerpo.Rol, cuerpo.DebeCambiarClave, cuerpo.Nombres ?? string.Empty, cuerpo.Apellidos ?? string.Empty, cuerpo.Institucion ?? string.Empty), false);
+                : new ResultadoRenovacion(new SesionUsuario(cuerpo.Token, cuerpo.ExpiraEn, cuerpo.Rol, cuerpo.DebeCambiarClave, cuerpo.Nombres ?? string.Empty, cuerpo.Apellidos ?? string.Empty, cuerpo.Institucion ?? string.Empty, cuerpo.Correo ?? string.Empty), false);
         }
         catch (Exception error) when (error is HttpRequestException || (error is TaskCanceledException && !cancellationToken.IsCancellationRequested))
         {

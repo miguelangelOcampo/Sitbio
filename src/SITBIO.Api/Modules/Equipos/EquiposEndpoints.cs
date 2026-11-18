@@ -15,11 +15,15 @@ public static class EquiposEndpoints
     public const string PoliticaConsulta = "ConsultaEquipos";
     public const string PoliticaGestion = "GestionEquipos";
 
+    /// <summary>Importación masiva (HU-016): AC-01 en la carga inicial del inventario y AC-02 (matriz RBAC).</summary>
+    public const string PoliticaImportacion = "ImportacionEquipos";
+
     public static IServiceCollection AddModuloEquipos(this IServiceCollection services)
     {
         services.AddScoped<GestionEquipos>();
         services.AddScoped<ConsultaLineaTiempo>();
         services.AddScoped<GestionDocumentos>();
+        services.AddScoped<ImportacionEquipos>();
         services.AddScoped<GestionFotoEquipo>();
         services.AddAuthorizationBuilder()
             .AddPolicy(PoliticaConsulta, politica => politica.RequireRole(
@@ -29,7 +33,8 @@ public static class EquiposEndpoints
                 CodigosRol.PersonalClinico,
                 CodigosRol.GerenteBiomedico,
                 CodigosRol.EnteRegulador))
-            .AddPolicy(PoliticaGestion, politica => politica.RequireRole(CodigosRol.IngenieroBiomedico));
+            .AddPolicy(PoliticaGestion, politica => politica.RequireRole(CodigosRol.IngenieroBiomedico))
+            .AddPolicy(PoliticaImportacion, politica => politica.RequireRole(CodigosRol.AdministradorSistema, CodigosRol.IngenieroBiomedico));
         return services;
     }
 
@@ -87,6 +92,7 @@ public static class EquiposEndpoints
 
         // API-EQ-DOC (HU-015): documentos de la hoja de vida.
         grupo.MapDocumentosEquipo();
+        grupo.MapImportacionEquipos();
         grupo.MapFotoEquipo();
 
         return api;

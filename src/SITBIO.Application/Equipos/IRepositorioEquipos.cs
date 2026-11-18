@@ -20,6 +20,9 @@ public interface IRepositorioEquipos
 
     Task<ElementoCatalogo?> ProveedorAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <summary>Tipos de equipo, ubicaciones y proveedores de la institución (activos e inactivos) para la importación (HU-016).</summary>
+    Task<CatalogosEquipo> CatalogosAsync(CancellationToken cancellationToken);
+
     /// <summary>¿Otro equipo de la institución tiene la misma serie o la misma placa? (RN-001).</summary>
     Task<Duplicados> DuplicadosAsync(string numeroSerie, string placaInventario, Guid? exceptoEquipoId, CancellationToken cancellationToken);
 

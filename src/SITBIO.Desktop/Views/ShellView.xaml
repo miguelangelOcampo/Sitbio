@@ -43,8 +43,14 @@
     <DataTemplate DataType="{x:Type vm:PanelViewModel}">
       <views:PanelView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:PerfilViewModel}">
+      <views:PerfilView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ReportesViewModel}">
       <views:ReportesView />
+    </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:ImportacionViewModel}">
+      <views:ImportacionView />
     </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ExportacionViewModel}">
       <views:ExportacionView />
@@ -227,9 +233,12 @@
               <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding NombreRol}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Rol}" FontSize="12" Foreground="{DynamicResource Brush.Text3}" />
-                <!-- UI-002 voluntario (HU-013); pasará a «Mi perfil» cuando exista -->
-                <Button Content="Cambiar contraseña" Style="{StaticResource LinkButton}" FontSize="12" HorizontalAlignment="Left" Margin="0,4,0,0"
-                        Command="{Binding AbrirCambioClaveCommand}" Visibility="{Binding PuedeCambiarClave, Converter={StaticResource Visible}}" />
+                <!-- D-03: «Mi perfil» (datos y «Cambiar contraseña», UI-002) y «Preferencias» (tema) -->
+                <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding PuedeAbrirPerfil, Converter={StaticResource Visible}}">
+                  <Button Content="Mi perfil" Style="{StaticResource LinkButton}" FontSize="12" Command="{Binding AbrirPerfilCommand}" CommandParameter="perfil" />
+                  <TextBlock Text="·" Foreground="{DynamicResource Brush.Text3}" FontSize="12" Margin="6,0" VerticalAlignment="Center" />
+                  <Button Content="Preferencias" Style="{StaticResource LinkButton}" FontSize="12" Command="{Binding AbrirPerfilCommand}" CommandParameter="preferencias" />
+                </StackPanel>
               </StackPanel>
             </DockPanel>
           </Border>

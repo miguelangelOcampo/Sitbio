@@ -45,6 +45,10 @@
   <Geometry x:Key="Icono.Chevron">M6,9 L12,15 L18,9</Geometry>
   <Geometry x:Key="Icono.UsuarioMas">M15,20 C15,17.2 12.3,15 9,15 C5.7,15 3,17.2 3,20 M9,4.5 A4,4 0 1 0 9,12.5 A4,4 0 1 0 9,4.5 Z M19,8 V14 M16,11 H22</Geometry>
   <Geometry x:Key="Icono.Llave">M10,8.5 A5.5,5.5 0 1 0 21,8.5 A5.5,5.5 0 1 0 10,8.5 Z M11.6,12.4 L3,21 M6,18 L8.5,20.5 M8.5,15.5 L11,18</Geometry>
+  <!-- D-03 Preferencias: tema claro, tema oscuro y seguridad de la cuenta -->
+  <Geometry x:Key="Icono.Sol">M8,12 A4,4 0 1 0 16,12 A4,4 0 1 0 8,12 Z M12,2 V4 M12,20 V22 M4.9,4.9 L6.3,6.3 M17.7,17.7 L19.1,19.1 M2,12 H4 M20,12 H22 M4.9,19.1 L6.3,17.7 M17.7,6.3 L19.1,4.9</Geometry>
+  <Geometry x:Key="Icono.Luna">M20.5,14.5 A8.5,8.5 0 1 1 9.5,3.5 A6.6,6.6 0 0 0 20.5,14.5 Z</Geometry>
+  <Geometry x:Key="Icono.Escudo">M12,22 C12,22 20,18.5 20,12 V5 L12,2 L4,5 V12 C4,18.5 12,22 12,22 Z M9,12 L11,14 L15,10</Geometry>
   <Geometry x:Key="Icono.Salir">M9,21 H5 A2,2 0 0 1 3,19 V5 A2,2 0 0 1 5,3 H9 M16,17 L21,12 L16,7 M21,12 H9</Geometry>
   <Style x:Key="Icono" TargetType="ContentControl">
     <Setter Property="Width" Value="18" />

@@ -414,6 +414,9 @@ public sealed record FilaEquipo(Equipo Equipo, DateOnly Hoy)
 
     public string Placa => Equipo.PlacaInventario;
 
+    /// <summary>E-10: ícono del tipo de equipo (clave de Themes/Icons.xaml).</summary>
+    public string IconoTipo => IconosTipoEquipo.Clave(Equipo.TipoEquipo);
+
     public string Tipo => Equipo.TipoEquipo;
 
     public string Serie => Equipo.NumeroSerie;

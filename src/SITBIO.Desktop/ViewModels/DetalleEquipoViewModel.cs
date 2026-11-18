@@ -63,7 +63,7 @@ public partial class DetalleEquipoViewModel(
         nameof(HayEquipo), nameof(PuedeEditar), nameof(PuedeDarDeBaja), nameof(PuedeRevertir), nameof(EstaDeBaja), nameof(Titulo), nameof(Subtitulo), nameof(Estado), nameof(Tono), nameof(AvisoRegulatorio), nameof(AvisoBaja),
         nameof(ProximoMantenimiento), nameof(DetalleMantenimiento), nameof(MantenimientoVencido), nameof(Calibracion), nameof(DetalleCalibracion),
         nameof(Autorizacion), nameof(DetalleAutorizacion), nameof(AutorizacionEnAlerta), nameof(DatosActivo), nameof(InformacionTecnica),
-        nameof(InformacionRegulatoria), nameof(PuedeCambiarFoto))]
+        nameof(InformacionRegulatoria), nameof(PuedeCambiarFoto), nameof(IconoTipo))]
     private Equipo? _equipo;
 
     private enum Pestana
@@ -241,6 +241,9 @@ public partial class DetalleEquipoViewModel(
     // ---------- Encabezado ----------
 
     public string Titulo => Equipo?.TipoEquipo ?? Placa;
+
+    /// <summary>E-10: ícono del tipo de equipo cuando no hay foto o la preferencia es el ícono.</summary>
+    public string IconoTipo => IconosTipoEquipo.Clave(Equipo?.TipoEquipo);
 
     public string Subtitulo => Equipo is not { } e
         ? string.Empty

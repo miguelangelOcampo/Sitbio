@@ -11,6 +11,7 @@
     <views:TextoVisibleConverter x:Key="TextoVisible" />
     <views:NuloVisibleConverter x:Key="NuloVisible" />
     <views:BytesImagenConverter x:Key="Imagen" />
+    <views:RecursoConverter x:Key="Recurso" />
 
     <!-- Campo con error: Tag = mensaje; borde rojo mientras haya error -->
     <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
@@ -305,7 +306,7 @@
           </StackPanel>
           <Grid Width="56" Height="56" VerticalAlignment="Top">
             <Border CornerRadius="12" Background="{DynamicResource Brush.PrimarySoft}" AutomationProperties.Name="Ícono del tipo de equipo">
-              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Width="28" Height="28"
+              <ContentControl Style="{StaticResource Icono}" Content="{Binding IconoTipo, Converter={StaticResource Recurso}}" Width="28" Height="28"
                               Foreground="{DynamicResource Brush.Primary}" />
             </Border>
             <!-- RF-031: la miniatura reemplaza al ícono si el usuario prefiere fotos; clic para ampliarla -->
@@ -805,7 +806,7 @@
                     <!-- RF-031: miniatura del equipo o, sin foto, el ícono del tipo -->
                     <Grid DockPanel.Dock="Left" Width="36" Height="36" Margin="0,0,12,0" VerticalAlignment="Center">
                       <Border CornerRadius="9" Background="{DynamicResource Brush.PrimarySoft}">
-                        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Width="18" Height="18"
+                        <ContentControl Style="{StaticResource Icono}" Content="{Binding IconoTipo, Converter={StaticResource Recurso}}" Width="18" Height="18"
                                         Foreground="{DynamicResource Brush.Primary}" />
                       </Border>
                       <Border CornerRadius="9" Visibility="{Binding Foto.HayImagen, Converter={StaticResource Visible}}">

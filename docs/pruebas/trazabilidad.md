@@ -2,6 +2,8 @@
 
 Relaciona cada caso de prueba (CP) con su criterio de aceptación (DOC-04), los requisitos (DOC-03) y las pruebas automáticas que lo verifican. Se actualiza en el commit de documentación de cada historia.
 
+**Estado en la v1.1.0 (18/11/2026):** las 28 historias del DOC-04 (HU-001 a HU-028) tienen su sección y sus pruebas automáticas aprobadas; la regresión completa pasó 1 784 de 1 784 ([regresion.md](regresion.md)). El resumen por historia y la evaluación Go/No-Go están en [go-no-go.md](go-no-go.md).
+
 ## HU-001 · Autenticación JWT y acceso por rol
 
 Caso de uso CU-001 · RF-002 · RN-006 · RNF-004 · ADR-003 · ADR-011 · Pantalla UI-001.
@@ -609,6 +611,15 @@ RF-026 · RN-008 · API-KPI (`GET /api/v1/indicadores?desde&hasta`)
 ### Pendientes
 
 - **Pantalla UI-021 (tablero):** resuelta en B2-11 (`ReportesViewModelTests.Tablero_*`).
+
+## HU-008 y HU-009 · Analítica de equipos con K-Means
+
+RF-009 · RF-010 · RF-028 · Pantalla UI-023. El lote en Python (`analytics/`) calcula las métricas por equipo y los grupos K-Means y los escribe en `resultados_analitica` (MongoDB); la API y el cliente solo los consultan.
+
+| CP | Criterio | Requisitos | Pruebas automáticas | Resultado |
+|---|---|---|---|---|
+| CP-011 | El lote agrupa los equipos con K-Means sobre datos sintéticos y guarda el resultado por institución. | RF-009 | `tests/analytics/test_lote.py` (11) y `test_config.py` (2), con pytest y ruff en el job «Analytics» de la CI. | Aprobado en la CI |
+| CP-012 | La vista muestra la dispersión por grupo y el resumen del último lote, sin calcular en tiempo real. | RF-010, RF-028 | Aplicación: `ConsultaAnaliticaTests`. Cliente: `AnaliticaViewModelTests`. | Aprobado |
 
 ## HU-028 · Consulta de planes y solicitud del servicio
 

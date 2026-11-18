@@ -14,7 +14,8 @@ public static class Temas
 }
 
 /// <summary>Preferencias de la estación (DOC-06, Tabla 44). No son datos de la cuenta: no viajan a la API.</summary>
-public sealed record Preferencias(string Tema = Temas.Claro);
+/// <param name="VerFotosEquipo">RF-031: true muestra la foto del equipo cuando tiene una; false, siempre el ícono del tipo.</param>
+public sealed record Preferencias(string Tema = Temas.Claro, bool VerFotosEquipo = true);
 
 /// <summary>Lee y guarda las preferencias locales del cliente.</summary>
 public interface IServicioPreferencias

@@ -40,6 +40,8 @@ public partial class App : Application
         servicios.AddTransient<MiInstitucionViewModel>();
         servicios.AddTransient<IServicioEquipos, ServicioEquiposHttp>();
         servicios.AddTransient<IServicioDocumentosEquipo, ServicioDocumentosEquipoHttp>();
+        servicios.AddTransient<IServicioFotoEquipo, ServicioFotoEquipoHttp>();
+        servicios.AddSingleton<IReductorFoto, ReductorFotoWpf>();
         servicios.AddTransient<IServicioImportacion, ServicioImportacionHttp>();
         servicios.AddTransient<IServicioCatalogos, ServicioCatalogosHttp>();
         servicios.AddTransient<CatalogosViewModel>();

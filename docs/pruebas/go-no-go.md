@@ -40,7 +40,7 @@ Valores medidos el 16/11/2026 sobre `main` (`46bf36c`, PR #29), después de inte
 | CP-032 | RF-029, RN-009 | HU-028 | `CriteriosHu028Tests` | Aprobado |
 | CP-033 | RF-030, RN-010 | HU-002 | `CriteriosHu002Tests` (CA-HU-002-04 y 05) | Aprobado |
 | CP-034 | RF-019 | HU-002 | `CriteriosHu002Tests` (CA-HU-002-06) | Aprobado |
-| CP-035 | RF-031 | HU-015 | `CriteriosRf031Tests`, `GestionFotoEquipoTests`, `FotografiaEquipoTests` | Aprobado en la API (v1.1); la pantalla llega con E-06 |
+| CP-035 | RF-031 | HU-015 | `CriteriosRf031Tests`, `GestionFotoEquipoTests`, `FotografiaEquipoTests`, `ReductorFotoTests`, `FotoEquipoViewModelTests` | Aprobado (v1.1) |
 | CP-036 | RNF-005, RN-008 | Todas | `RegresionCp036Tests` y las pruebas de aislamiento de cada historia | Aprobado |
 | CP-037 | RNF-006, RNF-008 | — | — | **Sin iniciar**: falta la prueba de carga con k6 |
 

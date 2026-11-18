@@ -199,7 +199,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="" Width="0.8*">
+            <DataGridTemplateColumn Header="" Width="Auto" MinWidth="90">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate DataType="{x:Type vm:FilaBandeja}">
                   <Button Content="Asignar" Style="{StaticResource LinkButton}" HorizontalAlignment="Right"

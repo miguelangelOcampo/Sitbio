@@ -385,4 +385,30 @@ public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServici
 public sealed record OpcionCriticidad(string Valor, string Texto, string Ayuda)
 {
     public bool EsCritica => Valor == Criticidades.Critica;
+
+    /// <summary>Descripción corta de la tarjeta de opción (prototipo v0.24).</summary>
+    public string Breve => Valor switch
+    {
+        Criticidades.Critica => "No se puede usar y afecta la atención.",
+        Criticidades.Alta => "Funciona con fallas importantes.",
+        Criticidades.Media => "Falla parcial; hay alternativa.",
+        _ => "Detalle menor o estético.",
+    };
+
+    /// <summary>Clave del ícono de la opción.</summary>
+    public string Icono => Valor switch
+    {
+        Criticidades.Critica => "Icono.AlertaOctagono",
+        Criticidades.Alta or Criticidades.Media => "Icono.AlertaTriangulo",
+        _ => "Icono.Circulo",
+    };
+
+    /// <summary>Clave del pincel del ícono según la gravedad.</summary>
+    public string ColorIcono => Valor switch
+    {
+        Criticidades.Critica => "Brush.Danger",
+        Criticidades.Alta => "Brush.High",
+        Criticidades.Media => "Brush.Warning",
+        _ => "Brush.Text3",
+    };
 }

@@ -166,7 +166,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="" Width="1.6*">
+            <DataGridTemplateColumn Header="" Width="Auto" MinWidth="90">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate DataType="{x:Type vm:FilaOrden}">
                   <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">

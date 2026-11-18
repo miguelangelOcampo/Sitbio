@@ -386,7 +386,7 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="" Width="0.8*">
+              <DataGridTemplateColumn Header="" Width="Auto" MinWidth="90">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate DataType="{x:Type vm:FilaCalibracion}">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
@@ -490,7 +490,7 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="PRÓXIMO" Width="1*">
+              <DataGridTemplateColumn Header="PRÓXIMO" Width="1.15*">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate DataType="{x:Type vm:FilaPlan}">
                     <StackPanel>
@@ -511,7 +511,7 @@
                   </DataTemplate>
                 </DataGridTemplateColumn.CellTemplate>
               </DataGridTemplateColumn>
-              <DataGridTemplateColumn Header="" Width="1.5*"
+              <DataGridTemplateColumn Header="" Width="Auto" MinWidth="90"
                                       Visibility="{Binding Datos.PuedeGestionar, Source={StaticResource Proxy}, Converter={StaticResource Visible}}">
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate DataType="{x:Type vm:FilaPlan}">

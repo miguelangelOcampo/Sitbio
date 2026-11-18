@@ -315,6 +315,9 @@ public sealed record FilaTiquete(Tiquete Tiquete)
 {
     public string Codigo => Tiquete.Codigo;
 
+    /// <summary>Clave del ícono según el tipo de equipo.</summary>
+    public string IconoTipo => IconosTipoEquipo.Clave(Tiquete.TipoEquipo);
+
     public string Equipo => $"{Tiquete.PlacaInventario} · {Tiquete.TipoEquipo}";
 
     public string Ubicacion => Tiquete.Ubicacion;

@@ -34,9 +34,9 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
     <StackPanel Margin="40,32,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
       <TextBlock Text="ANÁLISIS" Style="{StaticResource Overline}" />
-      <TextBlock Text="Analítica de mantenimiento" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
+      <TextBlock Text="Analítica de equipos" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
       <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,24" TextWrapping="Wrap"
-                 Text="Equipos agrupados con K-Means según sus intervenciones, costo y tiempo de atención. Los resultados los calcula el lote de analítica; no son en tiempo real." />
+                 Text="Agrupa los equipos por comportamiento (K-Means sobre intervenciones, costo y tiempo de atención) para priorizar mantenimiento y reposición. Los resultados los calcula el lote de analítica; no son en tiempo real." />
 
       <!-- Aviso -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,0,0,16"

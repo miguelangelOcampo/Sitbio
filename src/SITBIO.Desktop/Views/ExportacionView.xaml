@@ -13,9 +13,9 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
     <StackPanel Margin="40,32,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
       <TextBlock Text="ANÁLISIS" Style="{StaticResource Overline}" />
-      <TextBlock Text="Exportación" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
+      <TextBlock Text="Exportación de reportes" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
       <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,24" TextWrapping="Wrap"
-                 Text="Descarga el historial de órdenes de trabajo o la hoja de vida de un equipo para presentarlos en auditorías." />
+                 Text="Genera reportes en PDF o Excel para auditorías, comités y entes de control: el historial de órdenes de trabajo o la hoja de vida de un equipo." />
 
       <!-- Error -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,0,0,16"

@@ -636,7 +636,19 @@ public sealed record TarjetaAtencion(
     string Descripcion,
     string Cuando,
     string Destino,
-    string? Parametro);
+    string? Parametro)
+{
+    /// <summary>Clave del ícono de la ficha según el tipo de alerta, como en el prototipo.</summary>
+    public string Icono => Tipo switch
+    {
+        "Mantenimiento" => "Icono.Calendario",
+        "Calibración" => "Icono.Regla",
+        "Orden de trabajo" => "Icono.Portapapeles",
+        "Solicitud" => "Icono.Bandeja",
+        "Equipo" => "Icono.Equipo",
+        _ => "Icono.Alerta",
+    };
+}
 
 public sealed record ActividadReciente(string Titulo, string Detalle, string Tipo, string Cuando, TonoTarjeta Tono);
 

@@ -10,6 +10,7 @@
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visible" />
     <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:RecursoConverter x:Key="Recurso" />
     <views:NuloVisibleConverter x:Key="NuloVisible" />
 
     <Style x:Key="CampoCodigo" TargetType="Border" BasedOn="{StaticResource FieldBox}">
@@ -230,10 +231,17 @@
             <DataGridTemplateColumn Header="EQUIPO" Width="1.8*">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate DataType="{x:Type vm:FilaTiquete}">
-                  <StackPanel>
-                    <TextBlock Text="{Binding Equipo}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Equipo}" />
-                    <TextBlock Text="{Binding Ubicacion}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
-                  </StackPanel>
+                  <DockPanel>
+                    <Border DockPanel.Dock="Left" Width="32" Height="32" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Center"
+                            Background="{DynamicResource Brush.PrimarySoft}">
+                      <ContentControl Style="{StaticResource Icono}" Content="{Binding IconoTipo, Converter={StaticResource Recurso}}" Width="16" Height="16"
+                                      Foreground="{DynamicResource Brush.Primary}" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Equipo}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Equipo}" />
+                      <TextBlock Text="{Binding Ubicacion}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                  </DockPanel>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
@@ -267,7 +275,7 @@
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="" Width="0.8*">
+            <DataGridTemplateColumn Header="" Width="Auto" MinWidth="90">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate DataType="{x:Type vm:FilaTiquete}">
                   <Button Content="Ver detalle" Style="{StaticResource LinkButton}" HorizontalAlignment="Right"

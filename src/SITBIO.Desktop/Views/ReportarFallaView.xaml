@@ -11,6 +11,7 @@
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visible" />
     <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:RecursoConverter x:Key="Recurso" />
     <views:NuloVisibleConverter x:Key="NuloVisible" />
 
     <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
@@ -45,17 +46,38 @@
       </Setter>
     </Style>
 
-    <!-- Criticidad como grupo de RadioButton con texto (CMP-UI-008): la selección vive en el ListBox. -->
+    <!-- Criticidad como tarjetas de opción con radio, ícono y descripción (CMP-UI-008): la selección vive en el ListBox. -->
     <Style x:Key="OpcionCriticidad" TargetType="ListBoxItem">
       <Setter Property="Padding" Value="0" />
-      <Setter Property="Margin" Value="0,0,24,0" />
+      <Setter Property="Margin" Value="0,0,10,10" />
       <Setter Property="FocusVisualStyle" Value="{x:Null}" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="ListBoxItem">
-            <RadioButton IsChecked="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
-                         GroupName="Criticidad" Content="{Binding Texto}" Foreground="{DynamicResource Brush.Text}"
-                         AutomationProperties.Name="{Binding Texto, StringFormat='Criticidad {0}'}" />
+            <Border x:Name="Caja" BorderThickness="1" BorderBrush="{DynamicResource Brush.BorderControl}" Background="{DynamicResource Brush.Surface}"
+                    CornerRadius="{StaticResource Radius.Button}" Padding="12,10">
+              <RadioButton IsChecked="{Binding IsSelected, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" GroupName="Criticidad"
+                           VerticalContentAlignment="Top" Foreground="{DynamicResource Brush.Text}"
+                           AutomationProperties.Name="{Binding Texto, StringFormat='Criticidad {0}'}" AutomationProperties.HelpText="{Binding Breve}">
+                <StackPanel Margin="4,-2,0,0">
+                  <StackPanel Orientation="Horizontal">
+                    <ContentControl Style="{StaticResource Icono}" Content="{Binding Icono, Converter={StaticResource Recurso}}" Width="16" Height="16" Margin="0,0,6,0"
+                                    Foreground="{Binding ColorIcono, Converter={StaticResource Recurso}}" />
+                    <TextBlock Text="{Binding Texto}" FontWeight="SemiBold" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Breve}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" TextWrapping="Wrap" Margin="0,2,0,0" />
+                </StackPanel>
+              </RadioButton>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Caja" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                <Setter TargetName="Caja" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Caja" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
       </Setter>
@@ -193,12 +215,12 @@
 
         <!-- 3. Criticidad (CMP-UI-008) -->
         <TextBlock Text="Criticidad *" Style="{StaticResource FieldLabel}" Margin="0,22,0,8" />
-        <ListBox ItemsSource="{x:Static vm:ReportarFallaViewModel.OpcionesCriticidad}" SelectedItem="{Binding Criticidad}"
+        <ListBox ItemsSource="{x:Static vm:ReportarFallaViewModel.OpcionesCriticidad}" SelectedItem="{Binding Criticidad}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                  ItemContainerStyle="{StaticResource OpcionCriticidad}" Background="Transparent" BorderThickness="0"
                  AutomationProperties.Name="Criticidad de la falla">
           <ListBox.ItemsPanel>
             <ItemsPanelTemplate>
-              <WrapPanel Orientation="Horizontal" />
+              <UniformGrid Columns="4" Margin="0,0,-10,0" />
             </ItemsPanelTemplate>
           </ListBox.ItemsPanel>
         </ListBox>

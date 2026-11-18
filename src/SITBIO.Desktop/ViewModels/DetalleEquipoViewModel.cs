@@ -7,7 +7,7 @@ namespace Sitbio.Desktop.ViewModels;
 /// <summary>
 /// UI-006 Hoja de vida del equipo (HU-002; RF-030, RN-010). Pestañas «Resumen», «Información
 /// técnica», «Mantenimientos» (plan, órdenes y calibraciones), «Historial» (línea de tiempo, HU-023) y
-/// «Documentos» (HU-015).
+/// «Documentos» (HU-015). El encabezado muestra la foto del equipo (RF-031) o el ícono del tipo, según Preferencias.
 /// AC-02 edita (UI-007), da de baja y revierte la baja (HU-014) desde aquí; la API lo valida.
 /// </summary>
 public partial class DetalleEquipoViewModel(
@@ -22,7 +22,10 @@ public partial class DetalleEquipoViewModel(
     IServicioOrdenes? ordenes = null,
     string? rol = null,
     IServicioDocumentosEquipo? documentos = null,
-    IDialogoArchivos? dialogo = null) : ObservableObject
+    IDialogoArchivos? dialogo = null,
+    IServicioFotoEquipo? fotos = null,
+    IReductorFoto? reductor = null,
+    bool verFotos = true) : ObservableObject
 {
     public string Placa { get; } = placa;
 
@@ -60,7 +63,7 @@ public partial class DetalleEquipoViewModel(
         nameof(HayEquipo), nameof(PuedeEditar), nameof(PuedeDarDeBaja), nameof(PuedeRevertir), nameof(EstaDeBaja), nameof(Titulo), nameof(Subtitulo), nameof(Estado), nameof(Tono), nameof(AvisoRegulatorio), nameof(AvisoBaja),
         nameof(ProximoMantenimiento), nameof(DetalleMantenimiento), nameof(MantenimientoVencido), nameof(Calibracion), nameof(DetalleCalibracion),
         nameof(Autorizacion), nameof(DetalleAutorizacion), nameof(AutorizacionEnAlerta), nameof(DatosActivo), nameof(InformacionTecnica),
-        nameof(InformacionRegulatoria))]
+        nameof(InformacionRegulatoria), nameof(PuedeCambiarFoto))]
     private Equipo? _equipo;
 
     private enum Pestana
@@ -164,6 +167,14 @@ public partial class DetalleEquipoViewModel(
     /// <summary>Si el equipo cambió (edición, baja), la pestaña «Mantenimientos» se vuelve a consultar.</summary>
     partial void OnEquipoChanged(Equipo? oldValue, Equipo? newValue)
     {
+        TieneFoto = newValue?.TieneFoto == true;
+        if (!TieneFoto)
+        {
+            Miniatura = null;
+            _vista = null;
+        }
+
+        _ = CargarMiniaturaAsync();
         if (Mantenimientos is null)
         {
             return;
@@ -418,6 +429,91 @@ public partial class DetalleEquipoViewModel(
             Confirmacion = null;
             Baja = new BajaEquipoViewModel(Placa, equipo.TipoEquipo, esReversion);
         }
+    }
+
+    // ---------- Fotografía del equipo (RF-031) ----------
+
+    private byte[]? _vista;
+
+    /// <summary>El equipo tiene foto guardada (aunque el usuario prefiera ver el ícono).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PuedeVerFoto), nameof(TextoBotonFoto))]
+    private bool _tieneFoto;
+
+    public string TextoBotonFoto => TieneFoto ? "Cambiar la fotografía" : "Agregar una fotografía";
+
+    /// <summary>Miniatura de 128 px para el encabezado; null = ícono del tipo.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MuestraFoto))]
+    private byte[]? _miniatura;
+
+    /// <summary>Preferencias «Fotografía» y foto disponible; si no, el ícono del tipo.</summary>
+    public bool MuestraFoto => verFotos && Miniatura is not null;
+
+    /// <summary>«Ver fotografía» aunque la preferencia sea el ícono.</summary>
+    public bool PuedeVerFoto => TieneFoto && fotos is not null;
+
+    /// <summary>Botón de la cámara: solo AC-02 y con el equipo activo (la API también lo valida).</summary>
+    public bool PuedeCambiarFoto => PuedeEditar && fotos is not null && reductor is not null && dialogo is not null;
+
+    /// <summary>Diálogo para agregar, cambiar o quitar la foto; null = cerrado.</summary>
+    [ObservableProperty]
+    private FotoEquipoViewModel? _dialogoFoto;
+
+    /// <summary>Vista de 512 px ampliada; null = cerrada.</summary>
+    [ObservableProperty]
+    private byte[]? _fotoAmpliada;
+
+    private async Task CargarMiniaturaAsync()
+    {
+        if (!verFotos || fotos is null || !TieneFoto || Miniatura is not null)
+        {
+            return;
+        }
+
+        Miniatura = await fotos.DescargarAsync(equipoId, ReductorFotoWpf.LadoMiniatura, CancellationToken.None);
+    }
+
+    private async Task<byte[]?> VistaAsync()
+    {
+        if (_vista is null && TieneFoto && fotos is not null)
+        {
+            _vista = await fotos.DescargarAsync(equipoId, ReductorFotoWpf.LadoMaximoVista, CancellationToken.None);
+        }
+
+        return _vista;
+    }
+
+    [RelayCommand]
+    private async Task VerFotoAsync() => FotoAmpliada = await VistaAsync();
+
+    [RelayCommand]
+    private void CerrarFotoAmpliada() => FotoAmpliada = null;
+
+    [RelayCommand]
+    private async Task AbrirDialogoFotoAsync()
+    {
+        if (!PuedeCambiarFoto)
+        {
+            return;
+        }
+
+        var dialogoFoto = new FotoEquipoViewModel(fotos!, reductor!, dialogo!, equipoId, Placa, await VistaAsync());
+        dialogoFoto.Cambiada += async (_, cambio) =>
+        {
+            DialogoFoto = null;
+            _vista = cambio.Vista;
+            TieneFoto = cambio.Miniatura is not null;
+            Miniatura = cambio.Miniatura;
+            Confirmacion = cambio.Confirmacion;
+            if (alCambiarEstado is not null)
+            {
+                await alCambiarEstado();
+            }
+        };
+        dialogoFoto.Cancelado += (_, _) => DialogoFoto = null;
+        Confirmacion = null;
+        DialogoFoto = dialogoFoto;
     }
 
     /// <summary>Migas: vuelve a «Equipos biomédicos» con los filtros y la página que tenía.</summary>

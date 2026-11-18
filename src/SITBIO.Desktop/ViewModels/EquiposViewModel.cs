@@ -9,6 +9,7 @@ namespace Sitbio.Desktop.ViewModels;
 /// filtra por estado, clase de riesgo y calibración en la API (paginación del servidor). Al abrir un
 /// equipo muestra su hoja de vida (UI-006) y, al volver, la lista conserva filtros y página (NAV-006).
 /// El Ingeniero Biomédico (AC-02) registra y edita con el formulario UI-007; la API vuelve a validar el permiso.
+/// Cada fila muestra la miniatura del equipo (RF-031) o el ícono del tipo, según Preferencias.
 /// </summary>
 public partial class EquiposViewModel(
     IServicioEquipos servicio,
@@ -18,7 +19,10 @@ public partial class EquiposViewModel(
     IServicioMantenimiento? mantenimiento = null,
     IServicioOrdenes? ordenes = null,
     IServicioDocumentosEquipo? documentos = null,
-    IDialogoArchivos? dialogo = null) : ObservableObject, IRecibeParametro
+    IDialogoArchivos? dialogo = null,
+    IServicioFotoEquipo? fotos = null,
+    IReductorFoto? reductor = null,
+    IServicioPreferencias? preferencias = null) : ObservableObject, IRecibeParametro
 {
     public const string IdPantalla = "UI-005";
 
@@ -162,11 +166,16 @@ public partial class EquiposViewModel(
             return Task.CompletedTask;
         }
 
-        var detalle = new DetalleEquipoViewModel(
-            servicio, tiempo, fila.Equipo.Id, fila.Placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), mantenimiento, ordenes, sesion.Sesion?.Rol, documentos, dialogo);
+        var detalle = NuevoDetalle(fila.Equipo.Id, fila.Placa);
         Detalle = detalle;
         return detalle.CargarCommand.ExecuteAsync(null);
     }
+
+    /// <summary>RF-031: «Fotografía» (por omisión) o «Ícono del tipo» en Preferencias.</summary>
+    private bool VerFotos => preferencias?.Leer().VerFotosEquipo ?? true;
+
+    private DetalleEquipoViewModel NuevoDetalle(Guid id, string placa) => new(
+        servicio, tiempo, id, placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), mantenimiento, ordenes, sesion.Sesion?.Rol, documentos, dialogo, fotos, reductor, VerFotos);
 
     /// <summary>Dato para abrir la hoja de vida desde otra pantalla (búsqueda global, D-04): «id|placa».</summary>
     public static string ParametroDetalle(Guid id, string placa) => $"{id}|{placa}";
@@ -181,7 +190,7 @@ public partial class EquiposViewModel(
         }
 
         var placa = partes.Length > 1 ? partes[1] : string.Empty;
-        var detalle = new DetalleEquipoViewModel(servicio, tiempo, id, placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina));
+        var detalle = NuevoDetalle(id, placa);
         Detalle = detalle;
         detalle.CargarCommand.Execute(null);
     }
@@ -334,6 +343,24 @@ public partial class EquiposViewModel(
             Tamano: TamanoPagina);
     }
 
+    /// <summary>Pide las miniaturas de la página en paralelo; si el usuario ya cambió de página, se descartan.</summary>
+    private async Task CargarMiniaturasAsync(IReadOnlyList<FilaEquipo> filas, int consulta)
+    {
+        if (fotos is null || !VerFotos)
+        {
+            return;
+        }
+
+        await Task.WhenAll(filas.Where(f => f.Equipo.TieneFoto).Select(async fila =>
+        {
+            var imagen = await fotos.DescargarAsync(fila.Equipo.Id, ReductorFotoWpf.LadoMiniatura, CancellationToken.None);
+            if (consulta == _consulta)
+            {
+                fila.Foto.Imagen = imagen;
+            }
+        }));
+    }
+
     private async Task ConsultarAsync(int pagina)
     {
         // Si el usuario cambia los filtros antes de que llegue la respuesta, solo vale la última consulta.
@@ -352,6 +379,7 @@ public partial class EquiposViewModel(
             Total = resultado.Total;
             Pagina = pagina;
             Aviso = null;
+            _ = CargarMiniaturasAsync(Filas, consulta);
         }
         catch (ErrorApi error)
         {
@@ -381,6 +409,9 @@ public partial class EquiposViewModel(
 /// <summary>Fila de UI-005 con lo que la tabla muestra.</summary>
 public sealed record FilaEquipo(Equipo Equipo, DateOnly Hoy)
 {
+    /// <summary>Miniatura de 128 px (RF-031); mientras no llega, o sin foto, el ícono del tipo.</summary>
+    public MiniaturaEquipo Foto { get; } = new();
+
     public string Placa => Equipo.PlacaInventario;
 
     public string Tipo => Equipo.TipoEquipo;
@@ -425,4 +456,14 @@ public sealed record FilaEquipo(Equipo Equipo, DateOnly Hoy)
             return dias is >= 0 and <= 7 ? (dias == 0 ? "hoy" : $"en {dias} d") : null;
         }
     }
+}
+
+/// <summary>Miniatura que llega después de la fila: la tabla aparece de inmediato y las fotos se completan.</summary>
+public partial class MiniaturaEquipo : ObservableObject
+{
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HayImagen))]
+    private byte[]? _imagen;
+
+    public bool HayImagen => Imagen is not null;
 }

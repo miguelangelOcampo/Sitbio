@@ -179,6 +179,29 @@
         </UniformGrid>
         <TextBlock Text="Se guarda en este equipo y se aplica de inmediato." Style="{StaticResource Muted}" FontSize="13" Margin="0,10,0,0" />
 
+        <!-- RF-031: foto del equipo o ícono del tipo en la lista de equipos y en la hoja de vida -->
+        <TextBlock Text="Equipos en listas y encabezados" Style="{StaticResource Etiqueta}" Margin="0,20,0,8" />
+        <UniformGrid Columns="2" AutomationProperties.Name="Imagen de los equipos">
+          <RadioButton Style="{StaticResource OpcionTema}" GroupName="ImagenEquipo" IsChecked="{Binding VerFotosEquipo}" Margin="0,0,6,0" AutomationProperties.Name="Fotografía">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Imagen}" Width="18" Height="18" Margin="0,0,6,0" />
+                <TextBlock Text="Fotografía" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="Muestra la foto del equipo cuando tiene una." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Style="{StaticResource OpcionTema}" GroupName="ImagenEquipo" IsChecked="{Binding VerIconosEquipo}" Margin="6,0,0,0" AutomationProperties.Name="Ícono del tipo">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Width="18" Height="18" Margin="0,0,6,0" />
+                <TextBlock Text="Ícono del tipo" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="Siempre el ícono, aunque tenga foto." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+          </RadioButton>
+        </UniformGrid>
+
         <Border Style="{StaticResource Section}" Margin="0,24,0,0">
           <StackPanel>
             <TextBlock Text="Idioma y formato" Style="{StaticResource Etiqueta}" />

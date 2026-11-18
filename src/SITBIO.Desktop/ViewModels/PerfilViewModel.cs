@@ -121,6 +121,47 @@ public partial class PerfilViewModel : ObservableObject
         OnPropertyChanged(nameof(EsOscuro));
     }
 
+    // ---------- Imagen de los equipos (RF-031) ----------
+
+    /// <summary>«Fotografía»: la lista y la hoja de vida muestran la foto del equipo cuando tiene una.</summary>
+    public bool VerFotosEquipo
+    {
+        get => _preferencias.Leer().VerFotosEquipo;
+        set
+        {
+            if (value)
+            {
+                CambiarImagenEquipo(verFotos: true);
+            }
+        }
+    }
+
+    /// <summary>«Ícono del tipo»: siempre el ícono, aunque el equipo tenga foto.</summary>
+    public bool VerIconosEquipo
+    {
+        get => !_preferencias.Leer().VerFotosEquipo;
+        set
+        {
+            if (value)
+            {
+                CambiarImagenEquipo(verFotos: false);
+            }
+        }
+    }
+
+    private void CambiarImagenEquipo(bool verFotos)
+    {
+        var actuales = _preferencias.Leer();
+        if (actuales.VerFotosEquipo == verFotos)
+        {
+            return;
+        }
+
+        _preferencias.Guardar(actuales with { VerFotosEquipo = verFotos });
+        OnPropertyChanged(nameof(VerFotosEquipo));
+        OnPropertyChanged(nameof(VerIconosEquipo));
+    }
+
     [RelayCommand]
     private void CambiarClave() => CambioClaveSolicitado?.Invoke(this, EventArgs.Empty);
 }

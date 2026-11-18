@@ -10,6 +10,7 @@
     <BooleanToVisibilityConverter x:Key="Visible" />
     <views:TextoVisibleConverter x:Key="TextoVisible" />
     <views:NuloVisibleConverter x:Key="NuloVisible" />
+    <views:BytesImagenConverter x:Key="Imagen" />
 
     <!-- Campo con error: Tag = mensaje; borde rojo mientras haya error -->
     <Style x:Key="CampoValidado" TargetType="Border" BasedOn="{StaticResource FieldBox}">
@@ -293,6 +294,8 @@
           </Grid.ColumnDefinitions>
           <!-- Editar (UI-007) y Dar de baja (HU-014): solo AC-02 y con el equipo activo -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button Content="Ver fotografía" Style="{StaticResource LinkButton}" Command="{Binding VerFotoCommand}" Margin="0,0,24,0"
+                    Visibility="{Binding PuedeVerFoto, Converter={StaticResource Visible}}" />
             <Button Content="Editar" Style="{StaticResource LinkButton}" AutomationProperties.Name="Editar equipo"
                     Command="{Binding DataContext.EditarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Equipo}"
                     Visibility="{Binding PuedeEditar, Converter={StaticResource Visible}}" />
@@ -300,11 +303,42 @@
                     AutomationProperties.Name="Dar de baja el equipo" Command="{Binding AbrirBajaCommand}"
                     Visibility="{Binding PuedeDarDeBaja, Converter={StaticResource Visible}}" />
           </StackPanel>
-          <Border Width="56" Height="56" CornerRadius="12" Background="{DynamicResource Brush.PrimarySoft}" VerticalAlignment="Top"
-                  AutomationProperties.Name="Ícono del tipo de equipo">
-            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Width="28" Height="28"
-                            Foreground="{DynamicResource Brush.Primary}" />
-          </Border>
+          <Grid Width="56" Height="56" VerticalAlignment="Top">
+            <Border CornerRadius="12" Background="{DynamicResource Brush.PrimarySoft}" AutomationProperties.Name="Ícono del tipo de equipo">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Width="28" Height="28"
+                              Foreground="{DynamicResource Brush.Primary}" />
+            </Border>
+            <!-- RF-031: la miniatura reemplaza al ícono si el usuario prefiere fotos; clic para ampliarla -->
+            <Button Command="{Binding VerFotoCommand}" Cursor="Hand" ToolTip="Ver la fotografía ampliada"
+                    AutomationProperties.Name="Ver la fotografía ampliada" Visibility="{Binding MuestraFoto, Converter={StaticResource Visible}}">
+              <Button.Template>
+                <ControlTemplate TargetType="Button">
+                  <Border CornerRadius="12" Background="{DynamicResource Brush.Surface3}">
+                    <Border.OpacityMask>
+                      <VisualBrush>
+                        <VisualBrush.Visual>
+                          <Border Width="56" Height="56" CornerRadius="12" Background="Black" />
+                        </VisualBrush.Visual>
+                      </VisualBrush>
+                    </Border.OpacityMask>
+                    <Image Source="{Binding Miniatura, Converter={StaticResource Imagen}}" Stretch="UniformToFill" RenderOptions.BitmapScalingMode="HighQuality" />
+                  </Border>
+                </ControlTemplate>
+              </Button.Template>
+            </Button>
+            <Button Width="26" Height="26" Margin="0,0,-6,-6" HorizontalAlignment="Right" VerticalAlignment="Bottom" Cursor="Hand"
+                    Command="{Binding AbrirDialogoFotoCommand}" ToolTip="{Binding TextoBotonFoto}"
+                    AutomationProperties.Name="{Binding TextoBotonFoto}" Visibility="{Binding PuedeCambiarFoto, Converter={StaticResource Visible}}">
+              <Button.Template>
+                <ControlTemplate TargetType="Button">
+                  <Border CornerRadius="13" Background="{DynamicResource Brush.Primary}" BorderBrush="{DynamicResource Brush.Surface}" BorderThickness="2">
+                    <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Camara}" Width="13" Height="13"
+                                    Foreground="{DynamicResource Brush.OnPrimary}" />
+                  </Border>
+                </ControlTemplate>
+              </Button.Template>
+            </Button>
+          </Grid>
           <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal">
               <TextBlock Text="{Binding Titulo}" Style="{StaticResource PageTitle}" />
@@ -767,10 +801,24 @@
             <DataGridTemplateColumn Header="EQUIPO" Width="1.8*">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate DataType="{x:Type vm:FilaEquipo}">
-                  <StackPanel>
-                    <TextBlock Text="{Binding Tipo}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Tipo}" />
-                    <TextBlock Text="{Binding Serie}" FontFamily="Consolas" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
-                  </StackPanel>
+                  <DockPanel>
+                    <!-- RF-031: miniatura del equipo o, sin foto, el ícono del tipo -->
+                    <Grid DockPanel.Dock="Left" Width="36" Height="36" Margin="0,0,12,0" VerticalAlignment="Center">
+                      <Border CornerRadius="9" Background="{DynamicResource Brush.PrimarySoft}">
+                        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Equipo}" Width="18" Height="18"
+                                        Foreground="{DynamicResource Brush.Primary}" />
+                      </Border>
+                      <Border CornerRadius="9" Visibility="{Binding Foto.HayImagen, Converter={StaticResource Visible}}">
+                        <Border.Background>
+                          <ImageBrush ImageSource="{Binding Foto.Imagen, Converter={StaticResource Imagen}}" Stretch="UniformToFill" />
+                        </Border.Background>
+                      </Border>
+                    </Grid>
+                    <StackPanel VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Tipo}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" ToolTip="{Binding Tipo}" />
+                      <TextBlock Text="{Binding Serie}" FontFamily="Consolas" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
+                    </StackPanel>
+                  </DockPanel>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>
@@ -1111,6 +1159,80 @@
         </DockPanel>
       </Border>
     </Grid>
+    <!-- ================= RF-031 Agregar o cambiar fotografía (solo AC-02; prototipo FotoEquipo.tsx) ================= -->
+    <Grid DataContext="{Binding Detalle.DialogoFoto}" Visibility="{Binding Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CancelarCommand}" />
+      <Border Style="{StaticResource Dialog}" Width="560" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="{Binding Titulo}">
+        <StackPanel>
+          <StackPanel Orientation="Horizontal">
+            <Border Width="36" Height="36" CornerRadius="10" Margin="0,0,12,0" Background="{DynamicResource Brush.PrimarySoft}">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Camara}" Foreground="{DynamicResource Brush.Primary}" />
+            </Border>
+            <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="18" VerticalAlignment="Center" />
+          </StackPanel>
+
+          <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0">
+            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}">
+              <Run Text="Antes de subirla: " FontWeight="SemiBold" /><Run Text="{x:Static vm:FotoEquipoViewModel.AvisoDatosPersonales}" />
+            </TextBlock>
+          </Border>
+
+          <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,16,0,0"
+                          Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" />
+
+          <DockPanel Margin="0,16,0,0">
+            <Border DockPanel.Dock="Left" Width="160" Height="160" CornerRadius="14" Background="{DynamicResource Brush.Surface3}" Margin="0,0,16,0">
+              <Grid>
+                <TextBlock Text="Sin fotografía" Style="{StaticResource Muted}" FontSize="13" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Border CornerRadius="14" Visibility="{Binding HayVistaPrevia, Converter={StaticResource Visible}}" AutomationProperties.Name="Vista previa">
+                  <Border.Background>
+                    <ImageBrush ImageSource="{Binding VistaPrevia, Converter={StaticResource Imagen}}" Stretch="UniformToFill" />
+                  </Border.Background>
+                </Border>
+              </Grid>
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+              <Button Content="Elegir imagen…" Style="{StaticResource LinkButton}" Command="{Binding ElegirImagenCommand}" HorizontalAlignment="Left" />
+              <TextBlock Text="{Binding TextoPeso}" FontSize="13" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"
+                         Visibility="{Binding TextoPeso, Converter={StaticResource TextoVisible}}" />
+              <TextBlock Text="{Binding Error}" Style="{StaticResource FieldError}" Visibility="{Binding Error, Converter={StaticResource TextoVisible}}" />
+              <TextBlock Text="JPG, PNG o WebP de hasta 10 MB." Style="{StaticResource Muted}" FontSize="13" Margin="0,8,0,0" />
+              <Button Content="Quitar fotografía" Style="{StaticResource LinkButton}" Foreground="{DynamicResource Brush.DangerText}" HorizontalAlignment="Left"
+                      Margin="0,10,0,0" Command="{Binding QuitarCommand}" Visibility="{Binding PuedeQuitar, Converter={StaticResource Visible}}" />
+            </StackPanel>
+          </DockPanel>
+
+          <CheckBox Style="{StaticResource Casilla}" IsChecked="{Binding AvisoAceptado}" Margin="0,16,0,0"
+                    Content="Confirmo que la foto muestra solo el equipo, sin datos personales." />
+
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+            <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0" IsCancel="True"
+                    Command="{Binding CancelarCommand}" />
+            <Button Content="Guardar fotografía" Style="{StaticResource PrimaryButton}" Command="{Binding GuardarCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ================= RF-031 Fotografía ampliada (512 px) ================= -->
+    <Grid DataContext="{Binding Detalle}" Visibility="{Binding FotoAmpliada, Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CerrarFotoAmpliadaCommand}" />
+      <Border Style="{StaticResource Dialog}" MaxWidth="620" HorizontalAlignment="Center" VerticalAlignment="Center" AutomationProperties.Name="Fotografía del equipo">
+        <StackPanel>
+          <TextBlock Style="{StaticResource SectionTitle}" FontSize="18">
+            <Run Text="{Binding Titulo, Mode=OneWay}" /><Run Text=" " /><Run Text="{Binding Placa, Mode=OneWay}" />
+          </TextBlock>
+          <Border CornerRadius="10" Background="{DynamicResource Brush.Surface3}" Margin="0,16,0,0">
+            <Image Source="{Binding FotoAmpliada, Converter={StaticResource Imagen}}" MaxHeight="460" Stretch="Uniform"
+                   RenderOptions.BitmapScalingMode="HighQuality" AutomationProperties.Name="Fotografía del equipo" />
+          </Border>
+          <TextBlock Text="Guardada a 512 px y 128 px; el original no se conserva." Style="{StaticResource Muted}" FontSize="13" Margin="0,8,0,0" />
+          <Button Content="Cerrar" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,16,0,0" IsCancel="True"
+                  Command="{Binding CerrarFotoAmpliadaCommand}" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
     <!-- ================= HU-015 Agregar documento (solo AC-02; prototipo HojaVida.tsx) ================= -->
     <Grid DataContext="{Binding Detalle.Documentos}" Visibility="{Binding Agregando, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
       <Button Style="{StaticResource Velo}" Command="{Binding CancelarAgregarCommand}" />

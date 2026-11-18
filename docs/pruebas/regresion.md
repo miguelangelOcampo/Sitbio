@@ -1,4 +1,54 @@
-# Regresión final (C-01 e I-03)
+# Regresión y prueba de restauración
+
+## v1.1.0 (F-01)
+
+Ejecución de toda la suite sobre `main` con las historias de la v1.1.0 integradas (D-01 a D-07 y E-01 a E-11), con PostgreSQL y MongoDB reales en Docker y la semilla de demostración «Hospital Demo SITBIO» cargada en `sitbio_dev`.
+
+- **Fecha:** 18/11/2026
+- **Commit base:** `3fc2bd7` (`main`, PR #43: D-07, paridad con el prototipo v0.24).
+- **Cómo reproducir:** `scripts/semilla-demo.sh` (si la institución de demostración no existe) y luego `scripts/regresion.sh`. Desde esta entrega el script corre los proyectos de prueba uno a la vez y termina con error si alguno falla.
+
+### Resultado
+
+| Proyecto | Pruebas | Correctas | Con error | Omitidas |
+|---|---|---|---|---|
+| SITBIO.Domain.Tests | 200 | 200 | 0 | 0 |
+| SITBIO.Application.Tests | 357 | 357 | 0 | 0 |
+| SITBIO.Infrastructure.Tests | 142 | 142 | 0 | 0 |
+| SITBIO.Api.Tests | 407 | 407 | 0 | 0 |
+| SITBIO.Desktop.Tests | 678 | 678 | 0 | 0 |
+| **Total .NET** | **1 784** | **1 784** | **0** | **0** |
+| tests/analytics (pytest) | — | — | — | Se ejecuta en la CI (job «Analytics»); el entorno local no tiene scikit-learn |
+
+Con las bases activas no se omite ninguna prueba de integración. La cobertura de líneas no se volvió a medir en esta ejecución; la última medición es la de la v1.0.0 (más abajo).
+
+### Defecto encontrado y corregido
+
+En la primera ejecución (solución completa en paralelo) falló 1 de 1 784: `RepositorioOrdenesPostgresTests.Registrar_AsignacionesSimultaneasDelMismoTiquete_SoloUnaGana`. El defecto estaba en la prueba, no en el producto: su ayudante `Asignar` decía asignar «como lo hace `GestionOrdenes`», pero omitía la verificación previa del estado del tiquete. Cuando un hilo leía el tiquete después de que otro ya lo había asignado, el dominio lanzaba `InvalidOperationException` en lugar del conflicto OT-001 que devuelve la API. `GestionOrdenes` sí hace esa verificación, así que el usuario recibe el 409 esperado. La prueba ahora repite la verificación, y pasó 10 de 10 veces seguidas; la regresión completa, un proyecto a la vez, quedó en 1 784 de 1 784.
+
+### Casos de prueba nuevos de la v1.1.0
+
+| CP | Historia | Pruebas automáticas | Estado |
+|---|---|---|---|
+| CP-019 | HU-015 (documentos del equipo, RF-015) | `CriteriosHu015Tests` (9 casos: PDF, JPG y PNG; otros formatos y tamaños con 400; nombre repetido; roles; aislamiento; plan lleno con MSG-019; desactivación con bitácora) | Aprobado |
+| CP-020 | HU-016 (importación masiva, RF-016) | `CriteriosHu016Tests` (7 casos: CSV y Excel; vista previa sin guardar; duplicados y filas inválidas con informe por fila; cupo del plan; roles; aislamiento), `PlanillaImportacionTests`, `ImportacionViewModelTests` | Aprobado |
+| CP-035 | HU-015 (fotografía, RF-031) | `CriteriosRf031Tests` (7 casos: solo las dos versiones reducidas; rechazo con 400; plan lleno; hoja de vida con foto por tamaño; cambiar y quitar; roles; aislamiento), `FotoEquipoViewModelTests` | Aprobado |
+
+El resto de los CP (CP-001 a CP-037) siguen aprobados con las mismas pruebas de la matriz de [go-no-go.md](go-no-go.md). Siguen igual que en la v1.0.0 CP-011 (aprobado en la CI, no en local) y CP-037 (sin iniciar: falta la prueba de carga con k6).
+
+### Prueba de restauración (DOC-09, Tablas 32 y 33)
+
+`scripts/prueba-restauracion.sh` respalda DEP-DEV con los comandos de la Tabla 32 (`pg_dump -Fc` y `mongodump --archive --gzip`) y los restaura en un DEP-QA desechable: contenedores nuevos de `postgres:16` y `mongo:7`, sin volúmenes y publicados solo en 127.0.0.1. Restaura con `pg_restore -c` y `mongorestore --drop`, compara el conteo de cada tabla y colección, y corre las pruebas de humo con la API apuntando a DEP-QA. Deja el respaldo y el registro en `TestResults/restauracion-<fecha>/`.
+
+| Fecha | Recurso | Respaldo | Tiempo real | Resultado |
+|---|---|---|---|---|
+| 18/11/2026 | PostgreSQL (DEP-QA) | `sitbio_20261118.dump`, 208 KB, 0,7 s | 1,3 s | Correcto: 18 tablas y 2 409 filas, iguales al origen |
+| 18/11/2026 | MongoDB (DEP-QA) | `sitbio_20261118.gz`, 152 KB, 0,7 s | 0,9 s | Correcto: 4 colecciones y 2 795 documentos, iguales al origen |
+| 18/11/2026 | Ambas, con pruebas de humo | — | 2,1 s (RTO: 30 min) | `GET /api/v1/salud` → 200; `POST /api/v1/auth/login` con un correo inexistente → 401, no 500, lo que confirma que la API consulta la base restaurada |
+
+Los tiempos corresponden al volumen de la semilla de demostración (seis meses simulados de una institución) más las instituciones de prueba; con el volumen de una IPS en producción serán mayores, pero el margen frente al RTO de 30 minutos es amplio. Esta fila es la que se copia en la Tabla 33 del DOC-09 (F-02).
+
+## v1.0.0 (C-01 e I-03)
 
 Ejecución de toda la suite sobre `main` con todas las historias del alcance integradas, con PostgreSQL y MongoDB reales en Docker.
 
@@ -7,7 +57,7 @@ Ejecución de toda la suite sobre `main` con todas las historias del alcance int
 - **Cómo reproducir:** `scripts/regresion.sh`. Levanta `sitbio-postgres` y `sitbio-mongo` con `docker compose`, lee las credenciales de `.env` (o de `$SITBIO_ENV`) sin mostrarlas, compila en Release y corre cada proyecto de pruebas por separado. Deja los TRX en `TestResults/regresion-<fecha>/`.
 - **Primera ejecución (C-01):** 15/11/2026 sobre `ec14c6a` (PR #25), 1 401 de 1 401.
 
-## Resultado
+### Resultado
 
 | Proyecto | Pruebas | Correctas | Con error | Omitidas |
 |---|---|---|---|---|
@@ -21,7 +71,7 @@ Ejecución de toda la suite sobre `main` con todas las historias del alcance int
 
 Con las bases activas no se omite ninguna prueba de integración.
 
-## Cobertura de líneas (coverlet, Release)
+### Cobertura de líneas (coverlet, Release)
 
 | Ensamblado | Líneas cubiertas | Cobertura |
 |---|---|---|
@@ -34,11 +84,11 @@ Con las bases activas no se omite ninguna prueba de integración.
 
 La cobertura une las pruebas unitarias y las de integración de cada proyecto; se excluyen los archivos generados (`obj/`, `*.g.cs`).
 
-## Casos de prueba
+### Casos de prueba
 
 El estado de cada CP, con sus pruebas, está en la matriz de [go-no-go.md](go-no-go.md). En esta ejecución todos los CP del alcance que tienen prueba automática quedaron aprobados, incluido CP-018 (HU-014, `CriteriosHu014Tests`), que entró con I-02.
 
-## CP-036 · Aislamiento entre instituciones
+### CP-036 · Aislamiento entre instituciones
 
 `RegresionCp036Tests.CP_036_NingunRolDeOtraInstitucion_VeLosDatosDeA_EnNingunaConsulta`:
 
@@ -49,7 +99,7 @@ El estado de cada CP, con sus pruebas, está en la matriz de [go-no-go.md](go-no
 
 La bitácora de B sí guarda esos intentos denegados con la ruta pedida. Son registros de sus propios usuarios, no una fuga; por eso la prueba revisa los listados antes de las consultas por id.
 
-## Observaciones
+### Observaciones
 
 - **Integración de HU-014:** el registro del equipo ahora guarda su estado inicial en `historial_estado_equipo`. La línea de tiempo (HU-023) no lo repite, porque ya aparece como «Equipo registrado», y las pruebas de HU-003 cuentan solo los cambios de estado.
 - **Pruebas de tiempo y concurrencia:** con todos los proyectos en paralelo en un mismo equipo fallaron por carga la de 1 000 registros en PDF (RNF-007), la del Excel del historial y la de asignaciones simultáneas. Corriendo un proyecto a la vez pasan, y por eso el script corre los proyectos uno por uno.

@@ -553,9 +553,21 @@
       <Setter.Value>
         <ControlTemplate TargetType="MenuItem">
           <Border x:Name="Fondo" Background="Transparent" Padding="14,9" CornerRadius="6">
-            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+            <StackPanel Orientation="Horizontal">
+              <!-- Ícono opcional (views:Boton.Icono), como en los menús del prototipo -->
+              <Viewbox x:Name="Icono" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Center">
+                <Canvas Width="24" Height="24">
+                  <Path Data="{TemplateBinding views:Boton.Icono}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.9"
+                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                </Canvas>
+              </Viewbox>
+              <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
+            </StackPanel>
           </Border>
           <ControlTemplate.Triggers>
+            <Trigger Property="views:Boton.Icono" Value="{x:Null}">
+              <Setter TargetName="Icono" Property="Visibility" Value="Collapsed" />
+            </Trigger>
             <Trigger Property="IsHighlighted" Value="True">
               <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface2}" />
             </Trigger>

@@ -67,6 +67,52 @@ public partial class ShellViewModel : ObservableObject
 
     public bool TieneAlertas => Alertas is not null;
 
+    /// <summary>Persona de la sesión, para el avatar de la barra superior y el pie del panel (H-03).</summary>
+    public SesionUsuario? Usuario { get; init; }
+
+    /// <summary>Nombre y apellidos; si la sesión no los trae, el nombre del rol.</summary>
+    public string NombreUsuario =>
+        Usuario is { } u && $"{u.Nombres} {u.Apellidos}".Trim() is { Length: > 0 } nombre ? nombre : NombreRol;
+
+    public string CorreoUsuario => Usuario?.Correo ?? string.Empty;
+
+    /// <summary>Iniciales del avatar: primera letra del primer nombre y del primer apellido.</summary>
+    /// <summary>Nombre y primer apellido («Laura Gómez Ruiz» → LG); sin datos, las del nombre mostrado.</summary>
+    public string Iniciales => Usuario is { Nombres.Length: > 0, Apellidos.Length: > 0 } u
+        ? InicialesDe($"{PrimeraPalabra(u.Nombres)} {PrimeraPalabra(u.Apellidos)}")
+        : InicialesDe(NombreUsuario);
+
+    private static string PrimeraPalabra(string texto) =>
+        texto.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? string.Empty;
+
+    public static string InicialesDe(string nombre)
+    {
+        var partes = (nombre ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return partes.Length switch
+        {
+            0 => "?",
+            1 => partes[0][..1].ToUpper(CultureInfo.CurrentCulture),
+            _ => string.Concat(partes[0][..1], partes[^1][..1]).ToUpper(CultureInfo.CurrentCulture),
+        };
+    }
+
+    /// <summary>
+    /// Acción principal de la barra superior según el rol, como en el prototipo: el Ingeniero registra un equipo, el
+    /// Personal clínico reporta una falla y el Administrador abre Usuarios. Se oculta en la pantalla de destino.
+    /// </summary>
+    public AccionBarra? AccionPrincipal => AccionBarra.Para(_codigoRol) is { } accion && TieneOpcion(accion.Destino) ? accion : null;
+
+    public bool MostrarAccionPrincipal => AccionPrincipal is { } accion && OpcionActual?.Opcion.Id != accion.Destino;
+
+    [RelayCommand]
+    private void EjecutarAccionPrincipal()
+    {
+        if (AccionPrincipal is { } accion)
+        {
+            AlSolicitarNavegacion(this, new SolicitudNavegacion(accion.Destino, accion.Parametro));
+        }
+    }
+
     /// <summary>Nombre del rol de la sesión para el pie del panel.</summary>
     public string NombreRol => GuiaRoles.NombreDe(_codigoRol);
 
@@ -160,13 +206,13 @@ public partial class ShellViewModel : ObservableObject
 
     /// <summary>ViewModel de la pantalla de la opción actual; null mientras la pantalla no exista.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EnConstruccion), nameof(TituloModuloActual))]
+    [NotifyPropertyChangedFor(nameof(EnConstruccion), nameof(TituloModuloActual), nameof(GrupoMiga), nameof(TituloMiga))]
     private object? _contenido;
 
     public bool EnConstruccion => Contenido is null;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ModuloActual), nameof(TituloModuloActual))]
+    [NotifyPropertyChangedFor(nameof(ModuloActual), nameof(TituloModuloActual), nameof(MostrarAccionPrincipal), nameof(GrupoMiga), nameof(TituloMiga))]
     private OpcionViewModel? _opcionActual;
 
     /// <summary>Módulo de la pantalla actual: lleva la barra lima en el riel.</summary>
@@ -176,6 +222,14 @@ public partial class ShellViewModel : ObservableObject
     public string TituloModuloActual => Contenido is PerfilViewModel
         ? "CUENTA"
         : ModuloActual?.Nombre.ToUpper(CultureInfo.CurrentCulture) ?? string.Empty;
+
+    /// <summary>H-03: miga de la barra superior, módulo arriba y pantalla abajo, como en el prototipo.</summary>
+    public string GrupoMiga => Contenido is PerfilViewModel ? "Cuenta" : ModuloActual?.Nombre ?? string.Empty;
+
+    public string TituloMiga => Contenido is PerfilViewModel ? "Mi perfil" : OpcionActual?.Etiqueta ?? string.Empty;
+
+    /// <summary>Gerente, directiva y ente regulador solo consultan (RBAC): la barra lo dice junto al título.</summary>
+    public bool SoloLectura => _codigoRol is "AC-05" or "AC-06" or "AC-07";
 
     public bool MostrarBuscador => ModuloEnPanel?.Opciones.Count > 3;
 
@@ -354,6 +408,18 @@ public static class IconosMenu
             _ => null,
         };
     }
+}
+
+/// <summary>Acción principal de la barra superior: texto, ícono (Themes/Icons.xaml), pantalla y parámetro.</summary>
+public sealed record AccionBarra(string Texto, string Icono, string Destino, string? Parametro = null)
+{
+    public static AccionBarra? Para(string codigoRol) => codigoRol switch
+    {
+        "AC-02" => new("Registrar equipo", "Icono.Agregar", "UI-005", EquiposViewModel.ParametroNuevo),
+        "AC-04" => new("Reportar falla", "Icono.Sirena", "UI-009"),
+        "AC-01" => new("Usuarios", "Icono.Usuarios", "UI-004"),
+        _ => null,
+    };
 }
 
 public sealed record GrupoOpciones(string? Titulo, IReadOnlyList<OpcionViewModel> Opciones);

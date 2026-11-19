@@ -210,9 +210,22 @@ public partial class EquiposViewModel(
     /// <summary>Dato para abrir la hoja de vida desde otra pantalla (búsqueda global, D-04): «id|placa».</summary>
     public static string ParametroDetalle(Guid id, string placa) => $"{id}|{placa}";
 
+    /// <summary>Parámetro de «Registrar equipo» desde la barra superior: abre el formulario de registro.</summary>
+    public const string ParametroNuevo = "nuevo";
+
     /// <summary>La búsqueda global abre la hoja de vida (UI-006) del equipo; al volver queda la lista.</summary>
     public void Recibir(string parametro)
     {
+        if (parametro == ParametroNuevo)
+        {
+            if (PuedeGestionar)
+            {
+                NuevoEquipoCommand.Execute(null);
+            }
+
+            return;
+        }
+
         var partes = parametro.Split('|', 2);
         if (!Guid.TryParse(partes[0], out var id))
         {

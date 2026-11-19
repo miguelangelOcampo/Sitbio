@@ -377,4 +377,26 @@ public class EquiposViewModelTests
         Assert.Equal("MX550", pantalla.Detalle.Equipo!.Modelo);
         Assert.Equal("Cambios guardados", pantalla.Detalle.Confirmacion!.Titulo);
     }
+
+    /// <summary>H-03: «Registrar equipo» de la barra superior abre el formulario UI-007 solo a quien puede gestionar.</summary>
+    [Fact]
+    public async Task RecibirNuevo_AbreElFormularioDeRegistro()
+    {
+        var pantalla = ComoIngeniero();
+
+        pantalla.Recibir(EquiposViewModel.ParametroNuevo);
+        await Task.Yield();
+
+        Assert.True(pantalla.Formulario?.EsNuevo);
+    }
+
+    [Fact]
+    public void RecibirNuevo_SinPermiso_NoAbreElFormulario()
+    {
+        var pantalla = Crear();
+
+        pantalla.Recibir(EquiposViewModel.ParametroNuevo);
+
+        Assert.Null(pantalla.Formulario);
+    }
 }

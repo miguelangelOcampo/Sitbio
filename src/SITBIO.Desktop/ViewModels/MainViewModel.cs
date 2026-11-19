@@ -93,7 +93,11 @@ public partial class MainViewModel : ObservableObject
         Func<CambioClaveViewModel>? cambioVoluntario = _servicioSesion is { } servicio
             ? () => new CambioClaveViewModel(servicio, obligatorio: false)
             : null;
-        var shell = new ShellViewModel(rol, _pantallas, cambioVoluntario, _servicioBusqueda) { Confirmacion = confirmacion };
+        var shell = new ShellViewModel(rol, _pantallas, cambioVoluntario, _servicioBusqueda)
+        {
+            Confirmacion = confirmacion,
+            Usuario = _sesionActual.Sesion,
+        };
         shell.CierreSolicitado += async (_, _) => await CerrarSesionAsync();
         return shell;
     }

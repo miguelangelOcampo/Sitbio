@@ -45,12 +45,10 @@ public class MenuFuncionesFuturasTests
     }
 
     [Fact]
-    public void HistorialGeneral_MuestraDisponibleEnUnaProximaVersion()
+    public void HistorialDeIntervenciones_AbreSuPantalla_YYaNoEsProximaVersion()
     {
-        var pantalla = Assert.IsType<ProximaVersionViewModel>(new FabricaPantallas(new ServiciosSimulados("AC-01")).Crear("HIST"));
-
-        Assert.Equal("Disponible en una próxima versión", ProximaVersionViewModel.Titulo);
-        Assert.Contains("historial", pantalla.Detalle);
+        Assert.IsType<HistorialIntervencionesViewModel>(new FabricaPantallas(new ServiciosSimulados("AC-01")).Crear("HIST"));
+        Assert.False(ProximaVersionViewModel.Opciones.ContainsKey("HIST"));
     }
 
     /// <summary>

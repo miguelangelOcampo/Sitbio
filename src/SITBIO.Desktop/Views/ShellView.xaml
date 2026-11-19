@@ -34,6 +34,9 @@
     <DataTemplate DataType="{x:Type vm:OrdenesViewModel}">
       <views:OrdenesView />
     </DataTemplate>
+    <DataTemplate DataType="{x:Type vm:HistorialIntervencionesViewModel}">
+      <views:HistorialIntervencionesView />
+    </DataTemplate>
     <DataTemplate DataType="{x:Type vm:ConfiguracionViewModel}">
       <views:ConfiguracionView />
     </DataTemplate>

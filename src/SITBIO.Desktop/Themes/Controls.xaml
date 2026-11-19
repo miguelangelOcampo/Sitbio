@@ -3,7 +3,8 @@
      Las cajas con borde completo quedan solo para diálogos, menús y campos. -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:views="clr-namespace:Sitbio.Desktop.Views">
 
   <!-- Foco visible solo con teclado (FocusVisualStyle): anillo de 2 px alrededor del control -->
   <Style x:Key="FocoTeclado">
@@ -585,5 +586,7 @@
     <Setter Property="SelectionMode" Value="Single" />
     <Setter Property="CanUserResizeRows" Value="False" />
     <Setter Property="CanUserReorderColumns" Value="False" />
+    <!-- La rueda del mouse baja la página cuando la tabla no tiene desplazamiento propio -->
+    <Setter Property="views:RuedaHaciaPadre.Activa" Value="True" />
   </Style>
 </ResourceDictionary>

@@ -1,5 +1,42 @@
 # Regresión y prueba de restauración
 
+## v1.1.1 (Z-01)
+
+Ejecución de toda la suite sobre `main` con los arreglos de la v1.1.1 integrados (G-01 a G-09 y la fotografía en la hoja de vida), con PostgreSQL y MongoDB reales en Docker y la semilla de demostración «Hospital Demo SITBIO» cargada en `sitbio_dev`.
+
+- **Fecha:** 19/11/2026
+- **Commit base:** `e8cf1b3` (`main`, PR #49: fotografía del equipo en la hoja de vida), después del PR #50 (historial de intervenciones, HU-005).
+- **Cómo reproducir:** `scripts/regresion.sh`, que corre los proyectos de prueba uno a la vez. Los TRX quedan en `TestResults/regresion-20261119-1410/`.
+
+### Resultado
+
+| Proyecto | Pruebas | Correctas | Con error | Omitidas |
+|---|---|---|---|---|
+| SITBIO.Domain.Tests | 200 | 200 | 0 | 0 |
+| SITBIO.Application.Tests | 365 | 365 | 0 | 0 |
+| SITBIO.Infrastructure.Tests | 145 | 145 | 0 | 0 |
+| SITBIO.Api.Tests | 418 | 418 | 0 | 0 |
+| SITBIO.Desktop.Tests | 738 | 738 | 0 | 0 |
+| **Total .NET** | **1 866** | **1 866** | **0** | **0** |
+| tests/analytics (pytest) | — | — | — | Se ejecuta en la CI (job «Analytics») |
+
+Pasó a la primera; no hubo defectos nuevos. Con las bases activas no se omite ninguna prueba de integración.
+
+### Pruebas nuevas de la v1.1.1
+
+| Fila | Cambio | Pruebas automáticas | CP | Estado |
+|---|---|---|---|---|
+| G-01 | Descripción de la falla visible en la bandeja, la orden y la intervención (HU-004) | `OrdenesEndpointTests`, `RepositorioOrdenesPostgresTests`, `BandejaViewModelTests`, `OrdenesViewModelTests`, `IntervencionViewModelTests` | CP-007 | Aprobado |
+| G-03 | Filtro por tipo de equipo y búsqueda por nombre o modelo (UI-005) | `EquiposEndpointTests`, `RepositorioEquiposPostgresTests` (con aislamiento), `ServicioEquiposHttpTests`, `EquiposViewModelTests` | CP-004 | Aprobado |
+| G-07 a G-09 | Historial de intervenciones de la institución (HU-005): consulta paginada con filtros y totales, aislamiento entre instituciones y pantalla | `HistorialIntervencionesTests` (integración con PostgreSQL), `ConsultaHistorialIntervencionesTests`, `HistorialIntervencionesViewModelTests`, `MenuFuncionesFuturasTests` | CP-008 | Aprobado |
+| PR #49 | Fotografía del equipo en la hoja de vida en PDF (HU-027, RF-031) | `GeneradorReportesTests` (con foto y con imagen ilegible), `CriteriosRf031Tests`, `ReportesEndpointTests` | CP-035 | Aprobado |
+
+El resto de los CP (CP-001 a CP-037) siguen aprobados con las mismas pruebas de la matriz de [go-no-go.md](go-no-go.md). CP-037 sigue sin iniciar (falta la prueba de carga con k6).
+
+### Observación sobre la CI
+
+Las pruebas HTTP que reemplazan los repositorios con sustitutos deben cubrir todas las dependencias del servicio. En la CI no hay cadenas de conexión, así que una dependencia real responde 500. Así falló primero el PR #49. Para reproducir la CI en local, corre las pruebas con `ASPNETCORE_ENVIRONMENT=Production`: en ese entorno no se cargan los user-secrets.
+
 ## v1.1.0 (F-01)
 
 Ejecución de toda la suite sobre `main` con las historias de la v1.1.0 integradas (D-01 a D-07 y E-01 a E-11), con PostgreSQL y MongoDB reales en Docker y la semilla de demostración «Hospital Demo SITBIO» cargada en `sitbio_dev`.

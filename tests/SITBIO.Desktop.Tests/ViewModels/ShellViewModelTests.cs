@@ -170,4 +170,14 @@ public class ShellViewModelTests
         perfil.CambiarClaveCommand.Execute(null);
         Assert.NotNull(shell.CambioClave);
     }
+
+    [Fact]
+    public void PieDelMenu_MuestraLaVersionDelProducto()
+    {
+        Assert.Equal("SITBIO v1.1.1", ShellViewModel.TextoVersion(new Version(1, 1, 1, 0)));
+        Assert.Equal("SITBIO v2.0.0", ShellViewModel.TextoVersion(new Version(2, 0)));
+        Assert.Equal("SITBIO", ShellViewModel.TextoVersion(null));
+        Assert.Equal(ShellViewModel.TextoVersion(typeof(ShellViewModel).Assembly.GetName().Version), ShellViewModel.VersionProducto);
+        Assert.StartsWith("SITBIO v1.1.1", ShellViewModel.VersionProducto);
+    }
 }

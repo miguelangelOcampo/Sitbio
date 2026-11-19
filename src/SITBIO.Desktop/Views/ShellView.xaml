@@ -227,7 +227,7 @@
           </Border>
           <StackPanel Orientation="Horizontal" Margin="20,0">
             <Image Source="{DynamicResource Logo.Iso}" Height="22" Opacity="0.8" RenderOptions.BitmapScalingMode="HighQuality" />
-            <TextBlock Text="SITBIO v1.1" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" />
+            <TextBlock Text="{x:Static vm:ShellViewModel.VersionProducto}" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="8,0,0,0" />
           </StackPanel>
         </StackPanel>
         <StackPanel DockPanel.Dock="Top" Margin="20,0,16,10">

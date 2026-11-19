@@ -284,7 +284,7 @@ public partial class CatalogosViewModel(IServicioCatalogos servicio, SesionActua
             Aviso = null;
             Confirmacion = new Aviso(
                 "Valores por defecto guardados",
-                $"Al registrar un equipo de tipo “{detalle.Nombre}” se propondrán estos valores (RF-030).",
+                $"Al registrar un equipo de tipo “{detalle.Nombre}” se propondrán estos valores.",
                 null,
                 EsError: false);
         }

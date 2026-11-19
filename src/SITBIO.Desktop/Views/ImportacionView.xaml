@@ -179,7 +179,7 @@
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0"
                 Visibility="{Binding TextoSinCupo, Converter={StaticResource TextoVisible}}">
           <StackPanel>
-            <TextBlock Text="Capacidad del plan · MSG-019 · RN-009" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+            <TextBlock Text="Capacidad del plan" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
             <TextBlock Text="{Binding TextoSinCupo}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
           </StackPanel>
         </Border>
@@ -282,7 +282,7 @@
                 <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Descargar informe" Command="{Binding DescargarInformeCommand}"
                         VerticalAlignment="Center" Margin="12,0,0,0" />
                 <StackPanel>
-                  <TextBlock Text="Importación con errores · MSG-015" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                  <TextBlock Text="Importación con errores" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
                   <TextBlock Text="{Binding TextoMsg015}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
                 </StackPanel>
               </DockPanel>

@@ -119,7 +119,7 @@ public partial class MantenimientosEquipoViewModel(
         };
 
     public string DetalleVigencia => !RequiereCalibracion
-        ? "El equipo no requiere calibración (RN-010)"
+        ? "El equipo no requiere calibración"
         : Calibraciones is [var ultima, ..]
             ? ultima.Calibracion.Vigente ? $"Hasta {ultima.Vence}" : $"Venció el {ultima.Vence}"
             : string.Empty;

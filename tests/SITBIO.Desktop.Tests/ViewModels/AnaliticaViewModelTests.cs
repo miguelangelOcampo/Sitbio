@@ -58,5 +58,8 @@ public sealed class AnaliticaViewModelTests
 
         Assert.False(vm.HayDatos);
         Assert.Equal("ANA-001", vm.Aviso?.Codigo);
+        // G-05: sin resultados del lote es informativo (azul), no un error (rojo); se puede reintentar.
+        Assert.False(vm.Aviso!.EsError);
+        Assert.True(vm.Aviso.PuedeReintentar);
     }
 }

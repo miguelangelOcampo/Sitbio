@@ -73,6 +73,12 @@ pip install -r analytics/requirements.txt -r analytics/requirements-dev.txt
 ruff check . ; pytest
 ```
 
+Para que la pantalla «Analítica» tenga datos (por ejemplo, sobre la semilla de demostración), ejecuta el lote; arma la conexión con el `.env`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/analitica.ps1   # o scripts/analitica.sh en Git Bash
+```
+
 ## Forma de trabajo (DOC-06, sección 13.1)
 
 - `main` está protegida: todo cambio entra por pull request con al menos una aprobación y la integración continua aprobada (squash merge).

@@ -25,7 +25,7 @@
     <!-- Aviso en línea: rojo si es error; verde si confirma una acción -->
     <DataTemplate x:Key="PlantillaAviso" DataType="{x:Type vm:Aviso}">
       <Border x:Name="Barra" Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
-              AutomationProperties.LiveSetting="Assertive">
+              AutomationProperties.LiveSetting="Assertive" ToolTip="{Binding Codigo}">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -35,7 +35,6 @@
                           Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
           <StackPanel Grid.Column="1">
             <DockPanel>
-              <TextBlock DockPanel.Dock="Right" Text="{Binding Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
               <TextBlock x:Name="Titulo" Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
             </DockPanel>
             <TextBlock Text="{Binding Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
@@ -102,7 +101,6 @@
         <Border Style="{StaticResource Section}">
           <StackPanel>
             <DockPanel Margin="0,0,0,14">
-              <TextBlock DockPanel.Dock="Right" Text="HU-019" Style="{StaticResource Overline}" VerticalAlignment="Center" />
               <TextBlock Text="Plan preventivo vigente" Style="{StaticResource SectionTitle}" />
             </DockPanel>
             <ContentControl Content="{Binding AvisoPlan}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
@@ -209,7 +207,6 @@
         <Border Style="{StaticResource Section}" Margin="0,14,0,0">
           <StackPanel>
             <DockPanel Margin="0,0,0,14">
-              <TextBlock DockPanel.Dock="Right" Text="HU-022 · RN-010" Style="{StaticResource Overline}" VerticalAlignment="Center" />
               <TextBlock Text="Calibraciones" Style="{StaticResource SectionTitle}" />
             </DockPanel>
             <StackPanel Margin="0,0,0,14">
@@ -412,14 +409,13 @@
 
         <!-- Equipo dado de baja (RF-014) -->
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}"
-                Margin="0,18,0,0" Visibility="{Binding AvisoBaja, Converter={StaticResource NuloVisible}}">
+                Margin="0,18,0,0" Visibility="{Binding AvisoBaja, Converter={StaticResource NuloVisible}}" ToolTip="{Binding AvisoBaja.Codigo}">
           <DockPanel>
             <Button DockPanel.Dock="Right" Content="Revertir" Style="{StaticResource LinkButton}" VerticalAlignment="Bottom" Margin="16,0,0,0"
                     AutomationProperties.Name="Revertir la baja" Command="{Binding AbrirReversionCommand}"
                     Visibility="{Binding PuedeRevertir, Converter={StaticResource Visible}}" />
             <StackPanel>
               <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding AvisoBaja.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                 <TextBlock Text="{Binding AvisoBaja.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
               </DockPanel>
               <TextBlock Text="{Binding AvisoBaja.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -429,7 +425,7 @@
 
         <!-- RN-010: autorización vencida, por vencer o faltante (aviso, no bloqueo) -->
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
-                Margin="0,18,0,0" Visibility="{Binding AvisoRegulatorio, Converter={StaticResource NuloVisible}}">
+                Margin="0,18,0,0" Visibility="{Binding AvisoRegulatorio, Converter={StaticResource NuloVisible}}" ToolTip="{Binding AvisoRegulatorio.Codigo}">
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
@@ -439,7 +435,6 @@
                             Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
             <StackPanel Grid.Column="1">
               <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding AvisoRegulatorio.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                 <TextBlock Text="{Binding AvisoRegulatorio.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
               </DockPanel>
               <TextBlock Text="{Binding AvisoRegulatorio.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -546,7 +541,6 @@
             <Border Style="{StaticResource Section}" Margin="0,14,0,0">
               <StackPanel>
                 <DockPanel Margin="0,0,0,14">
-                  <TextBlock DockPanel.Dock="Right" Text="RF-030 · RN-010" Style="{StaticResource Overline}" VerticalAlignment="Center" />
                   <TextBlock Text="Información regulatoria" Style="{StaticResource SectionTitle}" />
                 </DockPanel>
                 <ItemsControl ItemsSource="{Binding InformacionRegulatoria}" ItemTemplate="{StaticResource PlantillaDato}" Focusable="False">
@@ -671,7 +665,6 @@
             <Border Style="{StaticResource Section}">
               <StackPanel>
                 <DockPanel Margin="0,0,0,14">
-                  <TextBlock DockPanel.Dock="Right" Text="HU-023 · RF-023" Style="{StaticResource Overline}" VerticalAlignment="Center" />
                   <TextBlock Text="Línea de tiempo" Style="{StaticResource SectionTitle}" />
                 </DockPanel>
                 <TextBlock Text="Cargando el historial…" Style="{StaticResource Muted}"
@@ -744,7 +737,7 @@
         <!-- Aviso de error -->
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                 Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
-                Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+                Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" ToolTip="{Binding Aviso.Codigo}">
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
@@ -755,7 +748,6 @@
                             Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
             <StackPanel Grid.Column="1">
               <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                 <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
               </DockPanel>
               <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -957,7 +949,7 @@
                 <StackPanel>
                   <TextBlock Text="Faltan catálogos" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
                   <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                             Text="Para registrar equipos, la institución necesita al menos un tipo de equipo y un área activos (Admin › Catálogos, HU-025)." />
+                             Text="Para registrar equipos, la institución necesita al menos un tipo de equipo y un área activos (Admin › Catálogos)." />
                 </StackPanel>
               </Border>
 
@@ -1019,7 +1011,6 @@
               <Border Style="{StaticResource Section}" Margin="0,24,0,0">
                 <StackPanel>
                   <DockPanel Margin="0,0,0,12">
-                    <TextBlock DockPanel.Dock="Right" Text="RF-030 · RN-010" Style="{StaticResource Overline}" />
                     <TextBlock Text="INFORMACIÓN REGULATORIA" Style="{StaticResource Overline}" />
                   </DockPanel>
                   <Grid>
@@ -1138,7 +1129,6 @@
               <Border Style="{StaticResource Section}" Margin="0,24,0,0">
                 <StackPanel>
                   <DockPanel Margin="0,0,0,12">
-                    <TextBlock DockPanel.Dock="Right" Text="RF-019" Style="{StaticResource Overline}" />
                     <TextBlock Text="MANTENIMIENTO PREVENTIVO" Style="{StaticResource Overline}" />
                   </DockPanel>
                   <TextBlock Text="Periodicidad del preventivo" Style="{StaticResource FieldLabel}" />
@@ -1175,7 +1165,6 @@
                           Visibility="{Binding PreventivoAtrasado, Converter={StaticResource Visible}}">
                     <StackPanel>
                       <DockPanel>
-                        <TextBlock DockPanel.Dock="Right" Text="RF-020" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                         <TextBlock Text="Preventivo atrasado" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
                       </DockPanel>
                       <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
@@ -1515,7 +1504,7 @@
                          Text="El equipo sale del inventario activo, de los indicadores y del límite del plan. Su hoja de vida y su historial se conservan, y la baja se puede revertir." />
               <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
                          Visibility="{Binding EsReversion, Converter={StaticResource Visible}}"
-                         Text="El equipo vuelve al inventario activo como «Operativo» y cuenta otra vez en el límite de equipos del plan (RN-009)." />
+                         Text="El equipo vuelve al inventario activo como «Operativo» y cuenta otra vez en el límite de equipos del plan." />
             </StackPanel>
           </Border>
 

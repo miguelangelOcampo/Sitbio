@@ -232,7 +232,6 @@
               </Button>
               <StackPanel VerticalAlignment="Center">
                 <TextBlock Text="{Binding NombreRol}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding Rol}" FontSize="12" Foreground="{DynamicResource Brush.Text3}" />
                 <!-- D-03: «Mi perfil» (datos y «Cambiar contraseña», UI-002) y «Preferencias» (tema) -->
                 <StackPanel Orientation="Horizontal" Margin="0,4,0,0" Visibility="{Binding PuedeAbrirPerfil, Converter={StaticResource Visible}}">
                   <Button Content="Mi perfil" Style="{StaticResource LinkButton}" FontSize="12" Command="{Binding AbrirPerfilCommand}" CommandParameter="perfil" />
@@ -468,9 +467,8 @@
           <StackPanel>
             <TextBlock Text="Pantalla en construcción" Style="{StaticResource SectionTitle}" />
             <TextBlock Style="{StaticResource Muted}" Margin="0,6,0,0">
-              <Run Text="{Binding OpcionActual.Opcion.Id, Mode=OneWay}" FontWeight="SemiBold" />
-              <Run Text="llega con su historia de usuario. La navegación y los permisos ya responden a tu rol" />
-              <Run Text="{Binding Rol, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="." />
+              <Run Text="Esta pantalla llega en una próxima versión. La navegación y los permisos ya responden a tu rol," />
+              <Run Text="{Binding NombreRol, Mode=OneWay}" FontWeight="SemiBold" /><Run Text="." />
             </TextBlock>
           </StackPanel>
         </Border>

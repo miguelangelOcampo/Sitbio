@@ -22,7 +22,7 @@
     <!-- MSG-008 o error de la API -->
     <DataTemplate x:Key="PlantillaAviso" DataType="{x:Type vm:Aviso}">
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
-              Margin="0,0,0,14" AutomationProperties.LiveSetting="Assertive">
+              Margin="0,0,0,14" AutomationProperties.LiveSetting="Assertive" ToolTip="{Binding Codigo}">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -32,7 +32,6 @@
                           Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
           <StackPanel Grid.Column="1">
             <DockPanel>
-              <TextBlock DockPanel.Dock="Right" Text="{Binding Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
               <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
             </DockPanel>
             <TextBlock Text="{Binding Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
@@ -65,7 +64,6 @@
   <Border Style="{StaticResource Dialog}" Width="500" HorizontalAlignment="Center" VerticalAlignment="Center">
     <StackPanel>
       <DockPanel Margin="0,0,0,18">
-        <TextBlock DockPanel.Dock="Right" Text="RF-012" Style="{StaticResource Overline}" VerticalAlignment="Center" />
         <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Llave}" Width="20" Height="20"
                         Foreground="{DynamicResource Brush.Primary}" Margin="0,0,10,0" />
         <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="18" />
@@ -73,7 +71,7 @@
 
       <!-- Clave temporal (MSG-004) -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
-              Margin="0,0,0,14" Visibility="{Binding Obligatorio, Converter={StaticResource Visible}}">
+              Margin="0,0,0,14" Visibility="{Binding Obligatorio, Converter={StaticResource Visible}}" ToolTip="MSG-004">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -83,7 +81,6 @@
                           Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
           <StackPanel Grid.Column="1">
             <DockPanel>
-              <TextBlock DockPanel.Dock="Right" Text="MSG-004" Style="{StaticResource Overline}" Margin="8,2,0,0" />
               <TextBlock Text="Estás usando una contraseña temporal" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
             </DockPanel>
             <TextBlock Text="Por seguridad, cambia tu contraseña temporal antes de continuar." Foreground="{DynamicResource Brush.Text}"

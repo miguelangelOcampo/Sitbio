@@ -74,7 +74,7 @@
         <!-- Aviso de error -->
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                 Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
-                Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+                Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" ToolTip="{Binding Aviso.Codigo}">
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
@@ -85,7 +85,6 @@
                             Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
             <StackPanel Grid.Column="1">
               <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                 <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
               </DockPanel>
               <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -142,7 +141,7 @@
           <!-- Aviso de error -->
           <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                   Margin="0,0,0,14" AutomationProperties.LiveSetting="Assertive"
-                  Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+                  Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" ToolTip="{Binding Aviso.Codigo}">
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
                 <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
@@ -151,7 +150,6 @@
               </StackPanel>
               <StackPanel>
                 <DockPanel>
-                  <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                   <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
                 </DockPanel>
                 <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -180,7 +178,7 @@
               </StackPanel>
             </Button>
             <StackPanel VerticalAlignment="Center">
-              <TextBlock Text="Solo se calibran los equipos que lo requieren (RN-010). El Técnico registra la calibración y el Ingeniero Biomédico la aprueba."
+              <TextBlock Text="Solo se calibran los equipos que lo requieren. El Técnico registra la calibración y el Ingeniero Biomédico la aprueba."
                          Style="{StaticResource Muted}" TextWrapping="Wrap" />
               <TextBlock Text="Tu rol consulta las calibraciones." Style="{StaticResource Muted}" Margin="0,4,0,0"
                          Visibility="{Binding SoloConsulta, Converter={StaticResource Visible}}" />
@@ -201,10 +199,9 @@
 
               <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                       Margin="0,14,0,0" AutomationProperties.LiveSetting="Assertive"
-                      Visibility="{Binding AvisoFormulario, Converter={StaticResource NuloVisible}}">
+                      Visibility="{Binding AvisoFormulario, Converter={StaticResource NuloVisible}}" ToolTip="{Binding AvisoFormulario.Codigo}">
                 <StackPanel>
                   <DockPanel>
-                    <TextBlock DockPanel.Dock="Right" Text="{Binding AvisoFormulario.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                     <TextBlock Text="{Binding AvisoFormulario.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
                   </DockPanel>
                   <TextBlock Text="{Binding AvisoFormulario.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -584,10 +581,9 @@
 
             <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                     Margin="0,16,0,0" AutomationProperties.LiveSetting="Assertive"
-                    Visibility="{Binding AvisoPanel, Converter={StaticResource NuloVisible}}">
+                    Visibility="{Binding AvisoPanel, Converter={StaticResource NuloVisible}}" ToolTip="{Binding AvisoPanel.Codigo}">
               <StackPanel>
                 <DockPanel>
-                  <TextBlock DockPanel.Dock="Right" Text="{Binding AvisoPanel.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                   <TextBlock Text="{Binding AvisoPanel.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
                 </DockPanel>
                 <TextBlock Text="{Binding AvisoPanel.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />

@@ -216,7 +216,7 @@ public class IntervencionViewModelTests
 
         Assert.False(vm.Editable);
         Assert.False(vm.GuardarCommand.CanExecute(null));
-        Assert.Contains("RN-004", vm.Nota);
+        Assert.Contains("ya no se puede modificar", vm.Nota);
         Assert.All(vm.Campos, c => Assert.False(c.Editable));
     }
 

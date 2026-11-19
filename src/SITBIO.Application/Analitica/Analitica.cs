@@ -56,7 +56,7 @@ public sealed class ConsultaAnalitica(IRepositorioAnalitica repositorio, IPlacas
     public async Task<AgrupamientoDto> AgrupamientosAsync(CancellationToken cancellationToken)
     {
         var resultado = await repositorio.UltimoAsync(cancellationToken)
-            ?? throw new ErrorConflicto(CodigoSinResultados, "Aún no hay resultados de analítica para tu institución. Ejecuta el lote de analítica (python -m sitbio_analytics) y vuelve a consultar.");
+            ?? throw new ErrorConflicto(CodigoSinResultados, "Aún no hay resultados de analítica para tu institución. Aparecen cuando el administrador ejecuta el lote de analítica (scripts/analitica); después vuelve a consultar.");
         var nombres = await placas.PlacasAsync(resultado.Equipos.Select(e => e.EquipoId).ToList(), cancellationToken);
         return new AgrupamientoDto(
             resultado.GeneradoEn,

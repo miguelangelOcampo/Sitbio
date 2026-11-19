@@ -34,7 +34,7 @@ appsettings.*.local.json
 secrets.json
 
 # Datos locales
-/storage/
+storage/
 *.log
 
 # Sistema operativo

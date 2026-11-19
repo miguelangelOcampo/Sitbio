@@ -202,7 +202,7 @@ public class MantenimientosEquipoViewModelTests
         var vm = await CargarAsync(requiereCalibracion: false);
 
         Assert.Equal("No aplica", vm.Vigencia);
-        Assert.Equal("El equipo no requiere calibración (RN-010)", vm.DetalleVigencia);
+        Assert.Equal("El equipo no requiere calibración", vm.DetalleVigencia);
         Assert.False(vm.SinCalibraciones);
         await _mantenimiento.DidNotReceiveWithAnyArgs().ListarCalibracionesAsync(default!, default);
     }

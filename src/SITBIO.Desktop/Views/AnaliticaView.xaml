@@ -39,12 +39,35 @@
                  Text="Agrupa los equipos por comportamiento (K-Means sobre intervenciones, costo y tiempo de atención) para priorizar mantenimiento y reposición. Los resultados los calcula el lote de analítica; no son en tiempo real." />
 
       <!-- Aviso -->
-      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,0,0,16"
-              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+      <!-- Rojo si es un error; azul informativo si el lote aún no ha calculado resultados (ANA-001) -->
+      <Border Margin="0,0,0,16" Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+        <Border.Style>
+          <Style TargetType="Border" BasedOn="{StaticResource InfoBar}">
+            <Setter Property="Background" Value="{DynamicResource Brush.DangerSoft}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+            <Style.Triggers>
+              <DataTrigger Binding="{Binding Aviso.EsError}" Value="False">
+                <Setter Property="Background" Value="{DynamicResource Brush.InfoSoft}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info}" />
+              </DataTrigger>
+            </Style.Triggers>
+          </Style>
+        </Border.Style>
         <DockPanel>
           <Button DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
           <StackPanel>
-            <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+            <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                  <Setter Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding Aviso.EsError}" Value="False">
+                      <Setter Property="Foreground" Value="{DynamicResource Brush.InfoText}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
             <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
           </StackPanel>
         </DockPanel>

@@ -299,7 +299,7 @@
             </DataGrid.Columns>
           </DataGrid>
 
-          <TextBlock Text="Cargando usuarios…" Style="{StaticResource Muted}" Margin="0,16,0,0"
+          <views:Esqueleto Texto="Cargando usuarios…" Margin="0,16,0,0"
                      Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
           <TextBlock Text="Ningún usuario coincide con los filtros." Style="{StaticResource Muted}" Margin="0,16,0,0"
                      Visibility="{Binding SinCoincidencias, Converter={StaticResource Visible}}" />

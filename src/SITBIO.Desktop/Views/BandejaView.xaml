@@ -215,7 +215,7 @@
           </DataGrid.Columns>
         </DataGrid>
 
-        <TextBlock Text="Consultando la bandeja…" Style="{StaticResource Muted}" Margin="0,16,0,0"
+        <views:Esqueleto Texto="Consultando la bandeja…" Margin="0,16,0,0"
                    Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
         <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinTiquetes, Converter={StaticResource Visible}}">
           <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Bandeja}" Width="28" Height="28"

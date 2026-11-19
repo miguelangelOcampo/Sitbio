@@ -197,7 +197,7 @@
           </DataGrid.Columns>
         </DataGrid>
 
-        <TextBlock Text="Consultando las órdenes…" Style="{StaticResource Muted}" Margin="0,16,0,0"
+        <views:Esqueleto Texto="Consultando las órdenes…" Margin="0,16,0,0"
                    Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
         <TextBlock Text="{Binding TextoSinOrdenes}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,24,0,0"
                    Visibility="{Binding SinOrdenes, Converter={StaticResource Visible}}" />

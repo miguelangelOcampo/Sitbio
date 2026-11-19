@@ -393,7 +393,7 @@
       </Border>
 
       <!-- Pantalla de la opción actual (DataTemplate por ViewModel) -->
-      <ContentControl Grid.Row="1" Content="{Binding Contenido}" Focusable="False" />
+      <ContentControl Grid.Row="1" Content="{Binding Contenido}" Focusable="False" views:Animacion.CambioContenido="True" />
 
       <!-- UI-016 Centro de alertas: panel lateral sobre el área principal (NAV-011: abrir una alerta lo cierra) -->
       <Border Grid.RowSpan="2" HorizontalAlignment="Right" Width="380" Background="{DynamicResource Brush.Surface}" BorderBrush="{DynamicResource Brush.Border}"

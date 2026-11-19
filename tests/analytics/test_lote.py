@@ -191,3 +191,10 @@ def test_main_sin_escribir_imprime_json(capsys):
     assert lote.main(argumentos) == 0
     salida = json_util.loads(capsys.readouterr().out)
     assert len(salida) == 2 and all("agrupacion" in r and r["agrupaciones"] for r in salida)
+
+
+def test_main_con_tenant_calcula_solo_esa_institucion(capsys):
+    argumentos = ["--fuente", str(SEMILLA), "--fecha-corte", "2026-10-21T00:00:00Z", "--sin-escribir"]
+    assert lote.main([*argumentos, "--tenant", TENANT_A]) == 0
+    salida = json_util.loads(capsys.readouterr().out)
+    assert [r["tenant_id"] for r in salida] == [TENANT_A]

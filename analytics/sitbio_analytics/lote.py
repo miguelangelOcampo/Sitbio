@@ -3,6 +3,7 @@
 Uso::
 
     python -m sitbio_analytics                       # lee y escribe en MongoDB (SITBIO_MONGO_URI)
+    python -m sitbio_analytics --tenant <id>         # solo una institución (recálculo desde la API)
     python -m sitbio_analytics --fuente semilla.json --sin-escribir  # Extended JSON; imprime el resultado
 
 Se escribe un documento por tenant (``_id`` = ``tenant_id``) que se reemplaza en cada ejecución; la API lo
@@ -137,6 +138,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--sin-escribir", action="store_true", help="Imprime el resultado sin escribir en MongoDB."
     )
+    parser.add_argument("--tenant", help="Calcula solo esta institución (tenant_id).")
     args = parser.parse_args(argv)
 
     ahora = datetime.now(UTC).replace(microsecond=0)
@@ -151,10 +153,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         cliente = MongoClient(cfg.mongo_uri, serverSelectionTimeoutMS=5000, tz_aware=True)
         base = cliente[cfg.mongo_db]
     try:
+        filtro = {} if args.tenant is None else {"tenant_id": args.tenant}
         if args.fuente is not None:
             documentos = leer_archivo(args.fuente)
+            if args.tenant is not None:
+                documentos = [d for d in documentos if str(d.get("tenant_id")) == args.tenant]
         else:
-            documentos = list(base[COLECCION_ENTRADA].find({}, CAMPOS_LECTURA))
+            documentos = list(base[COLECCION_ENTRADA].find(filtro, CAMPOS_LECTURA))
         resultados = calcular(documentos, corte, ahora, k=args.k)
         if args.sin_escribir:
             from bson import json_util

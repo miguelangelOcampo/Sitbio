@@ -30,6 +30,10 @@ public sealed class DocumentoResultadosAnalitica : IDocumentoTenant
 
     [BsonElement("agrupacion")]
     public DocumentoAgrupacion Agrupacion { get; set; } = new();
+
+    /// <summary>Una agrupación por cada k de 2 a 6 (I-03); vacía en resultados anteriores.</summary>
+    [BsonElement("agrupaciones")]
+    public List<DocumentoAgrupacion> Agrupaciones { get; set; } = [];
 }
 
 [BsonIgnoreExtraElements]
@@ -37,6 +41,9 @@ public sealed class DocumentoAgrupacion
 {
     [BsonElement("k")]
     public int K { get; set; }
+
+    [BsonElement("inercia")]
+    public double? Inercia { get; set; }
 
     [BsonElement("grupos")]
     public List<DocumentoGrupo> Grupos { get; set; } = [];
@@ -71,6 +78,9 @@ public sealed class DocumentoGrupo : DocumentoCaracteristicas
 
     [BsonElement("equipos")]
     public int Equipos { get; set; }
+
+    [BsonElement("nombre")]
+    public string? Nombre { get; set; }
 }
 
 [BsonIgnoreExtraElements]
@@ -112,19 +122,29 @@ public sealed class AnaliticaMongo(IMongoDatabase baseDatos, IContextoUsuario co
             new DateTimeOffset(documento.FechaCorte, TimeSpan.Zero),
             documento.IntervencionesAnalizadas,
             a.K,
-            a.Grupos.OrderBy(g => g.Grupo).Select(g => new GrupoDto(g.Grupo, g.Equipos, g.Dto())).ToList(),
-            a.Equipos
-                .Where(e => Guid.TryParse(e.EquipoId, out _))
-                .Select(e => (Guid.Parse(e.EquipoId), e.Grupo, e.Dto()))
-                .ToList());
+            Grupos(a),
+            Equipos(a),
+            documento.Agrupaciones.Select(x => new AgrupacionGuardada(x.K, x.Inercia, Grupos(x), Equipos(x))).ToList());
     }
+
+    private static List<GrupoDto> Grupos(DocumentoAgrupacion a) =>
+        a.Grupos.OrderBy(g => g.Grupo).Select(g => new GrupoDto(g.Grupo, g.Equipos, g.Dto(), g.Nombre)).ToList();
+
+    private static List<(Guid EquipoId, int Grupo, CaracteristicasDto Caracteristicas)> Equipos(DocumentoAgrupacion a) =>
+        a.Equipos
+            .Where(e => Guid.TryParse(e.EquipoId, out _))
+            .Select(e => (Guid.Parse(e.EquipoId), e.Grupo, e.Dto()))
+            .ToList();
 }
 
-/// <summary>Placas de los equipos del tenant (el filtro global aplica RN-008).</summary>
+/// <summary>Placa y tipo de los equipos del tenant (el filtro global aplica RN-008).</summary>
 public sealed class PlacasEquipos(SitbioDbContext contexto) : IPlacasEquipos
 {
-    public async Task<IReadOnlyDictionary<Guid, string>> PlacasAsync(IReadOnlyCollection<Guid> equipos, CancellationToken cancellationToken) =>
-        await contexto.Equipos.AsNoTracking()
-            .Where(e => equipos.Contains(e.Id))
-            .ToDictionaryAsync(e => e.Id, e => e.PlacaInventario, cancellationToken);
+    public async Task<IReadOnlyDictionary<Guid, DatosEquipo>> PlacasAsync(IReadOnlyCollection<Guid> equipos, CancellationToken cancellationToken) =>
+        await (
+                from e in contexto.Equipos.AsNoTracking()
+                where equipos.Contains(e.Id)
+                join t in contexto.TiposEquipo.AsNoTracking() on e.TipoEquipoId equals t.Id
+                select new { e.Id, e.PlacaInventario, Tipo = t.Nombre })
+            .ToDictionaryAsync(x => x.Id, x => new DatosEquipo(x.PlacaInventario, x.Tipo), cancellationToken);
 }

@@ -209,7 +209,9 @@ public class PanelViewModelTests
         Assert.Equal(["jun", "jul", "ago", "sept", "oct", "nov"], vm.Serie.Select(p => p.Etiqueta));
         Assert.Equal(1, vm.Serie[^1].Preventivos);
         Assert.Equal(1, vm.Serie[^2].Correctivos);
-        Assert.NotEmpty(vm.LineaPreventivos);
+        Assert.Equal(vm.Serie.Select(p => p.Etiqueta), vm.EtiquetasActividad);
+        Assert.Equal(["Preventivos", "Correctivos"], vm.SeriesActividad.Select(x => x.Nombre));
+        Assert.Equal(vm.Serie.Select(p => (double)p.Preventivos), vm.SeriesActividad[0].Valores);
 
         vm.CambiarPeriodoCommand.Execute(PanelViewModel.Periodo7Dias);
         Assert.Equal(8, vm.Serie.Count);

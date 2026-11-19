@@ -20,19 +20,27 @@
       <!-- Error -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,0,0,16"
               Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
-        <StackPanel>
-          <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
-          <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-        </StackPanel>
+        <DockPanel>
+          <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                          Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel>
+            <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+            <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </DockPanel>
       </Border>
 
       <!-- Guardado -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}" Margin="0,0,0,16"
               Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
-        <StackPanel>
-          <TextBlock Text="{Binding Confirmacion.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
-          <TextBlock Text="{Binding Confirmacion.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-        </StackPanel>
+        <DockPanel>
+          <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.CheckCirculo}"
+                          Foreground="{DynamicResource Brush.SuccessText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel>
+            <TextBlock Text="{Binding Confirmacion.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
+            <TextBlock Text="{Binding Confirmacion.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </DockPanel>
       </Border>
 
       <!-- Historial de órdenes -->
@@ -68,7 +76,7 @@
               <ComboBox Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:ExportacionViewModel.Formatos}" SelectedItem="{Binding Formato}"
                         DisplayMemberPath="Texto" AutomationProperties.Name="Formato" />
             </StackPanel>
-            <Button Grid.Column="6" Style="{StaticResource PrimaryButton}" Content="Exportar" Command="{Binding ExportarHistorialCommand}"
+            <Button views:Boton.Icono="{StaticResource Icono.Descargar}" Grid.Column="6" Style="{StaticResource PrimaryButton}" Content="Exportar" Command="{Binding ExportarHistorialCommand}"
                     IsEnabled="{Binding Libre}" VerticalAlignment="Bottom" />
           </Grid>
           <TextBlock Text="{Binding ErrorFechas}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorFechas, Converter={StaticResource TextoVisible}}" />
@@ -99,8 +107,8 @@
                 </TextBox>
               </Border>
             </StackPanel>
-            <Button Grid.Column="2" Style="{StaticResource LinkButton}" Content="Buscar" Command="{Binding BuscarEquipoCommand}" VerticalAlignment="Bottom" Margin="0,0,0,10" />
-            <Button Grid.Column="4" Style="{StaticResource PrimaryButton}" Content="Generar PDF" Command="{Binding GenerarHojaVidaCommand}"
+            <Button views:Boton.Icono="{StaticResource Icono.Buscar}" Grid.Column="2" Style="{StaticResource LinkButton}" Content="Buscar" Command="{Binding BuscarEquipoCommand}" VerticalAlignment="Bottom" Margin="0,0,0,10" />
+            <Button views:Boton.Icono="{StaticResource Icono.Reporte}" Grid.Column="4" Style="{StaticResource PrimaryButton}" Content="Generar PDF" Command="{Binding GenerarHojaVidaCommand}"
                     IsEnabled="{Binding Libre}" VerticalAlignment="Bottom" />
           </Grid>
           <TextBlock Text="No hay equipos con esa placa en tu institución." Style="{StaticResource Muted}" Margin="0,10,0,0"

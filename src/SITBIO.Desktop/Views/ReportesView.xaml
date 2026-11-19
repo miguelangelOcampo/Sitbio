@@ -48,7 +48,7 @@
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,16,0,0"
               Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
+          <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
           <StackPanel>
             <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
             <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />

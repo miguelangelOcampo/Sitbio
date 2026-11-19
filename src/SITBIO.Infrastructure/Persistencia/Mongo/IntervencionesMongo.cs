@@ -4,6 +4,7 @@ using MongoDB.Driver;
 using Sitbio.Application.Comun;
 using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.Ordenes;
+using Sitbio.Domain.Mantenimiento;
 
 namespace Sitbio.Infrastructure.Persistencia.Mongo;
 
@@ -149,6 +150,79 @@ public sealed class IntervencionesMongo(IMongoDatabase baseDatos, IContextoUsuar
             var opciones = new FindOptions<DocumentoIntervencion, DocumentoIntervencion> { Sort = Builders<DocumentoIntervencion>.Sort.Ascending(d => d.FechaIntervencion) };
             var documentos = await BuscarAsync(Filtro.Eq(d => d.EquipoId, equipoId.ToString()), opciones, cancellationToken);
             return documentos.Select(Intervencion).ToList();
+        }
+        catch (Exception error) when (error is MongoException or TimeoutException)
+        {
+            throw new ErrorServicioNoDisponible(error);
+        }
+    }
+
+    public async Task<ResultadoIntervenciones> ConsultarAsync(
+        CriteriosIntervenciones criterios, int omitir, int tomar, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(criterios);
+        var partes = new List<FilterDefinition<DocumentoIntervencion>>();
+        if (criterios.EquipoIds is { } equipos)
+        {
+            partes.Add(Filtro.In(d => d.EquipoId, equipos.Select(e => e.ToString())));
+        }
+
+        if (criterios.TecnicoId is { } tecnico)
+        {
+            partes.Add(Filtro.Eq(d => d.TecnicoId, tecnico.ToString()));
+        }
+
+        if (criterios.TipoMantenimiento is { } tipo)
+        {
+            partes.Add(Filtro.Eq(d => d.TipoMantenimiento, tipo));
+        }
+
+        if (criterios.Desde is { } desde)
+        {
+            partes.Add(Filtro.Gte(d => d.FechaIntervencion, desde.UtcDateTime));
+        }
+
+        if (criterios.Hasta is { } hasta)
+        {
+            partes.Add(Filtro.Lt(d => d.FechaIntervencion, hasta.UtcDateTime));
+        }
+
+        var filtro = partes.Count == 0 ? null : Filtro.And(partes);
+        try
+        {
+            var opciones = new FindOptions<DocumentoIntervencion, DocumentoIntervencion>
+            {
+                Sort = Builders<DocumentoIntervencion>.Sort.Descending(d => d.FechaIntervencion).Descending(d => d.Id),
+                Skip = omitir,
+                Limit = tomar,
+            };
+            var documentos = await BuscarAsync(filtro, opciones, cancellationToken);
+
+            // Totales de todo el filtro en una sola pasada por el servidor.
+            var totales = await Agregar(filtro)
+                .Group(new BsonDocument
+                {
+                    ["_id"] = BsonNull.Value,
+                    ["total"] = new BsonDocument("$sum", 1),
+                    ["correctivas"] = new BsonDocument("$sum", new BsonDocument("$cond",
+                        new BsonArray { new BsonDocument("$eq", new BsonArray { "$tipo_mantenimiento", TiposMantenimiento.Correctivo }), 1, 0 })),
+                    ["costo"] = new BsonDocument("$sum", "$costo_total"),
+                    ["tiempo"] = new BsonDocument("$avg", "$tiempo_atencion_min"),
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (totales is null)
+            {
+                return new ResultadoIntervenciones([], 0, 0, 0, null);
+            }
+
+            var tiempo = totales["tiempo"];
+            return new ResultadoIntervenciones(
+                documentos.Select(Intervencion).ToList(),
+                totales["total"].ToInt32(),
+                totales["correctivas"].ToInt32(),
+                Math.Round((decimal)totales["costo"].ToDouble(), 2, MidpointRounding.AwayFromZero),
+                tiempo.IsBsonNull ? null : Math.Round(tiempo.ToDouble(), 1));
         }
         catch (Exception error) when (error is MongoException or TimeoutException)
         {

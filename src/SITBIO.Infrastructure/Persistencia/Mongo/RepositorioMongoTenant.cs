@@ -51,6 +51,10 @@ public abstract class RepositorioMongoTenant<TDocumento>
         return encontrados.FirstOrDefault();
     }
 
+    /// <summary>Canalización de agregación que empieza filtrando por el tenant del token.</summary>
+    protected IAggregateFluent<TDocumento> Agregar(FilterDefinition<TDocumento>? filtro = null) =>
+        _coleccion.Aggregate().Match(FiltroTenant(filtro));
+
     protected Task<long> ContarAsync(
         FilterDefinition<TDocumento>? filtro = null,
         CancellationToken cancellationToken = default)

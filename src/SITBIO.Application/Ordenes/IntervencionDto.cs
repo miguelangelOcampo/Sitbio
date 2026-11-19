@@ -111,6 +111,12 @@ public interface IRepositorioIntervenciones
     /// <summary>Intervenciones del equipo en la institución, de la más antigua a la más reciente (línea de tiempo, HU-023).</summary>
     Task<IReadOnlyList<Intervencion>> DelEquipoAsync(Guid equipoId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Historial (HU-005): intervenciones que cumplen los criterios, de la más reciente a la más antigua, desde
+    /// <paramref name="omitir"/> y hasta <paramref name="tomar"/>, con el total y los totales de todo el filtro.
+    /// </summary>
+    Task<ResultadoIntervenciones> ConsultarAsync(CriteriosIntervenciones criterios, int omitir, int tomar, CancellationToken cancellationToken);
+
     /// <summary>Costo total de las intervenciones de la institución registradas en [desde, hasta) (tablero, HU-026).</summary>
     Task<decimal> CostoEnPeriodoAsync(DateTimeOffset desde, DateTimeOffset hasta, CancellationToken cancellationToken);
 

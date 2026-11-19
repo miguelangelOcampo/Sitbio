@@ -33,6 +33,8 @@ public class ReportesEndpointTests : IClassFixture<WebApplicationFactory<Program
     private readonly IRepositorioIntervenciones _intervenciones = Substitute.For<IRepositorioIntervenciones>();
     private readonly IRepositorioEquipos _equipos = Substitute.For<IRepositorioEquipos>();
     private readonly IRegistroAuditoria _auditoria = Substitute.For<IRegistroAuditoria>();
+    private readonly IRepositorioDocumentos _documentos = Substitute.For<IRepositorioDocumentos>();
+    private readonly IAlmacenDocumentos _almacen = Substitute.For<IAlmacenDocumentos>();
     private readonly Usuario _usuario = new(Guid.NewGuid(), 1, "Laura", "Gómez", "laura@demo.co", "hash");
     private readonly WebApplicationFactory<Program> _fabrica;
 
@@ -55,7 +57,9 @@ public class ReportesEndpointTests : IClassFixture<WebApplicationFactory<Program
                     .AddScoped(_ => _lineaTiempo)
                     .AddScoped(_ => _intervenciones)
                     .AddScoped(_ => _equipos)
-                    .AddScoped(_ => _auditoria)))
+                    .AddScoped(_ => _auditoria)
+                    .AddScoped(_ => _documentos)
+                    .AddScoped(_ => _almacen)))
             .CreateClient();
 
         if (codigoRol is not null)

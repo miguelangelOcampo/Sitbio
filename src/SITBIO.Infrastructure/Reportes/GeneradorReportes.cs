@@ -116,18 +116,30 @@ public sealed class GeneradorReportes : IGeneradorReportes
             {
                 col.Spacing(6);
                 col.Item().Text("Datos técnicos").FontSize(12).SemiBold().FontColor(Primario);
-                col.Item().Table(tabla =>
+                var foto = Imagen(documento.Foto);
+                col.Item().Row(fila =>
                 {
-                    tabla.ColumnsDefinition(c =>
+                    if (foto is not null)
                     {
-                        c.ConstantColumn(150);
-                        c.RelativeColumn();
-                    });
-                    foreach (var (etiqueta, valor) in DatosTecnicos(documento))
-                    {
-                        tabla.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(etiqueta).FontColor(Colors.Grey.Darken2);
-                        tabla.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(valor ?? "—");
+                        // La foto va a la izquierda de los datos técnicos, en un recuadro de 150 pt.
+                        fila.ConstantItem(150).Border(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4)
+                            .Height(150).AlignCenter().AlignMiddle().Image(foto).FitArea();
+                        fila.ConstantItem(12);
                     }
+
+                    fila.RelativeItem().Table(tabla =>
+                    {
+                        tabla.ColumnsDefinition(c =>
+                        {
+                            c.ConstantColumn(foto is null ? 150 : 120);
+                            c.RelativeColumn();
+                        });
+                        foreach (var (etiqueta, valor) in DatosTecnicos(documento))
+                        {
+                            tabla.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(etiqueta).FontColor(Colors.Grey.Darken2);
+                            tabla.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(3).Text(valor ?? "—");
+                        }
+                    });
                 });
 
                 col.Item().PaddingTop(12).Text("Historial").FontSize(12).SemiBold().FontColor(Primario);
@@ -168,6 +180,24 @@ public sealed class GeneradorReportes : IGeneradorReportes
                 });
             });
         })).GeneratePdf();
+
+    /// <summary>La fotografía lista para el PDF; null si no hay o si su contenido no es una imagen legible.</summary>
+    public static Image? Imagen(byte[]? foto)
+    {
+        if (foto is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        try
+        {
+            return Image.FromBinaryData(foto);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or QuestPDF.Drawing.Exceptions.DocumentComposeException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>Etiqueta y valor de los datos técnicos de la hoja de vida (RF-030).</summary>
     public static IReadOnlyList<(string Etiqueta, string? Valor)> DatosTecnicos(HojaVidaDocumento documento)

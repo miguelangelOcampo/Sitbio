@@ -38,8 +38,11 @@ public static class ColumnasHistorial
 /// <summary>Encabezado común de los documentos.</summary>
 public sealed record EncabezadoReporte(string Institucion, string Nit, string Titulo, string Subtitulo, DateTimeOffset GeneradoEn);
 
-/// <summary>Contenido de la hoja de vida en PDF (HU-027): datos técnicos e historial completo.</summary>
-public sealed record HojaVidaDocumento(EncabezadoReporte Encabezado, EquipoDto Equipo, LineaTiempoDto Historial);
+/// <summary>
+/// Contenido de la hoja de vida en PDF (HU-027): fotografía del equipo (versión de 512 px, si tiene), datos técnicos
+/// e historial completo.
+/// </summary>
+public sealed record HojaVidaDocumento(EncabezadoReporte Encabezado, EquipoDto Equipo, LineaTiempoDto Historial, byte[]? Foto = null);
 
 /// <summary>Archivo generado, listo para descargar.</summary>
 public sealed record ArchivoReporte(byte[] Contenido, string TipoContenido, string NombreArchivo);
@@ -70,6 +73,8 @@ public sealed class ExportacionReportes(
     IRepositorioInstitucion instituciones,
     ConsultaLineaTiempo lineaTiempo,
     GestionEquipos equipos,
+    IRepositorioDocumentos documentos,
+    IAlmacenDocumentos almacen,
     IGeneradorReportes generador,
     TimeProvider tiempo)
 {
@@ -129,8 +134,28 @@ public sealed class ExportacionReportes(
             $"Hoja de vida · {equipo.PlacaInventario}",
             $"{equipo.TipoEquipo} · {equipo.Marca} {equipo.Modelo} · serie {equipo.NumeroSerie}",
             cancellationToken);
-        var pdf = generador.HojaVidaPdf(new HojaVidaDocumento(encabezado, equipo, historial));
+        var foto = equipo.TieneFoto ? await FotoAsync(equipoId, cancellationToken) : null;
+        var pdf = generador.HojaVidaPdf(new HojaVidaDocumento(encabezado, equipo, historial, foto));
         return new ArchivoReporte(pdf, FormatosReporte.TipoPdf, $"hoja-de-vida-{equipo.PlacaInventario}.pdf");
+    }
+
+    /// <summary>Versión de 512 px de la fotografía; si el archivo ya no está, la hoja de vida sale sin ella.</summary>
+    private async Task<byte[]?> FotoAsync(Guid equipoId, CancellationToken cancellationToken)
+    {
+        if (await documentos.ObtenerFotoAsync(equipoId, cancellationToken) is not { } foto)
+        {
+            return null;
+        }
+
+        await using var contenido = almacen.Abrir(foto.RutaAlmacenamiento);
+        if (contenido is null)
+        {
+            return null;
+        }
+
+        using var bytes = new MemoryStream();
+        await contenido.CopyToAsync(bytes, cancellationToken);
+        return bytes.ToArray();
     }
 
     private static string Fecha(DateOnly fecha) => fecha.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);

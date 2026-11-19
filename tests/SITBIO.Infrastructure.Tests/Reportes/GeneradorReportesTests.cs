@@ -86,4 +86,36 @@ public class GeneradorReportesTests
         Assert.Contains(("Registro INVIMA", (string?)"INVIMA 2021DM-1 · vence el 01/01/2028"), datos);
         Assert.Contains(("Requiere calibración", (string?)"Sí · cada 12 meses"), datos);
     }
+
+    /// <summary>PNG de 1 × 1 px.</summary>
+    private static readonly byte[] Png = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+
+    private static HojaVidaDocumento HojaVida(byte[]? foto)
+    {
+        var equipo = new EquipoDto(
+            Guid.NewGuid(), "MON-07", "SN-1", "Mindray", "BeneView T5", Guid.NewGuid(), "Monitor de signos vitales", Guid.NewGuid(), "UCI adultos",
+            null, null, "operativo", "Operativo", null, null, "registro_sanitario", "INVIMA 2021DM-1", new DateOnly(2028, 1, 1), "vigente", "IIb", true, 12, foto is not null, null);
+        return new HojaVidaDocumento(Encabezado with { Titulo = "Hoja de vida · MON-07" }, equipo, new LineaTiempoDto(equipo.Id, "MON-07", [], true), foto);
+    }
+
+    private static bool TieneImagen(byte[] pdf) => System.Text.Encoding.Latin1.GetString(pdf).Contains("/Subtype /Image");
+
+    [Fact]
+    public void HojaVida_ConFotografia_IncluyeLaImagenDelEquipo()
+    {
+        Assert.True(TieneImagen(_generador.HojaVidaPdf(HojaVida(Png))));
+        Assert.False(TieneImagen(_generador.HojaVidaPdf(HojaVida(null))));
+    }
+
+    [Fact]
+    public void HojaVida_ConFotografiaIlegible_SaleSinImagen()
+    {
+        Assert.Null(GeneradorReportes.Imagen([1, 2, 3, 4]));
+
+        var pdf = _generador.HojaVidaPdf(HojaVida([1, 2, 3, 4]));
+
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
+        Assert.False(TieneImagen(pdf));
+    }
 }

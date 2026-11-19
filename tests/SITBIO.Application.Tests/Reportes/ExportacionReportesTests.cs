@@ -13,7 +13,7 @@ public class ExportacionReportesTests
     private readonly IRepositorioInstitucion _instituciones = Substitute.For<IRepositorioInstitucion>();
 
     private ExportacionReportes Caso() =>
-        new(_repositorio, _instituciones, null!, null!, _generador, TimeProvider.System);
+        new(_repositorio, _instituciones, null!, null!, null!, null!, _generador, TimeProvider.System);
 
     [Theory]
     [InlineData(null, "2026-11-30", "pdf", "desde")]

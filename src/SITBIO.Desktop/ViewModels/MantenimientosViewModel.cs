@@ -731,4 +731,15 @@ public sealed record FilaPlan(PlanMantenimiento Plan, DateOnly Hoy)
 }
 
 /// <summary>Parámetro de «Suspender», «Reactivar» y «Finalizar».</summary>
-public sealed record CambioEstadoPlan(FilaPlan Fila, string Estado);
+public sealed record CambioEstadoPlan(FilaPlan Fila, string Estado)
+{
+    /// <summary>
+    /// La fila expone este cambio en sus propiedades: si el texto del record imprimiera la fila completa, la
+    /// recursión no terminaría y WPF cerraría la aplicación al pedir el texto de una fila de planes.
+    /// </summary>
+    private bool PrintMembers(System.Text.StringBuilder texto)
+    {
+        texto.Append("Plan = ").Append(Fila.Plan.Id).Append(", Estado = ").Append(Estado);
+        return true;
+    }
+}

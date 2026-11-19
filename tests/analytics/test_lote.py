@@ -84,6 +84,69 @@ def test_kmeans_separa_equipos_de_alta_carga():
     assert [g["equipos"] for g in grupos] == [3, 2]
 
 
+def test_el_lote_guarda_de_2_a_6_grupos_con_inercia_y_nombres(resultados_semilla):
+    for r in resultados_semilla:
+        todas = r["agrupaciones"]
+        equipos = len(r["agrupacion"]["equipos"])
+        assert [a["k"] for a in todas] == list(range(2, min(6, equipos) + 1))
+        for a in todas:
+            assert len(a["grupos"]) == a["k"] and a["inercia"] >= 0
+            assert sum(g["equipos"] for g in a["grupos"]) == equipos
+            nombres = [g["nombre"] for g in a["grupos"]]
+            assert all(nombres) and len(set(nombres)) == len(nombres)
+        # Más grupos nunca explican peor los datos.
+        inercias = [a["inercia"] for a in todas]
+        assert inercias == sorted(inercias, reverse=True)
+        tres = next(a for a in todas if a["k"] == 3) if equipos >= 3 else None
+        if tres:
+            assert tres["grupos"] == r["agrupacion"]["grupos"]
+
+
+def test_los_grupos_se_ordenan_por_fallas_y_se_nombran():
+    docs = [_doc(1, "bajo1"), _doc(2, "bajo2"), _doc(3, "bajo3"), _doc(4, "bajo4")]
+    docs += [_doc(10 + i, "alto1", "correctivo", 500_000) for i in range(4)]
+    docs += [_doc(20 + i, "alto2", "correctivo", 450_000) for i in range(4)]
+    docs += [
+        _doc(30, "lento1", minutos=900),
+        _doc(31, "lento1", minutos=900),
+        _doc(32, "lento2", minutos=950),
+    ]
+    docs += [_doc(33, "lento2", minutos=950)]
+    df = metricas.preparar(docs, pd.Timestamp(CORTE))
+    equipos, grupos = agrupacion.agrupar(agrupacion.caracteristicas_por_equipo(df), k=3)
+
+    grupo = {e["equipo_id"]: e["grupo"] for e in equipos}
+    assert grupo["alto1"] == grupo["alto2"] == 2
+    assert grupos[2]["nombre"] == "Alto costo y muchas fallas"
+    assert grupos[grupo["lento1"]]["nombre"] == "Atención lenta"
+    assert grupos[grupo["bajo1"]]["nombre"] == "Estables"
+
+
+def test_nombre_segun_el_centroide_y_repetidos_numerados():
+    referencia = {"fallas": 1.0, "costo_confirmado": 100.0, "tiempo_medio_min": 60.0}
+    assert (
+        agrupacion.nombre({"fallas": 0.1, "costo_confirmado": 10.0, "tiempo_medio_min": 50}, referencia)
+        == "Estables"
+    )
+    assert (
+        agrupacion.nombre({"fallas": 1.0, "costo_confirmado": 300.0, "tiempo_medio_min": 50}, referencia)
+        == "Alto costo"
+    )
+    assert (
+        agrupacion.nombre({"fallas": 2.0, "costo_confirmado": 90.0, "tiempo_medio_min": 50}, referencia)
+        == "Muchas fallas"
+    )
+    assert (
+        agrupacion.nombre({"fallas": 1.0, "costo_confirmado": 100.0, "tiempo_medio_min": 60}, referencia)
+        == "Seguimiento"
+    )
+    assert agrupacion._unicos(["Estables", "Estables", "Alto costo"]) == [
+        "Estables 1",
+        "Estables 2",
+        "Alto costo",
+    ]
+
+
 def test_k_mayor_que_los_equipos_se_ajusta():
     df = metricas.preparar([_doc(1, "e1")], pd.Timestamp(CORTE))
     equipos, grupos = agrupacion.agrupar(agrupacion.caracteristicas_por_equipo(df), k=3)
@@ -127,4 +190,11 @@ def test_main_sin_escribir_imprime_json(capsys):
     argumentos = ["--fuente", str(SEMILLA), "--fecha-corte", "2026-10-21T00:00:00Z", "--sin-escribir"]
     assert lote.main(argumentos) == 0
     salida = json_util.loads(capsys.readouterr().out)
-    assert len(salida) == 2 and all("agrupacion" in r for r in salida)
+    assert len(salida) == 2 and all("agrupacion" in r and r["agrupaciones"] for r in salida)
+
+
+def test_main_con_tenant_calcula_solo_esa_institucion(capsys):
+    argumentos = ["--fuente", str(SEMILLA), "--fecha-corte", "2026-10-21T00:00:00Z", "--sin-escribir"]
+    assert lote.main([*argumentos, "--tenant", TENANT_A]) == 0
+    salida = json_util.loads(capsys.readouterr().out)
+    assert [r["tenant_id"] for r in salida] == [TENANT_A]

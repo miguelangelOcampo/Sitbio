@@ -30,9 +30,26 @@ public class GeneradorReportesTests
             Inicio.AddMinutes(i + 90),
             "Laura Gómez")).ToList();
 
+    /// <summary>
+    /// RNF-007 mide la generación, no el arranque en frío de la biblioteca (JIT y fuentes), que ocurre una sola vez
+    /// por proceso y en la CI coincide con los demás proyectos de pruebas en paralelo.
+    /// </summary>
+    private void Calentar(bool excel)
+    {
+        if (excel)
+        {
+            _generador.HistorialExcel(Encabezado, Filas(5));
+        }
+        else
+        {
+            _generador.HistorialPdf(Encabezado, Filas(5));
+        }
+    }
+
     [Fact]
     public void HistorialPdf_ConMilRegistros_SeGeneraEnMenosDeDiezSegundos()
     {
+        Calentar(excel: false);
         var reloj = Stopwatch.StartNew();
 
         var pdf = _generador.HistorialPdf(Encabezado, Filas(1000));
@@ -45,6 +62,7 @@ public class GeneradorReportesTests
     [Fact]
     public void HistorialExcel_TieneLasMismasColumnasYUnaFilaPorOrden()
     {
+        Calentar(excel: true);
         var reloj = Stopwatch.StartNew();
         var xlsx = _generador.HistorialExcel(Encabezado, Filas(1000));
         reloj.Stop();
@@ -76,6 +94,7 @@ public class GeneradorReportesTests
             Inicio.AddHours(i), TiposEvento.Intervencion, "Intervención registrada · sale «Operativo»", "Filtros sucios — limpieza", "Ana Mora", Guid.NewGuid())).ToList();
         var documento = new HojaVidaDocumento(Encabezado with { Titulo = "Hoja de vida · MON-07" }, equipo, new LineaTiempoDto(equipo.Id, "MON-07", eventos, false));
 
+        Calentar(excel: false);
         var reloj = Stopwatch.StartNew();
         var pdf = _generador.HojaVidaPdf(documento);
         reloj.Stop();

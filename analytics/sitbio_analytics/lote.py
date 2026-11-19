@@ -3,11 +3,14 @@
 Uso::
 
     python -m sitbio_analytics                       # lee y escribe en MongoDB (SITBIO_MONGO_URI)
+    python -m sitbio_analytics --tenant <id>         # solo una institución (recálculo desde la API)
     python -m sitbio_analytics --fuente semilla.json --sin-escribir  # Extended JSON; imprime el resultado
 
 Se escribe un documento por tenant (``_id`` = ``tenant_id``) que se reemplaza en cada ejecución; la API lo
 entrega a UI-023. Los resultados no son en tiempo real: llevan
-``generado_en`` y la huella de los datos de entrada.
+``generado_en`` y la huella de los datos de entrada. ``agrupaciones`` trae una agrupación por cada k de 2 a 6
+(con inercia y el nombre de cada grupo); ``agrupacion`` repite la del k por defecto para clientes
+anteriores.
 """
 
 from __future__ import annotations
@@ -63,7 +66,17 @@ def calcular(
 
     resultados = []
     for tenant_id, del_tenant in df.groupby("tenant_id", sort=True):
-        equipos, grupos = agrupacion.agrupar(agrupacion.caracteristicas_por_equipo(del_tenant), k=k)
+        caracteristicas = agrupacion.caracteristicas_por_equipo(del_tenant)
+        equipos, grupos, inercia = agrupacion.agrupar_con_inercia(caracteristicas, k=k)
+        todas = [
+            {
+                "algoritmo": "KMeans",
+                "semilla": agrupacion.SEMILLA,
+                "caracteristicas": agrupacion.CARACTERISTICAS,
+                **a,
+            }
+            for a in agrupacion.agrupaciones(caracteristicas)
+        ]
         ids = set(del_tenant["_id"])
         resultados.append(
             {
@@ -78,11 +91,13 @@ def calcular(
                 "agrupacion": {
                     "algoritmo": "KMeans",
                     "k": len(grupos),
+                    "inercia": inercia,
                     "semilla": agrupacion.SEMILLA,
                     "caracteristicas": agrupacion.CARACTERISTICAS,
                     "grupos": grupos,
                     "equipos": equipos,
                 },
+                "agrupaciones": todas,
             }
         )
     return resultados
@@ -114,10 +129,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--fecha-corte", type=_fecha, help="Fecha de corte ISO-8601 (por defecto, ahora en UTC)."
     )
-    parser.add_argument("-k", type=int, default=3, help="Número de grupos de K-Means (por defecto 3).")
+    parser.add_argument(
+        "-k",
+        type=int,
+        default=3,
+        help="Grupos de la agrupación por defecto (3); además se guardan las de 2 a 6.",
+    )
     parser.add_argument(
         "--sin-escribir", action="store_true", help="Imprime el resultado sin escribir en MongoDB."
     )
+    parser.add_argument("--tenant", help="Calcula solo esta institución (tenant_id).")
     args = parser.parse_args(argv)
 
     ahora = datetime.now(UTC).replace(microsecond=0)
@@ -132,10 +153,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         cliente = MongoClient(cfg.mongo_uri, serverSelectionTimeoutMS=5000, tz_aware=True)
         base = cliente[cfg.mongo_db]
     try:
+        filtro = {} if args.tenant is None else {"tenant_id": args.tenant}
         if args.fuente is not None:
             documentos = leer_archivo(args.fuente)
+            if args.tenant is not None:
+                documentos = [d for d in documentos if str(d.get("tenant_id")) == args.tenant]
         else:
-            documentos = list(base[COLECCION_ENTRADA].find({}, CAMPOS_LECTURA))
+            documentos = list(base[COLECCION_ENTRADA].find(filtro, CAMPOS_LECTURA))
         resultados = calcular(documentos, corte, ahora, k=args.k)
         if args.sin_escribir:
             from bson import json_util

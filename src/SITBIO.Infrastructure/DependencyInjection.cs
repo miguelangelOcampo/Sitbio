@@ -63,6 +63,9 @@ public static class DependencyInjection
             return sp.GetRequiredService<IMongoClient>().GetDatabase(nombre);
         });
 
+        // Recálculo de la analítica bajo demanda (I-04): ejecuta el lote de Python por institución.
+        services.AddScoped<Sitbio.Application.Analitica.IEjecutorAnalitica, Analitica.EjecutorAnaliticaPython>();
+
         // Seguridad (ADR-003). OpcionesJwt se enlaza en la API junto con JwtBearer.
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<IHasherContrasenas, HasherBCrypt>();

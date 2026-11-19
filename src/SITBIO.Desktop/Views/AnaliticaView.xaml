@@ -1,31 +1,33 @@
-<!-- UI-023 Analítica (HU-008, HU-009): dispersión de equipos por grupo K-Means y tabla resumen por grupo. -->
+<!-- UI-023 Analítica (HU-008, HU-009; prototipo Analitica, I-05): dispersión de equipos con ejes elegibles, grupos K-Means con
+     nombre, etiqueta al pasar el mouse, clic que abre la hoja de vida, «Cómo leerlo», «Recalcular» y «Exportar resultado». -->
 <UserControl x:Class="Sitbio.Desktop.Views.AnaliticaView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Sitbio.Desktop.Controls"
              xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
              xmlns:views="clr-namespace:Sitbio.Desktop.Views">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visible" />
     <views:NuloVisibleConverter x:Key="NuloVisible" />
+    <views:RecursoConverter x:Key="Recurso" />
 
-    <!-- Color por grupo (0 = menor carga) -->
-    <Style x:Key="ColorGrupo" TargetType="Ellipse">
-      <Setter Property="Fill" Value="{DynamicResource Brush.Primary}" />
+    <!-- Aviso rojo si es un error; azul si es informativo -->
+    <Style x:Key="AvisoBarra" TargetType="Border" BasedOn="{StaticResource InfoBar}">
+      <Setter Property="Background" Value="{DynamicResource Brush.DangerSoft}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
       <Style.Triggers>
-        <DataTrigger Binding="{Binding Grupo}" Value="1">
-          <Setter Property="Fill" Value="{DynamicResource Brush.Info}" />
+        <DataTrigger Binding="{Binding EsError}" Value="False">
+          <Setter Property="Background" Value="{DynamicResource Brush.InfoSoft}" />
+          <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info}" />
         </DataTrigger>
-        <DataTrigger Binding="{Binding Grupo}" Value="2">
-          <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding Grupo}" Value="3">
-          <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding Grupo}" Value="4">
-          <Setter Property="Fill" Value="{DynamicResource Brush.Text3}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding Grupo}" Value="5">
-          <Setter Property="Fill" Value="{DynamicResource Brush.Success}" />
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="AvisoTitulo" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding EsError}" Value="False">
+          <Setter Property="Foreground" Value="{DynamicResource Brush.InfoText}" />
         </DataTrigger>
       </Style.Triggers>
     </Style>
@@ -36,156 +38,155 @@
       <TextBlock Text="ANÁLISIS" Style="{StaticResource Overline}" />
       <TextBlock Text="Analítica de equipos" Style="{StaticResource PageTitle}" Margin="0,6,0,0" />
       <TextBlock Style="{StaticResource Muted}" Margin="0,4,0,24" TextWrapping="Wrap"
-                 Text="Agrupa los equipos por comportamiento (K-Means sobre intervenciones, costo y tiempo de atención) para priorizar mantenimiento y reposición. Los resultados los calcula el lote de analítica; no son en tiempo real." />
+                 Text="Agrupa los equipos por comportamiento (fallas, costo y tiempo de atención) para priorizar mantenimiento y reposición." />
 
-      <!-- Aviso -->
-      <!-- Rojo si es un error; azul informativo si el lote aún no ha calculado resultados (ANA-001) -->
-      <Border Margin="0,0,0,16" Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
-        <Border.Style>
-          <Style TargetType="Border" BasedOn="{StaticResource InfoBar}">
-            <Setter Property="Background" Value="{DynamicResource Brush.DangerSoft}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
-            <Style.Triggers>
-              <DataTrigger Binding="{Binding Aviso.EsError}" Value="False">
-                <Setter Property="Background" Value="{DynamicResource Brush.InfoSoft}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info}" />
-              </DataTrigger>
-            </Style.Triggers>
-          </Style>
-        </Border.Style>
+      <!-- Aviso de carga o de recálculo -->
+      <Border DataContext="{Binding Aviso}" Style="{StaticResource AvisoBarra}" Margin="0,0,0,16"
+              Visibility="{Binding DataContext.Aviso, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource NuloVisible}}">
         <DockPanel>
-          <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
+          <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" VerticalAlignment="Bottom"
+                  Command="{Binding DataContext.CargarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
           <StackPanel>
-            <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold">
-              <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                  <Setter Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Aviso.EsError}" Value="False">
-                      <Setter Property="Foreground" Value="{DynamicResource Brush.InfoText}" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </TextBlock.Style>
-            </TextBlock>
-            <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+            <TextBlock Text="{Binding Titulo}" Style="{StaticResource AvisoTitulo}" />
+            <TextBlock Text="{Binding Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
           </StackPanel>
         </DockPanel>
       </Border>
-      <TextBlock Text="Cargando la analítica…" Style="{StaticResource Muted}" Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
 
-      <StackPanel Visibility="{Binding HayDatos, Converter={StaticResource Visible}}">
-        <DockPanel Margin="0,0,0,12">
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-            <TextBlock Text="Número de grupos" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,10,0" />
-            <ComboBox Style="{StaticResource FieldCombo}" Width="90" ItemsSource="{x:Static vm:AnaliticaViewModel.OpcionesGrupos}"
-                      SelectedItem="{Binding GruposSolicitados}" AutomationProperties.Name="Número de grupos" />
+      <!-- Confirmación (recalculado o exportado) -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}" Margin="0,0,0,16"
+              Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
+        <StackPanel>
+          <TextBlock Text="{Binding Confirmacion.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
+          <TextBlock Text="{Binding Confirmacion.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+        </StackPanel>
+      </Border>
+      <TextBlock Text="Cargando la analítica…" Style="{StaticResource Muted}" Margin="0,0,0,16" Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+
+      <!-- Controles: número de grupos, ejes y recalcular -->
+      <Border Style="{StaticResource Section}" Margin="0,0,0,20">
+        <DockPanel LastChildFill="False">
+          <Button DockPanel.Dock="Right" VerticalAlignment="Bottom" views:Boton.Icono="{StaticResource Icono.Recalcular}"
+                  Command="{Binding RecalcularCommand}" Visibility="{Binding PuedeRecalcular, Converter={StaticResource Visible}}"
+                  AutomationProperties.Name="Recalcular la analítica">
+            <Button.Style>
+              <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                <Setter Property="Content" Value="Recalcular" />
+                <Style.Triggers>
+                  <DataTrigger Binding="{Binding Recalculando}" Value="True">
+                    <Setter Property="Content" Value="Calculando…" />
+                  </DataTrigger>
+                </Style.Triggers>
+              </Style>
+            </Button.Style>
+          </Button>
+          <StackPanel Orientation="Horizontal" Visibility="{Binding HayDatos, Converter={StaticResource Visible}}">
+            <StackPanel Margin="0,0,20,0">
+              <TextBlock Text="Número de grupos" Style="{StaticResource FieldLabel}" />
+              <ComboBox Style="{StaticResource FieldCombo}" Width="90" ItemsSource="{x:Static vm:AnaliticaViewModel.OpcionesGrupos}"
+                        SelectedItem="{Binding GruposSolicitados}" AutomationProperties.Name="Número de grupos" />
+            </StackPanel>
+            <StackPanel Margin="0,0,20,0">
+              <TextBlock Text="Eje horizontal" Style="{StaticResource FieldLabel}" />
+              <ComboBox Style="{StaticResource FieldCombo}" Width="220" ItemsSource="{x:Static vm:AnaliticaViewModel.OpcionesEje}"
+                        DisplayMemberPath="Nombre" SelectedItem="{Binding EjeX}" AutomationProperties.Name="Eje horizontal" />
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="Eje vertical" Style="{StaticResource FieldLabel}" />
+              <ComboBox Style="{StaticResource FieldCombo}" Width="220" ItemsSource="{x:Static vm:AnaliticaViewModel.OpcionesEje}"
+                        DisplayMemberPath="Nombre" SelectedItem="{Binding EjeY}" AutomationProperties.Name="Eje vertical" />
+            </StackPanel>
           </StackPanel>
-          <TextBlock Text="{Binding Encabezado}" Style="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" />
         </DockPanel>
+      </Border>
 
-        <!-- Grupos (CA-HU-009-02) -->
-        <Border Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,14"
-                Visibility="{Binding AvisoGrupos, Converter={StaticResource NuloVisible}}">
-          <StackPanel>
-            <TextBlock Text="{Binding AvisoGrupos.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
-            <TextBlock Text="{Binding AvisoGrupos.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-          </StackPanel>
-        </Border>
+      <!-- Número de grupos (CA-HU-009-02) -->
+      <Border Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,16"
+              Visibility="{Binding AvisoGrupos, Converter={StaticResource NuloVisible}}">
+        <StackPanel>
+          <TextBlock Text="{Binding AvisoGrupos.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+          <TextBlock Text="{Binding AvisoGrupos.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+        </StackPanel>
+      </Border>
+
+      <Grid Visibility="{Binding HayAgrupacion, Converter={StaticResource Visible}}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="1.6*" />
+          <ColumnDefinition Width="28" />
+          <ColumnDefinition Width="*" MinWidth="260" />
+        </Grid.ColumnDefinitions>
 
         <!-- Dispersión -->
-        <Border Style="{StaticResource Section}">
+        <Border Style="{StaticResource Section}" VerticalAlignment="Top">
           <StackPanel>
-            <TextBlock Text="Tiempo de atención frente a costo" Style="{StaticResource SectionTitle}" Margin="0,0,0,14" />
-            <Grid HorizontalAlignment="Left">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="Auto" />
-              </Grid.ColumnDefinitions>
-              <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-              </Grid.RowDefinitions>
-              <TextBlock Text="{Binding EjeY}" Style="{StaticResource Muted}" FontSize="12" Margin="0,0,8,0" VerticalAlignment="Center">
-                <TextBlock.LayoutTransform>
-                  <RotateTransform Angle="-90" />
-                </TextBlock.LayoutTransform>
-              </TextBlock>
-              <Border Grid.Column="1" BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="1,0,0,1"
-                      Width="{x:Static vm:AnaliticaViewModel.Ancho}" Height="{x:Static vm:AnaliticaViewModel.Alto}">
-                <ItemsControl ItemsSource="{Binding Puntos}" Focusable="False" AutomationProperties.Name="Gráfico de dispersión de equipos">
-                  <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                      <Canvas />
-                    </ItemsPanelTemplate>
-                  </ItemsControl.ItemsPanel>
-                  <ItemsControl.ItemContainerStyle>
-                    <Style TargetType="ContentPresenter">
-                      <Setter Property="Canvas.Left" Value="{Binding X}" />
-                      <Setter Property="Canvas.Top" Value="{Binding Y}" />
-                    </Style>
-                  </ItemsControl.ItemContainerStyle>
-                  <ItemsControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type vm:PuntoAnalitica}">
-                      <Ellipse Width="12" Height="12" Style="{StaticResource ColorGrupo}" Opacity="0.85" ToolTip="{Binding Etiqueta}" />
-                    </DataTemplate>
-                  </ItemsControl.ItemTemplate>
-                </ItemsControl>
-              </Border>
-              <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding EjeX}" Style="{StaticResource Muted}" FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0" />
-            </Grid>
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Right" Text="{Binding Puntos.Count, StringFormat='{}{0} equipos'}" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" />
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Dispersion}" Width="16" Height="16" Foreground="{DynamicResource Brush.Text2}" Margin="0,0,8,0" />
+              <TextBlock Text="{Binding TituloGrafico}" Style="{StaticResource SectionTitle}" TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+            <controls:Grafico Tipo="Dispersion" Height="380" Margin="0,14,0,0" FormatoValor="0.##"
+                              Series="{Binding SeriesGrupos}" Puntos="{Binding Puntos}"
+                              TituloEjeX="{Binding TituloEjeX}" TituloEjeY="{Binding TituloEjeY}"
+                              ComandoPunto="{Binding AbrirEquipoCommand}"
+                              AutomationProperties.Name="Dispersión de los equipos por grupo; las tarjetas de la derecha resumen cada grupo" />
           </StackPanel>
         </Border>
 
-        <!-- Resumen por grupo -->
-        <Border Style="{StaticResource Section}" Margin="0,14,0,0">
-          <StackPanel>
-            <TextBlock Text="Resumen por grupo" Style="{StaticResource SectionTitle}" Margin="0,0,0,10" />
-            <Grid Margin="0,0,0,6">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="140" />
-                <ColumnDefinition Width="100" />
-                <ColumnDefinition Width="140" />
-                <ColumnDefinition Width="120" />
-                <ColumnDefinition Width="160" />
-                <ColumnDefinition Width="*" />
-              </Grid.ColumnDefinitions>
-              <TextBlock Text="GRUPO" Style="{StaticResource Overline}" />
-              <TextBlock Grid.Column="1" Text="EQUIPOS" Style="{StaticResource Overline}" />
-              <TextBlock Grid.Column="2" Text="INTERVENCIONES" Style="{StaticResource Overline}" />
-              <TextBlock Grid.Column="3" Text="CORRECTIVOS" Style="{StaticResource Overline}" />
-              <TextBlock Grid.Column="4" Text="COSTO MEDIO" Style="{StaticResource Overline}" />
-              <TextBlock Grid.Column="5" Text="TIEMPO MEDIO" Style="{StaticResource Overline}" />
-            </Grid>
-            <ItemsControl ItemsSource="{Binding Resumen}" Focusable="False">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type vm:FilaGrupo}">
-                  <Border BorderBrush="{DynamicResource Brush.Border}" BorderThickness="0,1,0,0" Padding="0,8">
-                    <Grid>
-                      <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="140" />
-                        <ColumnDefinition Width="100" />
-                        <ColumnDefinition Width="140" />
-                        <ColumnDefinition Width="120" />
-                        <ColumnDefinition Width="160" />
-                        <ColumnDefinition Width="*" />
-                      </Grid.ColumnDefinitions>
-                      <StackPanel Orientation="Horizontal">
-                        <Ellipse Width="10" Height="10" Style="{StaticResource ColorGrupo}" Margin="0,0,8,0" VerticalAlignment="Center" />
-                        <TextBlock Text="{Binding Nombre}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+        <StackPanel Grid.Column="2">
+          <!-- Una tarjeta por grupo, del de más fallas al de menos -->
+          <ItemsControl ItemsSource="{Binding Resumen}" Focusable="False">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate DataType="{x:Type vm:FilaGrupo}">
+                <Border Background="{DynamicResource Brush.Surface}" BorderBrush="{Binding ClaveColor, Converter={StaticResource Recurso}}" BorderThickness="4,0,0,0"
+                        CornerRadius="10" Padding="16,12" Margin="0,0,0,12">
+                  <StackPanel>
+                    <DockPanel>
+                      <Border DockPanel.Dock="Right" Background="{DynamicResource Brush.Surface2}" CornerRadius="10" Padding="8,2" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Equipos}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
+                      </Border>
+                      <Ellipse Width="10" Height="10" Fill="{Binding ClaveColor, Converter={StaticResource Recurso}}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                      <TextBlock Text="{Binding Nombre}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    </DockPanel>
+                    <UniformGrid Columns="3" Margin="0,10,0,0">
+                      <StackPanel>
+                        <TextBlock Text="Fallas" Style="{StaticResource Muted}" FontSize="12" />
+                        <TextBlock Text="{Binding Fallas}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
                       </StackPanel>
-                      <TextBlock Grid.Column="1" Text="{Binding Equipos}" Foreground="{DynamicResource Brush.Text}" />
-                      <TextBlock Grid.Column="2" Text="{Binding Intervenciones}" Foreground="{DynamicResource Brush.Text}" />
-                      <TextBlock Grid.Column="3" Text="{Binding Correctivos}" Foreground="{DynamicResource Brush.Text}" />
-                      <TextBlock Grid.Column="4" Text="{Binding Costo}" Foreground="{DynamicResource Brush.Text}" />
-                      <TextBlock Grid.Column="5" Text="{Binding Tiempo}" Foreground="{DynamicResource Brush.Text}" />
-                    </Grid>
-                  </Border>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Border>
+                      <StackPanel>
+                        <TextBlock Text="Costo medio" Style="{StaticResource Muted}" FontSize="12" />
+                        <TextBlock Text="{Binding Costo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                      </StackPanel>
+                      <StackPanel>
+                        <TextBlock Text="Atención" Style="{StaticResource Muted}" FontSize="12" />
+                        <TextBlock Text="{Binding Tiempo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                      </StackPanel>
+                    </UniformGrid>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <!-- Cómo leerlo -->
+          <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}">
+            <DockPanel>
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}" Width="16" Height="16" Foreground="{DynamicResource Brush.InfoText}"
+                              VerticalAlignment="Top" Margin="0,2,10,0" />
+              <StackPanel>
+                <TextBlock Text="Cómo leerlo" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+                <TextBlock Text="{Binding ComoLeerlo}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+              </StackPanel>
+            </DockPanel>
+          </Border>
+
+          <Button views:Boton.Icono="{StaticResource Icono.Descargar}" Style="{StaticResource LinkButton}" Content="Exportar resultado" HorizontalAlignment="Left"
+                  Margin="0,14,0,0" Command="{Binding ExportarCommand}" AutomationProperties.Name="Exportar el grupo de cada equipo a un archivo CSV" />
+        </StackPanel>
+      </Grid>
+
+      <StackPanel Orientation="Horizontal" Margin="0,18,0,0" Visibility="{Binding HayDatos, Converter={StaticResource Visible}}">
+        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}" Width="14" Height="14" Foreground="{DynamicResource Brush.Text3}" Margin="0,0,6,0" />
+        <TextBlock Text="{Binding Encabezado}" Style="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" />
       </StackPanel>
     </StackPanel>
   </ScrollViewer>

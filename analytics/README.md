@@ -11,6 +11,17 @@ Variables de entorno:
 
 ## Ejecución por lotes (HU-008, HU-009)
 
+Con los contenedores arriba y el `.env` lleno, desde la raíz del repositorio:
+
+```bash
+scripts/analitica.sh                                             # Git Bash, Linux o macOS
+powershell -ExecutionPolicy Bypass -File scripts/analitica.ps1   # Windows
+```
+
+Los scripts arman `SITBIO_MONGO_URI` con el `.env` si no está definida (sin mostrar la contraseña), usan `SITBIO_MONGO_DB` (por defecto `sitbio_dev`), revisan que estén las dependencias y pasan los demás argumentos al lote. Sobre la semilla de demostración (`scripts/semilla-demo.sh`) dejan resultados para la pantalla «Analítica» (UI-023); mientras no se ejecute, la pantalla muestra un aviso informativo.
+
+Ejecución manual:
+
 ```bash
 pip install -r analytics/requirements.txt
 cd analytics

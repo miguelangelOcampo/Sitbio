@@ -41,6 +41,8 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="{StaticResource Radius.Card}" />
     <Setter Property="Padding" Value="{StaticResource Space.6}" />
+    <!-- H-02: aparece con un desvanecido corto (sin animar si Windows reduce las animaciones) -->
+    <Setter Property="views:Animacion.Entrada" Value="True" />
   </Style>
 
   <!-- Tipografía -->
@@ -92,9 +94,15 @@
 
   <!-- Fila de lista con divisor inferior (tiquetes, técnicos, alertas) -->
   <Style x:Key="ListRow" TargetType="Border">
+    <Setter Property="Background" Value="Transparent" />
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
     <Setter Property="BorderThickness" Value="0,0,0,1" />
     <Setter Property="Padding" Value="0,12" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface3}" />
+      </Trigger>
+    </Style.Triggers>
   </Style>
 
   <!-- Opción del menú lateral: sin píldora; la activa lleva una barra a la izquierda -->
@@ -108,15 +116,31 @@
           <Grid Background="Transparent" MinHeight="38">
             <Border x:Name="Barra" Width="3" HorizontalAlignment="Left" Margin="0,7" CornerRadius="0,2,2,0"
                     Background="{DynamicResource Brush.Primary}" Visibility="Collapsed" />
-            <ContentPresenter Margin="20,8,12,8" VerticalAlignment="Center">
-              <ContentPresenter.Resources>
-                <Style TargetType="TextBlock">
-                  <Setter Property="TextWrapping" Value="Wrap" />
-                </Style>
-              </ContentPresenter.Resources>
-            </ContentPresenter>
+            <Grid Margin="20,8,12,8">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <!-- Ícono de la opción (views:Boton.Icono), como en el submenú del prototipo -->
+              <Viewbox x:Name="Icono" Width="18" Height="18" Margin="0,1,10,0" VerticalAlignment="Top">
+                <Canvas Width="24" Height="24">
+                  <Path Data="{TemplateBinding views:Boton.Icono}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.8"
+                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                </Canvas>
+              </Viewbox>
+              <ContentPresenter Grid.Column="1" VerticalAlignment="Center">
+                <ContentPresenter.Resources>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                  </Style>
+                </ContentPresenter.Resources>
+              </ContentPresenter>
+            </Grid>
           </Grid>
           <ControlTemplate.Triggers>
+            <Trigger Property="views:Boton.Icono" Value="{x:Null}">
+              <Setter TargetName="Icono" Property="Visibility" Value="Collapsed" />
+            </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
             </Trigger>
@@ -195,9 +219,20 @@
       <Setter.Value>
         <ControlTemplate TargetType="Button">
           <Border x:Name="Fondo" Background="{TemplateBinding Background}" CornerRadius="{StaticResource Radius.Button}">
-            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Padding}">
+            <Viewbox x:Name="Icono" Width="17" Height="17" Margin="0,0,8,0" VerticalAlignment="Center">
+              <Canvas Width="24" Height="24">
+                <Path Data="{TemplateBinding views:Boton.Icono}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.9"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+              </Canvas>
+            </Viewbox>
+              <ContentPresenter VerticalAlignment="Center" />
+            </StackPanel>
           </Border>
           <ControlTemplate.Triggers>
+            <Trigger Property="views:Boton.Icono" Value="{x:Null}">
+              <Setter TargetName="Icono" Property="Visibility" Value="Collapsed" />
+            </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Fondo" Property="Background" Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
             </Trigger>
@@ -299,8 +334,19 @@
     <Setter Property="Template">
       <Setter.Value>
         <ControlTemplate TargetType="Button">
-          <TextBlock x:Name="Texto" Text="{TemplateBinding Content}" Background="Transparent" />
+          <StackPanel Orientation="Horizontal" Background="Transparent">
+            <Viewbox x:Name="Icono" Width="16" Height="16" Margin="0,0,6,0" VerticalAlignment="Center">
+              <Canvas Width="24" Height="24">
+                <Path Data="{TemplateBinding views:Boton.Icono}" Stroke="{Binding Foreground, ElementName=Texto}" StrokeThickness="1.9"
+                      StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+              </Canvas>
+            </Viewbox>
+            <TextBlock x:Name="Texto" Text="{TemplateBinding Content}" VerticalAlignment="Center" />
+          </StackPanel>
           <ControlTemplate.Triggers>
+            <Trigger Property="views:Boton.Icono" Value="{x:Null}">
+              <Setter TargetName="Icono" Property="Visibility" Value="Collapsed" />
+            </Trigger>
             <Trigger Property="IsMouseOver" Value="True">
               <Setter TargetName="Texto" Property="TextDecorations" Value="Underline" />
             </Trigger>
@@ -507,9 +553,21 @@
       <Setter.Value>
         <ControlTemplate TargetType="MenuItem">
           <Border x:Name="Fondo" Background="Transparent" Padding="14,9" CornerRadius="6">
-            <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" />
+            <StackPanel Orientation="Horizontal">
+              <!-- Ícono opcional (views:Boton.Icono), como en los menús del prototipo -->
+              <Viewbox x:Name="Icono" Width="16" Height="16" Margin="0,0,10,0" VerticalAlignment="Center">
+                <Canvas Width="24" Height="24">
+                  <Path Data="{TemplateBinding views:Boton.Icono}" Stroke="{TemplateBinding Foreground}" StrokeThickness="1.9"
+                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                </Canvas>
+              </Viewbox>
+              <ContentPresenter ContentSource="Header" RecognizesAccessKey="True" VerticalAlignment="Center" />
+            </StackPanel>
           </Border>
           <ControlTemplate.Triggers>
+            <Trigger Property="views:Boton.Icono" Value="{x:Null}">
+              <Setter TargetName="Icono" Property="Visibility" Value="Collapsed" />
+            </Trigger>
             <Trigger Property="IsHighlighted" Value="True">
               <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface2}" />
             </Trigger>
@@ -524,7 +582,7 @@
       <Setter.Value>
         <ControlTemplate TargetType="ContextMenu">
           <Border Background="{DynamicResource Brush.Elevated}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1"
-                  CornerRadius="{StaticResource Radius.Field}" Padding="4" MinWidth="200">
+                  CornerRadius="{StaticResource Radius.Field}" Padding="4" MinWidth="200" views:Animacion.Entrada="True">
             <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
           </Border>
         </ControlTemplate>

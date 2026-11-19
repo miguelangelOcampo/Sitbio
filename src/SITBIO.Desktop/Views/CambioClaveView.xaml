@@ -168,7 +168,7 @@
         <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="{Binding TextoGuardar}"
                 Command="{Binding GuardarCommand}" IsDefault="True" />
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-          <Button Style="{StaticResource LinkButton}" Content="Cerrar sesión" Command="{Binding CancelarCommand}"
+          <Button views:Boton.Icono="{StaticResource Icono.Salir}" Style="{StaticResource LinkButton}" Content="Cerrar sesión" Command="{Binding CancelarCommand}"
                   Visibility="{Binding Obligatorio, Converter={StaticResource Visible}}" />
           <Button Style="{StaticResource LinkButton}" Content="Cancelar" Command="{Binding CancelarCommand}" IsCancel="True"
                   Visibility="{Binding EsVoluntario, Converter={StaticResource Visible}}" />

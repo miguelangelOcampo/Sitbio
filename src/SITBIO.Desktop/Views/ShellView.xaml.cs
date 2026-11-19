@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Sitbio.Desktop.ViewModels;
 
@@ -23,6 +24,18 @@ public partial class ShellView : UserControl
     }
 
     /// <summary>D-04: Ctrl + K lleva el foco a la búsqueda global desde cualquier pantalla.</summary>
+    /// <summary>H-03: el menú del avatar se abre bajo el botón, alineado a su borde derecho.</summary>
+    private void AbrirMenuUsuario(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu } boton)
+        {
+            menu.PlacementTarget = boton;
+            menu.Placement = PlacementMode.Bottom;
+            menu.HorizontalOffset = boton.ActualWidth - Math.Max(menu.MinWidth, menu.ActualWidth);
+            menu.IsOpen = true;
+        }
+    }
+
     private void AlPresionarTecla(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.K && Keyboard.Modifiers == ModifierKeys.Control && BusquedaGlobalTexto.IsVisible)

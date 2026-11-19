@@ -116,7 +116,7 @@
 
         <!-- Aviso de la pantalla -->
         <Grid Margin="0,0,0,18" Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
-          <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+          <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" />
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,14,11">
             <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
                     Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />

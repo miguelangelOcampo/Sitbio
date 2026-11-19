@@ -14,11 +14,15 @@ Corrige los hallazgos de operación de la v1.1.0 y agrega el historial de interv
 - Acciones «Reportar falla» y «Hoja de vida PDF» en la hoja de vida del equipo (UI-006).
 - Filtro por tipo de equipo y búsqueda por nombre o modelo en Equipos biomédicos (UI-005).
 - `scripts/analitica.ps1` y `scripts/analitica.sh` para ejecutar el lote de analítica (HU-008, HU-009) con las credenciales del `.env`.
+- Barra superior como en el prototipo: miga con el módulo y la pantalla («Solo lectura» para Gerente, Directiva y Ente regulador), búsqueda global, campana del centro de alertas, avatar con las iniciales y menú de la cuenta (Mi perfil, Preferencias, Cambiar contraseña y Cerrar sesión) y acción principal del rol («Registrar equipo», «Reportar falla» o «Usuarios»), que se oculta en su propia pantalla. «Registrar equipo» abre directamente el formulario de registro.
+- Íconos en las opciones del submenú, en los botones principales, en los enlaces de acción y en los ítems de menú.
+- Animaciones cortas al cambiar de pantalla y al abrir diálogos y menús (180 ms), y esqueleto de carga en las tablas mientras se consulta. No se anima nada si Windows tiene «Reducir animaciones» o alto contraste.
 
 ### Cambiado
 - Versión del producto 1.1.1 (`Directory.Build.props`). El pie del menú ahora toma la versión del ensamblado («SITBIO v1.1.1») en vez de un texto fijo.
 - La interfaz ya no muestra los códigos de la documentación (RF, HU, MSG, UI) en títulos, avisos ni guías de rol.
 - «Analítica» (UI-023) muestra un aviso informativo con el comando del lote cuando todavía no hay resultados.
+- El pie del panel muestra el nombre del usuario y su rol; «Mi perfil» y «Preferencias» pasan al menú del avatar, y la campana de alertas pasa del riel a la barra superior.
 
 ### Corregido
 - La descripción de la falla se ve en la bandeja de tiquetes, en la orden y en la intervención (HU-004).

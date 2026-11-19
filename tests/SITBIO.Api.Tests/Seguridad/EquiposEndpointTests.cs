@@ -91,6 +91,28 @@ public class EquiposEndpointTests(WebApplicationFactory<Program> fabrica) : ICla
             Arg.Any<CancellationToken>());
     }
 
+    /// <summary>UI-005: «Nombre o modelo» y «Tipo de equipo» llegan al repositorio; el texto, sin espacios sobrantes.</summary>
+    [Fact]
+    public async Task TextoYTipoDeEquipo_LleganAlRepositorio()
+    {
+        var tipo = Guid.NewGuid();
+
+        var respuesta = await Cliente("AC-02").GetAsync($"{Ruta}?texto=%20mindray%20t5%20&tipoEquipoId={tipo}");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        await _repositorio.Received(1).ListarAsync(
+            Arg.Is<FiltroEquipos>(f => f.Texto == "mindray t5" && f.TipoEquipoId == tipo),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task TipoDeEquipoInvalido_Responde400()
+    {
+        var respuesta = await Cliente("AC-02").GetAsync($"{Ruta}?tipoEquipoId=no-es-un-id");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+    }
+
     [Fact]
     public async Task Directiva_NoConsultaElInventario()
     {

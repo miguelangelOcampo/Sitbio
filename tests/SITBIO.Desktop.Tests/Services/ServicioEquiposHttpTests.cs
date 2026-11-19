@@ -54,6 +54,20 @@ public class ServicioEquiposHttpTests
             manejador.Rutas.Single());
     }
 
+    /// <summary>UI-005: «Nombre o modelo» va como texto y el tipo de equipo por su id.</summary>
+    [Fact]
+    public async Task TextoYTipoDeEquipo_VanEnLaRuta()
+    {
+        var (servicio, manejador) = Crear(_ => Json(HttpStatusCode.OK, PaginaVacia));
+        var tipo = Guid.Parse("7c9e6679-7425-40de-944b-e07fc1f90ae7");
+
+        await servicio.ListarAsync(new FiltroEquipos(Texto: " mindray t5 ", TipoEquipoId: tipo), CancellationToken.None);
+
+        Assert.Equal(
+            "GET /api/v1/equipos?texto=mindray%20t5&tipoEquipoId=7c9e6679-7425-40de-944b-e07fc1f90ae7&page=1&pageSize=20",
+            manejador.Rutas.Single());
+    }
+
     [Fact]
     public async Task LeeElEquipoConSuInformacionRegulatoriaYPlan()
     {

@@ -29,6 +29,22 @@ public sealed class RepositorioEquipos(SitbioDbContext contexto, IContextoUsuari
             equipos = equipos.Where(e => EF.Functions.ILike(e.NumeroSerie, patron, Escape));
         }
 
+        // UI-005 «Nombre o modelo»: el nombre del tipo de equipo, la marca (fabricante) o el modelo.
+        if (filtro.Texto is { } texto)
+        {
+            var patron = Contiene(texto);
+            equipos = equipos.Where(e =>
+                EF.Functions.ILike(e.Marca, patron, Escape)
+                || EF.Functions.ILike(e.Modelo, patron, Escape)
+                || EF.Functions.ILike(e.Marca + " " + e.Modelo, patron, Escape)
+                || contexto.TiposEquipo.Any(t => t.Id == e.TipoEquipoId && EF.Functions.ILike(t.Nombre, patron, Escape)));
+        }
+
+        if (filtro.TipoEquipoId is { } tipoEquipoId)
+        {
+            equipos = equipos.Where(e => e.TipoEquipoId == tipoEquipoId);
+        }
+
         if (filtro.Estado is { } estado)
         {
             equipos = equipos.Where(e => contexto.EstadosEquipo.Any(s => s.Id == e.EstadoEquipoId && s.Codigo == estado));

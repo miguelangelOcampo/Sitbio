@@ -33,6 +33,7 @@ public class ManejadorErroresTests
         { new ErrorNoEncontrado("El equipo"), 404 },
         { new ErrorConflicto("RN-001", "Ya existe un equipo con esa serie."), 409 },
         { new ErrorServicioNoDisponible(), 503 },
+        { new BadHttpRequestException("Failed to bind parameter \"Guid? tipoEquipoId\" from \"x\"."), 400 },
         { new InvalidOperationException("fallo"), 500 },
     };
 

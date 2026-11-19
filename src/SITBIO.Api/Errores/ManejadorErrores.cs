@@ -22,6 +22,8 @@ public sealed class ManejadorErrores(IProblemDetailsService problemDetails, ILog
             ErrorNoEncontrado => (StatusCodes.Status404NotFound, "Recurso no encontrado", LogLevel.Information),
             ErrorConflicto => (StatusCodes.Status409Conflict, "Conflicto con una regla de negocio", LogLevel.Warning),
             ErrorServicioNoDisponible => (StatusCodes.Status503ServiceUnavailable, "Servicio no disponible", LogLevel.Error),
+            // Un parámetro de la consulta o la ruta que no se puede leer (por ejemplo, un id que no es Guid).
+            BadHttpRequestException mala => (mala.StatusCode, "Solicitud no válida", LogLevel.Information),
             _ => (StatusCodes.Status500InternalServerError, "Error inesperado", LogLevel.Error),
         };
 

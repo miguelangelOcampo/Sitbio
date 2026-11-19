@@ -40,6 +40,12 @@ public sealed class ServicioEquiposHttp(ClienteApi cliente) : IServicioEquipos
         Agregar("serie", filtro.Serie);
         Agregar("estado", filtro.Estado);
         Agregar("clase", filtro.Clase);
+        Agregar("texto", filtro.Texto);
+        if (filtro.TipoEquipoId is { } tipo)
+        {
+            partes.Add($"tipoEquipoId={tipo}");
+        }
+
         if (filtro.Calibracion is { } calibracion)
         {
             partes.Add($"calibracion={(calibracion ? "true" : "false")}");

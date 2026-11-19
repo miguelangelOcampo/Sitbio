@@ -97,7 +97,11 @@ public sealed record DatosEquipo(
 /// </summary>
 public sealed record DatosPreventivo(int PeriodicidadDias, DateOnly? UltimaEjecucion, DateOnly? ProximaFecha, string? Descripcion = null);
 
-/// <summary>Filtros de GET /equipos (API-EQ-LIST). Placa y serie buscan por coincidencia parcial.</summary>
+/// <summary>
+/// Filtros de GET /equipos (API-EQ-LIST). Placa y serie buscan por coincidencia parcial; <see cref="Texto"/>
+/// busca en el nombre del tipo de equipo, la marca (fabricante) y el modelo, y <see cref="TipoEquipoId"/> deja
+/// solo los de ese tipo (UI-005).
+/// </summary>
 public sealed record FiltroEquipos(
     string? Placa = null,
     string? Serie = null,
@@ -105,7 +109,9 @@ public sealed record FiltroEquipos(
     string? Clase = null,
     bool? Calibracion = null,
     int Pagina = 1,
-    int Tamano = 20);
+    int Tamano = 20,
+    string? Texto = null,
+    Guid? TipoEquipoId = null);
 
 /// <summary>Equipo con los nombres de su tipo, ubicación, proveedor y estado, y su plan activo.</summary>
 public sealed record EquipoLeido(

@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -64,20 +65,21 @@ public class CriteriosRf031Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
         return await api.IniciarSesionAsync(correo);
     }
 
-    private static Task<HttpResponseMessage> Subir(HttpClient cliente, Guid equipo, byte[]? miniatura = null, byte[]? vista = null, bool aviso = true)
+    private static Task<HttpResponseMessage> Subir(
+        HttpClient cliente, Guid equipo, byte[]? miniatura = null, byte[]? vista = null, bool aviso = true, string formato = "webp")
     {
         var formulario = new MultipartFormDataContent();
         formulario.Add(new StringContent(aviso ? "true" : "false"), "avisoAceptado");
-        Parte(formulario, "miniatura", miniatura ?? Miniatura);
-        Parte(formulario, "vista", vista ?? Vista);
+        Parte(formulario, "miniatura", miniatura ?? Miniatura, formato);
+        Parte(formulario, "vista", vista ?? Vista, formato);
         return cliente.PutAsync($"{Ruta}/{equipo}/foto", formulario);
     }
 
-    private static void Parte(MultipartFormDataContent formulario, string nombre, byte[] contenido)
+    private static void Parte(MultipartFormDataContent formulario, string nombre, byte[] contenido, string formato)
     {
         var archivo = new ByteArrayContent(contenido);
-        archivo.Headers.ContentType = new MediaTypeHeaderValue("image/webp");
-        formulario.Add(archivo, nombre, $"{nombre}.webp");
+        archivo.Headers.ContentType = new MediaTypeHeaderValue($"image/{formato}");
+        formulario.Add(archivo, nombre, $"{nombre}.{formato}");
     }
 
     private static async Task<JsonElement> Cuerpo(HttpResponseMessage respuesta) =>
@@ -106,6 +108,98 @@ public class CriteriosRf031Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
         Lado(24, ancho);
         Lado(27, alto);
         return datos;
+    }
+
+    /// <summary>PNG real de un solo color (el WebP de arriba solo trae la cabecera y no se puede dibujar).</summary>
+    private static byte[] Png(int ancho, int alto)
+    {
+        using var salida = new MemoryStream();
+        salida.Write([0x89, (byte)'P', (byte)'N', (byte)'G', 0x0D, 0x0A, 0x1A, 0x0A]);
+
+        var cabecera = new byte[13];
+        BinaryPrimitives.WriteInt32BigEndian(cabecera, ancho);
+        BinaryPrimitives.WriteInt32BigEndian(cabecera.AsSpan(4), alto);
+        cabecera[8] = 8;
+        cabecera[9] = 2;
+        Bloque(salida, "IHDR", cabecera);
+
+        using var pixeles = new MemoryStream();
+        using (var zlib = new ZLibStream(pixeles, CompressionLevel.Fastest, leaveOpen: true))
+        {
+            var fila = new byte[1 + (ancho * 3)];
+            for (var x = 0; x < ancho; x++)
+            {
+                (fila[1 + (x * 3)], fila[2 + (x * 3)], fila[3 + (x * 3)]) = ((byte)31, (byte)78, (byte)121);
+            }
+
+            for (var y = 0; y < alto; y++)
+            {
+                zlib.Write(fila);
+            }
+        }
+
+        Bloque(salida, "IDAT", pixeles.ToArray());
+        Bloque(salida, "IEND", []);
+        return salida.ToArray();
+    }
+
+    private static void Bloque(Stream salida, string tipo, byte[] datos)
+    {
+        var tipoYDatos = new byte[4 + datos.Length];
+        System.Text.Encoding.ASCII.GetBytes(tipo, tipoYDatos);
+        datos.CopyTo(tipoYDatos, 4);
+        var numeros = new byte[4];
+        BinaryPrimitives.WriteInt32BigEndian(numeros, datos.Length);
+        salida.Write(numeros);
+        salida.Write(tipoYDatos);
+        BinaryPrimitives.WriteUInt32BigEndian(numeros, Crc32(tipoYDatos));
+        salida.Write(numeros);
+    }
+
+    private static uint Crc32(byte[] datos)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var b in datos)
+        {
+            crc ^= b;
+            for (var k = 0; k < 8; k++)
+            {
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
+            }
+        }
+
+        return ~crc;
+    }
+
+    private static async Task<bool> HojaDeVidaConImagen(HttpClient cliente, Guid equipo)
+    {
+        var respuesta = await cliente.GetAsync($"{Ruta}/{equipo}/hoja-vida.pdf");
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var pdf = await respuesta.Content.ReadAsByteArrayAsync();
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
+        return System.Text.Encoding.Latin1.GetString(pdf).Contains("/Subtype /Image");
+    }
+
+    // ---------- Hoja de vida en PDF con la fotografía (HU-027) ----------
+
+    [FactIntegracion(requiereMongo: true)]
+    public async Task HojaDeVidaPdf_IncluyeLaFotografiaDelEquipo()
+    {
+        var i = await InstitucionConEquipo();
+        Assert.False(await HojaDeVidaConImagen(i.Ingeniero, i.Equipo));
+
+        Assert.Equal(HttpStatusCode.OK, (await Subir(i.Ingeniero, i.Equipo, Png(128, 128), Png(512, 384), formato: "png")).StatusCode);
+
+        Assert.True(await HojaDeVidaConImagen(i.Ingeniero, i.Equipo));
+    }
+
+    [FactIntegracion(requiereMongo: true)]
+    public async Task HojaDeVidaPdf_ConFotografiaQueNoSePuedeDibujar_SaleSinElla()
+    {
+        var i = await InstitucionConEquipo();
+        Assert.Equal(HttpStatusCode.OK, (await Subir(i.Ingeniero, i.Equipo)).StatusCode);
+
+        Assert.False(await HojaDeVidaConImagen(i.Ingeniero, i.Equipo));
     }
 
     // ---------- CA-HU-015-03 ----------

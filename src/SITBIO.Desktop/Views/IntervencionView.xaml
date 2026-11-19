@@ -54,6 +54,15 @@
           <TextBlock Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,18">
             <Run Text="{Binding Equipo, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding EstadoOrden, Mode=OneWay}" />
           </TextBlock>
+          <!-- HU-004: la falla tal como se reportó -->
+          <Border Style="{StaticResource InfoBar}" Margin="0,0,0,18" Visibility="{Binding FallaReportada, Converter={StaticResource TextoVisible}}">
+            <StackPanel>
+              <TextBlock Text="FALLA REPORTADA" Style="{StaticResource Overline}" />
+              <TextBlock Text="{Binding FallaReportada}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+              <TextBlock Text="{Binding ReportadoPor}" Style="{StaticResource Muted}" FontSize="13" Margin="0,2,0,0"
+                         Visibility="{Binding ReportadoPor, Converter={StaticResource TextoVisible}}" />
+            </StackPanel>
+          </Border>
 
           <!-- Aviso de error -->
           <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"

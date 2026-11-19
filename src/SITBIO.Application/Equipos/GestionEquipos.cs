@@ -44,7 +44,7 @@ public sealed class GestionEquipos(
             throw ErrorValidacion.DeCampo("estado", $"El estado debe ser {string.Join(", ", EstadosEquipo.Codigos)}.");
         }
 
-        var limpio = filtro with { Placa = Limpio(filtro.Placa), Serie = Limpio(filtro.Serie), Estado = estado, Clase = clase };
+        var limpio = filtro with { Placa = Limpio(filtro.Placa), Serie = Limpio(filtro.Serie), Estado = estado, Clase = clase, Texto = Limpio(filtro.Texto) };
         var (items, total) = await repositorio.ListarAsync(limpio, cancellationToken);
         var hoy = FechaColombia.Hoy(tiempo);
         return new Pagina<EquipoDto>(items.Select(i => EquipoDto.Desde(i, hoy)).ToList(), filtro.Pagina, filtro.Tamano, total);

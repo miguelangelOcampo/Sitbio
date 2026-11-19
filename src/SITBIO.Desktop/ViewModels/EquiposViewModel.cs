@@ -22,8 +22,14 @@ public partial class EquiposViewModel(
     IDialogoArchivos? dialogo = null,
     IServicioFotoEquipo? fotos = null,
     IReductorFoto? reductor = null,
-    IServicioPreferencias? preferencias = null) : ObservableObject, IRecibeParametro
+    IServicioPreferencias? preferencias = null,
+    IServicioReportes? reportes = null) : ObservableObject, IRecibeParametro, ISolicitaNavegacion
 {
+    /// <summary>UI-009 Reportar falla: «Reportar falla» de la hoja de vida la abre con el equipo ya elegido.</summary>
+    public const string PantallaReportarFalla = "UI-009";
+
+    public event EventHandler<SolicitudNavegacion>? NavegacionSolicitada;
+
     public const string IdPantalla = "UI-005";
 
     public const int TamanoPagina = 20;
@@ -34,8 +40,22 @@ public partial class EquiposViewModel(
     private int _consulta;
     private bool _aplicandoVarios;
 
+    /// <summary>«Nombre o modelo» busca en el tipo de equipo, el fabricante (marca) y el modelo.</summary>
     public static IReadOnlyList<OpcionFiltro> OpcionesBuscarPor { get; } =
-        [new("placa", "Código de activo"), new("serie", "Número de serie")];
+        [new("placa", "Código de activo"), new("serie", "Número de serie"), new("nombre", "Nombre o modelo")];
+
+    /// <summary>Primera opción del filtro «Tipo de equipo»: sin filtrar.</summary>
+    public static OpcionFiltro TodoTipo { get; } = new(string.Empty, "Todo tipo de equipo");
+
+    /// <summary>Tipos de equipo del catálogo (API-CAT) para el filtro; si no cargan, solo «Todo tipo de equipo».</summary>
+    [ObservableProperty]
+    private IReadOnlyList<OpcionFiltro> _opcionesTipo = [TodoTipo];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HayFiltros))]
+    private OpcionFiltro? _filtroTipo = TodoTipo;
+
+    private bool _tiposCargados;
 
     public static IReadOnlyList<OpcionFiltro> OpcionesEstado { get; } =
     [
@@ -72,9 +92,14 @@ public partial class EquiposViewModel(
     [NotifyPropertyChangedFor(nameof(HayFiltros))]
     private OpcionFiltro _filtroRiesgo = OpcionesRiesgo[0];
 
-    public bool HayFiltros => Busqueda.Trim().Length > 0 || FiltroEstado.Valor.Length > 0 || FiltroRiesgo.Valor.Length > 0;
+    public bool HayFiltros => Busqueda.Trim().Length > 0 || FiltroEstado.Valor.Length > 0 || FiltroRiesgo.Valor.Length > 0 || FiltroTipo?.Valor.Length > 0;
 
-    public string TextoBusqueda => BuscarPor.Valor == "serie" ? "Buscar por número de serie" : "Buscar por código de activo";
+    public string TextoBusqueda => BuscarPor.Valor switch
+    {
+        "serie" => "Buscar por número de serie",
+        "nombre" => "Buscar por tipo, fabricante o modelo",
+        _ => "Buscar por código de activo",
+    };
 
     // ---------- Resultado ----------
 
@@ -138,7 +163,7 @@ public partial class EquiposViewModel(
     // ---------- Comandos ----------
 
     [RelayCommand]
-    private Task CargarAsync() => ConsultarAsync(Pagina);
+    private Task CargarAsync() => Task.WhenAll(ConsultarAsync(Pagina), CargarTiposAsync());
 
     [RelayCommand(CanExecute = nameof(HayAnterior))]
     private Task PaginaAnteriorAsync() => ConsultarAsync(Pagina - 1);
@@ -153,6 +178,7 @@ public partial class EquiposViewModel(
         Busqueda = string.Empty;
         FiltroEstado = OpcionesEstado[0];
         FiltroRiesgo = OpcionesRiesgo[0];
+        FiltroTipo = TodoTipo;
         _aplicandoVarios = false;
         return ConsultarAsync(1);
     }
@@ -175,7 +201,11 @@ public partial class EquiposViewModel(
     private bool VerFotos => preferencias?.Leer().VerFotosEquipo ?? true;
 
     private DetalleEquipoViewModel NuevoDetalle(Guid id, string placa) => new(
-        servicio, tiempo, id, placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), mantenimiento, ordenes, sesion.Sesion?.Rol, documentos, dialogo, fotos, reductor, VerFotos);
+        servicio, tiempo, id, placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), mantenimiento, ordenes, sesion.Sesion?.Rol, documentos, dialogo, fotos, reductor, VerFotos,
+        reportes, ReportarFalla);
+
+    private void ReportarFalla(Guid id, string placa) =>
+        NavegacionSolicitada?.Invoke(this, new SolicitudNavegacion(PantallaReportarFalla, id.ToString()));
 
     /// <summary>Dato para abrir la hoja de vida desde otra pantalla (búsqueda global, D-04): «id|placa».</summary>
     public static string ParametroDetalle(Guid id, string placa) => $"{id}|{placa}";
@@ -315,6 +345,39 @@ public partial class EquiposViewModel(
 
     partial void OnFiltroRiesgoChanged(OpcionFiltro value) => AlCambiarFiltro();
 
+    partial void OnFiltroTipoChanged(OpcionFiltro? value)
+    {
+        // Al cambiar la lista de opciones, el ComboBox pone null un momento; eso no es un filtro nuevo.
+        if (value is not null)
+        {
+            AlCambiarFiltro();
+        }
+    }
+
+    /// <summary>Carga una vez los tipos de equipo para el filtro; conserva el tipo elegido.</summary>
+    private async Task CargarTiposAsync()
+    {
+        if (_tiposCargados)
+        {
+            return;
+        }
+
+        try
+        {
+            var tipos = await catalogos.ListarAsync(TiposCatalogo.TiposEquipo, CancellationToken.None);
+            _tiposCargados = true;
+            var elegido = FiltroTipo ?? TodoTipo;
+            _aplicandoVarios = true;
+            OpcionesTipo = [TodoTipo, .. tipos.OrderBy(t => t.Nombre, StringComparer.CurrentCultureIgnoreCase).Select(t => new OpcionFiltro(t.Id.ToString(), t.Nombre))];
+            FiltroTipo = OpcionesTipo.FirstOrDefault(o => o == elegido) ?? TodoTipo;
+            _aplicandoVarios = false;
+        }
+        catch (ErrorApi)
+        {
+            // Sin catálogo, el filtro queda en «Todo tipo de equipo»; la lista sigue funcionando.
+        }
+    }
+
     private void AlCambiarFiltro()
     {
         if (!_aplicandoVarios)
@@ -331,6 +394,8 @@ public partial class EquiposViewModel(
         return new FiltroEquipos(
             Placa: BuscarPor.Valor == "placa" && texto.Length > 0 ? texto : null,
             Serie: BuscarPor.Valor == "serie" && texto.Length > 0 ? texto : null,
+            Texto: BuscarPor.Valor == "nombre" && texto.Length > 0 ? texto : null,
+            TipoEquipoId: Guid.TryParse(FiltroTipo?.Valor, out var tipo) ? tipo : null,
             Estado: FiltroEstado?.Valor is { Length: > 0 } estado ? estado : null,
             Clase: riesgo is { Length: > 0 } and not Calibra and not NoCalibra ? riesgo : null,
             Calibracion: riesgo switch

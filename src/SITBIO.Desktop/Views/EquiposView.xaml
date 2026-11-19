@@ -275,6 +275,14 @@
       </StackPanel>
     </DataTemplate>
 
+    <!-- Dato de la vista previa de la hoja de vida en PDF (papel blanco en ambos temas) -->
+    <DataTemplate x:Key="DatoPdf" DataType="{x:Type vm:Dato}">
+      <StackPanel Margin="0,0,14,8">
+        <TextBlock Text="{Binding Etiqueta}" FontSize="9.5" Foreground="#5B6675" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Valor}" FontSize="11.5" Foreground="#1F2A37" TextWrapping="Wrap" />
+      </StackPanel>
+    </DataTemplate>
+
     <!-- UI-006 Hoja de vida -->
     <DataTemplate DataType="{x:Type vm:DetalleEquipoViewModel}">
       <StackPanel>
@@ -293,16 +301,35 @@
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="Auto" />
           </Grid.ColumnDefinitions>
-          <!-- Editar (UI-007) y Dar de baja (HU-014): solo AC-02 y con el equipo activo -->
+          <!-- Acciones (prototipo Equipos.tsx): «Reportar falla» (AC-02, AC-04), «Hoja de vida PDF» (política de la API),
+               «Editar» principal (UI-007, solo AC-02) y el menú «…» con la fotografía y la baja (HU-014, RF-031) -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-            <Button Content="Ver fotografía" Style="{StaticResource LinkButton}" Command="{Binding VerFotoCommand}" Margin="0,0,24,0"
-                    Visibility="{Binding PuedeVerFoto, Converter={StaticResource Visible}}" />
-            <Button Content="Editar" Style="{StaticResource LinkButton}" AutomationProperties.Name="Editar equipo"
+            <Button Content="Reportar falla" Style="{StaticResource LinkButton}" Command="{Binding ReportarFallaCommand}" Margin="0,0,24,0"
+                    AutomationProperties.Name="Reportar una falla de este equipo"
+                    Visibility="{Binding PuedeReportarFalla, Converter={StaticResource Visible}}" />
+            <Button Content="Hoja de vida PDF" Style="{StaticResource LinkButton}" Command="{Binding AbrirHojaVidaPdfCommand}" Margin="0,0,24,0"
+                    AutomationProperties.Name="Ver la hoja de vida en PDF"
+                    Visibility="{Binding PuedeHojaVidaPdf, Converter={StaticResource Visible}}" />
+            <Button Content="Editar" Style="{StaticResource PrimaryButton}" AutomationProperties.Name="Editar equipo"
                     Command="{Binding DataContext.EditarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Equipo}"
                     Visibility="{Binding PuedeEditar, Converter={StaticResource Visible}}" />
-            <Button Content="Dar de baja" Style="{StaticResource LinkButton}" Foreground="{DynamicResource Brush.DangerText}" Margin="24,0,0,0"
-                    AutomationProperties.Name="Dar de baja el equipo" Command="{Binding AbrirBajaCommand}"
-                    Visibility="{Binding PuedeDarDeBaja, Converter={StaticResource Visible}}" />
+            <Button Style="{StaticResource IconButton}" Click="AbrirMenuAcciones" Tag="{Binding}" Margin="8,0,0,0"
+                    AutomationProperties.Name="Más acciones del equipo" ToolTip="Más acciones"
+                    Visibility="{Binding HayMasAcciones, Converter={StaticResource Visible}}">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Mas}" Width="20" Height="20" />
+              <Button.ContextMenu>
+                <ContextMenu Style="{StaticResource MenuFila}" DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}">
+                  <MenuItem Header="Ver fotografía" Command="{Binding VerFotoCommand}"
+                            Visibility="{Binding PuedeVerFoto, Converter={StaticResource Visible}}" />
+                  <MenuItem Header="{Binding TextoBotonFoto}" Command="{Binding AbrirDialogoFotoCommand}"
+                            Visibility="{Binding PuedeCambiarFoto, Converter={StaticResource Visible}}" />
+                  <MenuItem Header="Dar de baja" Command="{Binding AbrirBajaCommand}"
+                            Visibility="{Binding PuedeDarDeBaja, Converter={StaticResource Visible}}" />
+                  <MenuItem Header="Revertir la baja" Command="{Binding AbrirReversionCommand}"
+                            Visibility="{Binding PuedeRevertir, Converter={StaticResource Visible}}" />
+                </ContextMenu>
+              </Button.ContextMenu>
+            </Button>
           </StackPanel>
           <Grid Width="56" Height="56" VerticalAlignment="Top">
             <Border CornerRadius="12" Background="{DynamicResource Brush.PrimarySoft}" AutomationProperties.Name="Ícono del tipo de equipo">
@@ -743,9 +770,11 @@
         <!-- Filtros -->
         <Grid>
           <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="0.9*" />
+            <ColumnDefinition Width="1.1*" />
             <ColumnDefinition Width="8" />
-            <ColumnDefinition Width="1.5*" />
+            <ColumnDefinition Width="1.3*" />
+            <ColumnDefinition Width="12" />
+            <ColumnDefinition Width="1.1*" />
             <ColumnDefinition Width="12" />
             <ColumnDefinition Width="*" />
             <ColumnDefinition Width="12" />
@@ -774,9 +803,11 @@
               </Style>
             </TextBlock.Style>
           </TextBlock>
-          <ComboBox Grid.Column="4" Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:EquiposViewModel.OpcionesEstado}"
+          <ComboBox Grid.Column="4" Style="{StaticResource FieldCombo}" ItemsSource="{Binding OpcionesTipo}"
+                    SelectedItem="{Binding FiltroTipo}" DisplayMemberPath="Texto" AutomationProperties.Name="Tipo de equipo" />
+          <ComboBox Grid.Column="6" Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:EquiposViewModel.OpcionesEstado}"
                     SelectedItem="{Binding FiltroEstado}" DisplayMemberPath="Texto" AutomationProperties.Name="Estado operativo" />
-          <ComboBox Grid.Column="6" Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:EquiposViewModel.OpcionesRiesgo}"
+          <ComboBox Grid.Column="8" Style="{StaticResource FieldCombo}" ItemsSource="{x:Static vm:EquiposViewModel.OpcionesRiesgo}"
                     SelectedItem="{Binding FiltroRiesgo}" DisplayMemberPath="Texto" AutomationProperties.Name="Riesgo y calibración" />
         </Grid>
 
@@ -1231,6 +1262,110 @@
           <Button Content="Cerrar" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Right" Margin="0,16,0,0" IsCancel="True"
                   Command="{Binding CerrarFotoAmpliadaCommand}" />
         </StackPanel>
+      </Border>
+    </Grid>
+
+    <!-- ================= RF-027 Hoja de vida en PDF: vista previa y «Guardar» (prototipo HojaVida.tsx) ================= -->
+    <Grid DataContext="{Binding Detalle}" Visibility="{Binding VistaPreviaPdf, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
+      <Button Style="{StaticResource Velo}" Command="{Binding CerrarHojaVidaPdfCommand}" />
+      <Border Style="{StaticResource Dialog}" Width="720" MaxHeight="640" HorizontalAlignment="Center" VerticalAlignment="Center"
+              AutomationProperties.Name="Hoja de vida en PDF">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Style="{StaticResource SectionTitle}" FontSize="18">
+            <Run Text="Hoja de vida · " /><Run Text="{Binding Placa, Mode=OneWay}" />
+          </TextBlock>
+          <TextBlock DockPanel.Dock="Top" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,12"
+                     Text="Vista previa con los datos de la hoja de vida. «Guardar PDF» genera el documento completo con el historial de intervenciones; la descarga queda en la bitácora." />
+          <StackPanel DockPanel.Dock="Bottom">
+            <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+                    Margin="0,12,0,0" AutomationProperties.LiveSetting="Assertive"
+                    Visibility="{Binding AvisoPdf, Converter={StaticResource NuloVisible}}">
+              <StackPanel>
+                <TextBlock Text="{Binding AvisoPdf.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding AvisoPdf.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+              </StackPanel>
+            </Border>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+              <TextBlock Text="Generando…" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,16,0"
+                         Visibility="{Binding GenerandoPdf, Converter={StaticResource Visible}}" />
+              <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarHojaVidaPdfCommand}" IsCancel="True" Margin="0,0,20,0" />
+              <Button Style="{StaticResource PrimaryButton}" Command="{Binding GuardarHojaVidaPdfCommand}" IsDefault="True"
+                      AutomationProperties.Name="Guardar la hoja de vida en PDF">
+                <StackPanel Orientation="Horizontal">
+                  <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Descargar}" Width="16" Height="16" Margin="0,0,6,0" />
+                  <TextBlock Text="Guardar PDF" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </StackPanel>
+          <Border Background="{DynamicResource Brush.Surface3}" CornerRadius="12" Padding="14">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+              <Border Background="White" CornerRadius="4" Padding="28,24" MaxWidth="620" AutomationProperties.Name="Vista previa de la hoja de vida">
+                <Border.Effect>
+                  <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.15" />
+                </Border.Effect>
+                <StackPanel TextElement.Foreground="#1F2A37">
+                  <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" HorizontalAlignment="Right">
+                      <TextBlock Text="Código de activo" FontSize="10" Foreground="#5B6675" HorizontalAlignment="Right" />
+                      <TextBlock Text="{Binding Placa}" FontFamily="Consolas" FontSize="13" FontWeight="Bold" HorizontalAlignment="Right" />
+                    </StackPanel>
+                    <StackPanel>
+                      <TextBlock Text="Hoja de vida del equipo biomédico" FontSize="14" FontWeight="Bold" />
+                      <TextBlock Text="{Binding Titulo}" FontSize="10.5" Foreground="#5B6675" />
+                    </StackPanel>
+                  </DockPanel>
+                  <Border BorderBrush="#0B4F6C" BorderThickness="0,0,0,2" Margin="0,8,0,0" />
+                  <Border BorderBrush="#B33636" BorderThickness="1.5" CornerRadius="4" Padding="10,6" Margin="0,10,0,0"
+                          Visibility="{Binding EstaDeBaja, Converter={StaticResource Visible}}">
+                    <TextBlock Text="EQUIPO DADO DE BAJA" Foreground="#B33636" FontWeight="Bold" FontSize="11" />
+                  </Border>
+                  <TextBlock Text="1. Identificación" FontWeight="Bold" FontSize="12" Foreground="#0B4F6C" Margin="0,14,0,6" />
+                  <ItemsControl ItemsSource="{Binding DatosActivo}" ItemTemplate="{StaticResource DatoPdf}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <UniformGrid Columns="3" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                  <TextBlock Text="2. Información técnica" FontWeight="Bold" FontSize="12" Foreground="#0B4F6C" Margin="0,14,0,6" />
+                  <ItemsControl ItemsSource="{Binding InformacionTecnica}" ItemTemplate="{StaticResource DatoPdf}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <UniformGrid Columns="3" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                  <TextBlock Text="3. Información regulatoria" FontWeight="Bold" FontSize="12" Foreground="#0B4F6C" Margin="0,14,0,6" />
+                  <ItemsControl ItemsSource="{Binding InformacionRegulatoria}" ItemTemplate="{StaticResource DatoPdf}" Focusable="False">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <UniformGrid Columns="3" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                  </ItemsControl>
+                  <TextBlock Text="4. Mantenimiento y calibración" FontWeight="Bold" FontSize="12" Foreground="#0B4F6C" Margin="0,14,0,6" />
+                  <UniformGrid Columns="3">
+                    <StackPanel Margin="0,0,14,8">
+                      <TextBlock Text="PRÓXIMO PREVENTIVO" FontSize="9.5" Foreground="#5B6675" />
+                      <TextBlock Text="{Binding ProximoMantenimiento}" FontSize="11.5" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,14,8">
+                      <TextBlock Text="CALIBRACIÓN" FontSize="9.5" Foreground="#5B6675" />
+                      <TextBlock Text="{Binding Calibracion}" FontSize="11.5" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <StackPanel Margin="0,0,14,8">
+                      <TextBlock Text="ESTADO ACTUAL" FontSize="9.5" Foreground="#5B6675" />
+                      <TextBlock Text="{Binding Estado}" FontSize="11.5" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </UniformGrid>
+                  <TextBlock Text="El PDF agrega el historial de intervenciones y las calibraciones registradas." FontSize="10" Foreground="#5B6675"
+                             TextWrapping="Wrap" Margin="0,14,0,0" />
+                </StackPanel>
+              </Border>
+            </ScrollViewer>
+          </Border>
+        </DockPanel>
       </Border>
     </Grid>
 

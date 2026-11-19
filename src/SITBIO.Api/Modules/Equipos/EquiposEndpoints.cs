@@ -51,8 +51,10 @@ public static class EquiposEndpoints
                 string? clase = null,
                 bool? calibracion = null,
                 int page = 1,
-                int pageSize = 20) =>
-                Results.Ok(await caso.ListarAsync(new FiltroEquipos(placa, serie, estado, clase, calibracion, page, pageSize), cancellationToken)))
+                int pageSize = 20,
+                string? texto = null,
+                Guid? tipoEquipoId = null) =>
+                Results.Ok(await caso.ListarAsync(new FiltroEquipos(placa, serie, estado, clase, calibracion, page, pageSize, texto, tipoEquipoId), cancellationToken)))
             .WithName("ListarEquipos")
             .RequireAuthorization(PoliticaConsulta);
 

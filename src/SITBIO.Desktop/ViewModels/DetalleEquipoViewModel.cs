@@ -9,6 +9,8 @@ namespace Sitbio.Desktop.ViewModels;
 /// técnica», «Mantenimientos» (plan, órdenes y calibraciones), «Historial» (línea de tiempo, HU-023) y
 /// «Documentos» (HU-015). El encabezado muestra la foto del equipo (RF-031) o el ícono del tipo, según Preferencias.
 /// AC-02 edita (UI-007), da de baja y revierte la baja (HU-014) desde aquí; la API lo valida.
+/// AC-02 y AC-04 reportan una falla del equipo (UI-009) y los roles de la política de la API ven la
+/// hoja de vida en PDF (RF-027) con su vista previa y «Guardar».
 /// </summary>
 public partial class DetalleEquipoViewModel(
     IServicioEquipos servicio,
@@ -25,8 +27,16 @@ public partial class DetalleEquipoViewModel(
     IDialogoArchivos? dialogo = null,
     IServicioFotoEquipo? fotos = null,
     IReductorFoto? reductor = null,
-    bool verFotos = true) : ObservableObject
+    bool verFotos = true,
+    IServicioReportes? reportes = null,
+    Action<Guid, string>? reportarFalla = null) : ObservableObject
 {
+    /// <summary>Roles que reportan fallas (UI-009 en su menú).</summary>
+    private static readonly HashSet<string> RolesReportan = ["AC-02", "AC-04"];
+
+    /// <summary>Roles de la política «HojaVida» de la API (GET /equipos/{id}/hoja-vida.pdf).</summary>
+    private static readonly HashSet<string> RolesHojaVidaPdf = ["AC-01", "AC-02", "AC-05", "AC-07"];
+
     public string Placa { get; } = placa;
 
     /// <summary>Solo AC-02 ve «Editar» (la API también lo valida, RNF-003); un equipo de baja no se edita.</summary>
@@ -39,6 +49,92 @@ public partial class DetalleEquipoViewModel(
     public bool PuedeRevertir => puedeEditar && EstaDeBaja;
 
     public bool EstaDeBaja => Equipo?.Estado == EstadosEquipo.Baja;
+
+    /// <summary>«Reportar falla»: AC-02 y AC-04, con el equipo activo (un equipo de baja no recibe reportes).</summary>
+    public bool PuedeReportarFalla => reportarFalla is not null && rol is not null && RolesReportan.Contains(rol) && HayEquipo && !EstaDeBaja;
+
+    /// <summary>«Hoja de vida PDF»: los roles de la política de la API, también con el equipo de baja (se conserva para auditoría).</summary>
+    public bool PuedeHojaVidaPdf => reportes is not null && dialogo is not null && rol is not null && RolesHojaVidaPdf.Contains(rol) && HayEquipo;
+
+    /// <summary>El menú «…» aparece si tiene al menos una acción: ver o cambiar la foto, dar de baja o revertirla.</summary>
+    public bool HayMasAcciones => PuedeVerFoto || PuedeCambiarFoto || PuedeDarDeBaja || PuedeRevertir;
+
+    [RelayCommand]
+    private void ReportarFalla()
+    {
+        if (PuedeReportarFalla)
+        {
+            reportarFalla!(equipoId, Placa);
+        }
+    }
+
+    /// <summary>Diálogo de la hoja de vida en PDF abierto (vista previa con los datos de la hoja de vida).</summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GuardarHojaVidaPdfCommand))]
+    private bool _vistaPreviaPdf;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(GuardarHojaVidaPdfCommand))]
+    private bool _generandoPdf;
+
+    /// <summary>Error al generar o guardar el PDF; se muestra dentro del diálogo.</summary>
+    [ObservableProperty]
+    private Aviso? _avisoPdf;
+
+    public string NombrePdf => $"HV_{Placa}.pdf";
+
+    [RelayCommand]
+    private void AbrirHojaVidaPdf()
+    {
+        if (PuedeHojaVidaPdf)
+        {
+            AvisoPdf = null;
+            Confirmacion = null;
+            VistaPreviaPdf = true;
+        }
+    }
+
+    [RelayCommand]
+    private void CerrarHojaVidaPdf() => VistaPreviaPdf = false;
+
+    private bool PuedeGuardarPdf => VistaPreviaPdf && !GenerandoPdf;
+
+    /// <summary>Pide el PDF a la API (RF-027, queda en la bitácora) y lo guarda donde elija el usuario.</summary>
+    [RelayCommand(CanExecute = nameof(PuedeGuardarPdf))]
+    private async Task GuardarHojaVidaPdfAsync()
+    {
+        GenerandoPdf = true;
+        AvisoPdf = null;
+        try
+        {
+            var archivo = await reportes!.HojaVidaAsync(equipoId, CancellationToken.None);
+            var ruta = dialogo!.ElegirDestino(archivo.NombreArchivo);
+            if (ruta is null)
+            {
+                return;
+            }
+
+            dialogo.Guardar(ruta, archivo.Contenido);
+            VistaPreviaPdf = false;
+            Confirmacion = new Aviso("Hoja de vida guardada", ruta, null, EsError: false);
+        }
+        catch (ErrorApi error)
+        {
+            AvisoPdf = new Aviso(error.SinConexion ? "Sin conexión" : "No pudimos generar la hoja de vida", error.SinConexion ? Mensajes.Msg011 : error.Message, error.SinConexion ? "MSG-011" : error.Codigo);
+        }
+        catch (System.IO.IOException error)
+        {
+            AvisoPdf = new Aviso("No pudimos guardar el archivo", error.Message, null);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            AvisoPdf = new Aviso("No pudimos guardar el archivo", "No tienes permiso para escribir en esa carpeta. Elige otra.", null);
+        }
+        finally
+        {
+            GenerandoPdf = false;
+        }
+    }
 
     /// <summary>Diálogo de baja o de reversión abierto; null = cerrado.</summary>
     [ObservableProperty]
@@ -63,7 +159,7 @@ public partial class DetalleEquipoViewModel(
         nameof(HayEquipo), nameof(PuedeEditar), nameof(PuedeDarDeBaja), nameof(PuedeRevertir), nameof(EstaDeBaja), nameof(Titulo), nameof(Subtitulo), nameof(Estado), nameof(Tono), nameof(AvisoRegulatorio), nameof(AvisoBaja),
         nameof(ProximoMantenimiento), nameof(DetalleMantenimiento), nameof(MantenimientoVencido), nameof(Calibracion), nameof(DetalleCalibracion),
         nameof(Autorizacion), nameof(DetalleAutorizacion), nameof(AutorizacionEnAlerta), nameof(DatosActivo), nameof(InformacionTecnica),
-        nameof(InformacionRegulatoria), nameof(PuedeCambiarFoto), nameof(IconoTipo))]
+        nameof(InformacionRegulatoria), nameof(PuedeCambiarFoto), nameof(IconoTipo), nameof(PuedeReportarFalla), nameof(PuedeHojaVidaPdf), nameof(HayMasAcciones))]
     private Equipo? _equipo;
 
     private enum Pestana
@@ -440,7 +536,7 @@ public partial class DetalleEquipoViewModel(
 
     /// <summary>El equipo tiene foto guardada (aunque el usuario prefiera ver el ícono).</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(PuedeVerFoto), nameof(TextoBotonFoto))]
+    [NotifyPropertyChangedFor(nameof(PuedeVerFoto), nameof(TextoBotonFoto), nameof(HayMasAcciones))]
     private bool _tieneFoto;
 
     public string TextoBotonFoto => TieneFoto ? "Cambiar la fotografía" : "Agregar una fotografía";

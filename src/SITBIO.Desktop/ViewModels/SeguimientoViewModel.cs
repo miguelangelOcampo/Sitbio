@@ -290,6 +290,13 @@ public static class TextosTiquete
         _ => criticidad,
     };
 
+    /// <summary>HU-004: texto cuando quien reportó no describió la falla.</summary>
+    public const string SinDescripcion = "Sin descripción";
+
+    /// <summary>La descripción de la falla tal como se reportó o «Sin descripción».</summary>
+    public static string DescripcionFalla(string? descripcion) =>
+        string.IsNullOrWhiteSpace(descripcion) ? SinDescripcion : descripcion.Trim();
+
     public static TonoEstado TonoCriticidad(string criticidad) => criticidad switch
     {
         Criticidades.Critica => TonoEstado.Critico,

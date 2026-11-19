@@ -279,4 +279,16 @@ public class BandejaViewModelTests
         Assert.Equal(["TQT-000001"], pantalla.Filas.Select(f => f.Codigo));
         Assert.Equal(["Carlos Ruiz"], pantalla.Tecnicos.Select(t => t.Nombre));
     }
+
+    /// <summary>HU-004: el panel de asignación muestra la descripción de la falla y quién la reportó.</summary>
+    [Fact]
+    public void Fila_MuestraLaDescripcionYElReportante()
+    {
+        var sin = new FilaBandeja(Tiquete("TQT-000001", Criticidades.Alta));
+        var con = new FilaBandeja(Tiquete("TQT-000002", Criticidades.Alta) with { Descripcion = "Alarma de oclusión constante" });
+
+        Assert.Equal(TextosTiquete.SinDescripcion, sin.DescripcionFalla);
+        Assert.Equal("Alarma de oclusión constante", con.DescripcionFalla);
+        Assert.StartsWith("Reportó Laura Gómez el ", con.ReportadoPor);
+    }
 }

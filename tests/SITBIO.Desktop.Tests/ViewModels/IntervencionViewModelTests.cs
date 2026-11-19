@@ -58,6 +58,18 @@ public class IntervencionViewModelTests
         Campo(vm, "resultado").Opcion = "Pasa";
     }
 
+    /// <summary>HU-004: el encabezado muestra la falla tal como se reportó y quién la reportó; nada en las preventivas.</summary>
+    [Fact]
+    public async Task Encabezado_MuestraLaFallaReportada()
+    {
+        var orden = OrdenesViewModelTests.Orden(EstadosOrden.EnEjecucion) with { DescripcionFalla = "Alarma de oclusión", Reportante = "Laura Gómez" };
+        var vm = await AbrirAsync(orden);
+        var preventiva = await AbrirAsync(OrdenesViewModelTests.Orden(EstadosOrden.EnEjecucion) with { TiqueteId = null, CodigoTiquete = null, TipoFalla = null });
+
+        Assert.Equal(("No enciende: Alarma de oclusión", "Reportó Laura Gómez"), (vm.FallaReportada, vm.ReportadoPor));
+        Assert.Equal((string.Empty, string.Empty), (preventiva.FallaReportada, preventiva.ReportadoPor));
+    }
+
     [Fact]
     public async Task Cargar_ArmaUnControlPorTipoDeDato()
     {

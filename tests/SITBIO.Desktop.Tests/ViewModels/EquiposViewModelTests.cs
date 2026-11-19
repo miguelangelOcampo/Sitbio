@@ -61,6 +61,56 @@ public class EquiposViewModelTests
         Assert.True(pantalla.HayFiltros);
     }
 
+    /// <summary>UI-005: «Nombre o modelo» busca en el tipo, el fabricante y el modelo.</summary>
+    [Fact]
+    public void BuscarPorNombreOModelo_EnviaElTexto()
+    {
+        var pantalla = Crear();
+
+        pantalla.BuscarPor = EquiposViewModel.OpcionesBuscarPor.Single(o => o.Texto == "Nombre o modelo");
+        pantalla.Busqueda = " mindray t5 ";
+
+        Assert.Equal("mindray t5", UltimoFiltro().Texto);
+        Assert.Null(UltimoFiltro().Placa);
+        Assert.Null(UltimoFiltro().Serie);
+        Assert.Equal("Buscar por tipo, fabricante o modelo", pantalla.TextoBusqueda);
+    }
+
+    /// <summary>UI-005: el filtro «Tipo de equipo» sale del catálogo y «Limpiar filtros» también lo quita.</summary>
+    [Fact]
+    public async Task FiltroTipoDeEquipo_DelCatalogo_YLimpiarLoQuita()
+    {
+        var bomba = new ElementoCatalogo(Guid.NewGuid(), "Bomba de infusión", true);
+        _catalogos.ListarAsync(TiposCatalogo.TiposEquipo, Arg.Any<CancellationToken>()).Returns([TipoMonitor, bomba]);
+        var pantalla = Crear();
+        await pantalla.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal(["Todo tipo de equipo", "Bomba de infusión", "Monitor de signos vitales"], pantalla.OpcionesTipo.Select(o => o.Texto));
+        pantalla.FiltroTipo = pantalla.OpcionesTipo[1];
+        Assert.Equal(bomba.Id, UltimoFiltro().TipoEquipoId);
+        Assert.Equal(1, UltimoFiltro().Pagina);
+        Assert.True(pantalla.HayFiltros);
+
+        await pantalla.LimpiarCommand.ExecuteAsync(null);
+
+        Assert.Equal(EquiposViewModel.TodoTipo, pantalla.FiltroTipo);
+        Assert.Null(UltimoFiltro().TipoEquipoId);
+        Assert.False(pantalla.HayFiltros);
+    }
+
+    [Fact]
+    public async Task SinCatalogoDeTipos_LaListaSigueYElFiltroQuedaEnTodo()
+    {
+        _catalogos.ListarAsync(TiposCatalogo.TiposEquipo, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ErrorApi(null, "Sin conexión", new Dictionary<string, string>(), true));
+        var pantalla = Crear(Pagina(1, Equipo()));
+
+        await pantalla.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal([EquiposViewModel.TodoTipo], pantalla.OpcionesTipo);
+        Assert.Single(pantalla.Filas);
+    }
+
     [Fact]
     public void FiltroDeRiesgo_DistingueClaseYCalibracion()
     {

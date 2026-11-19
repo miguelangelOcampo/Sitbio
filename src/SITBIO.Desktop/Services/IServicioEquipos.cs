@@ -68,7 +68,9 @@ public sealed record FiltroEquipos(
     string? Clase = null,
     bool? Calibracion = null,
     int Pagina = 1,
-    int Tamano = 20);
+    int Tamano = 20,
+    string? Texto = null,
+    Guid? TipoEquipoId = null);
 
 /// <summary>Equipo tal como lo devuelve la API (EquipoDto), con la información regulatoria (RF-030).</summary>
 public sealed record Equipo(

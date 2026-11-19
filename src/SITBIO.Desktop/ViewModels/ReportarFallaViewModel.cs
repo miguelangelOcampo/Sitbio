@@ -10,7 +10,7 @@ namespace Sitbio.Desktop.ViewModels;
 /// caracteres. Una falla crítica pide confirmación con MSG-006 porque el equipo quedará «Fuera de
 /// servicio» (RN-005); al enviar se muestra MSG-005 con el código del tiquete. Reportan AC-02 y AC-04.
 /// </summary>
-public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServicioEquipos equipos, IPortapapeles portapapeles) : ObservableObject, ISolicitaNavegacion
+public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServicioEquipos equipos, IPortapapeles portapapeles) : ObservableObject, ISolicitaNavegacion, IRecibeParametro
 {
     public const int MaximoDescripcion = 500;
     public const int MinimoBusqueda = 2;
@@ -245,6 +245,34 @@ public partial class ReportarFallaViewModel(IServicioTiquetes tiquetes, IServici
                 _cancelacionBusqueda = null;
                 Buscando = false;
             }
+        }
+    }
+
+    /// <summary>
+    /// «Reportar falla» de la hoja de vida (UI-006) abre el formulario con el equipo ya elegido; si no se
+    /// puede consultar, el formulario queda para buscarlo a mano.
+    /// </summary>
+    public void Recibir(string parametro)
+    {
+        if (Guid.TryParse(parametro, out var id))
+        {
+            _ = PreseleccionarAsync(id);
+        }
+    }
+
+    private async Task PreseleccionarAsync(Guid id)
+    {
+        try
+        {
+            var equipo = await equipos.ObtenerAsync(id, CancellationToken.None);
+            if (equipo.Estado != EstadosEquipo.Baja)
+            {
+                ElegirEquipo(equipo);
+            }
+        }
+        catch (ErrorApi)
+        {
+            // Sin el equipo, se busca por placa o serie como siempre.
         }
     }
 

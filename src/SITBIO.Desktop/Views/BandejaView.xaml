@@ -259,6 +259,10 @@
                        Foreground="{DynamicResource Brush.Text}" Margin="0,4,0,0" />
             <TextBlock Text="{Binding Seleccionado.Equipo}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,6,0,0" />
             <TextBlock Text="{Binding Seleccionado.TipoFalla}" Style="{StaticResource Muted}" TextWrapping="Wrap" />
+            <TextBlock Text="Descripción de la falla" Style="{StaticResource FieldLabel}" Margin="0,14,0,2" />
+            <TextBlock Text="{Binding Seleccionado.DescripcionFalla}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap"
+                       AutomationProperties.Name="{Binding Seleccionado.DescripcionFalla, StringFormat='Descripción de la falla: {0}'}" />
+            <TextBlock Text="{Binding Seleccionado.ReportadoPor}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0" />
             <StackPanel Orientation="Horizontal" Margin="0,6,0,0" DataContext="{Binding Seleccionado}">
               <Ellipse Style="{StaticResource PuntoCriticidad}" />
               <TextBlock Text="{Binding Criticidad, StringFormat='Criticidad {0}'}" Foreground="{DynamicResource Brush.Text}" />

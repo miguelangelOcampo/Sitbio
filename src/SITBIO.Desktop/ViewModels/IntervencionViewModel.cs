@@ -48,6 +48,11 @@ public partial class IntervencionViewModel(
 
     public string EstadoOrden => EstadosOrden.Nombre(Orden.Estado);
 
+    /// <summary>HU-004: la falla reportada («tipo: descripción»); vacía en las preventivas, que no tienen tiquete.</summary>
+    public string FallaReportada => Orden.TipoFalla is null ? string.Empty : $"{Orden.TipoFalla}: {TextosTiquete.DescripcionFalla(Orden.DescripcionFalla)}";
+
+    public string ReportadoPor => string.IsNullOrEmpty(Orden.Reportante) ? string.Empty : $"Reportó {Orden.Reportante}";
+
     public static IReadOnlyList<string> OpcionesSalida => EstadosSalidaEquipo.Todos;
 
     [ObservableProperty]

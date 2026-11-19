@@ -129,6 +129,34 @@ public class RepositorioEquiposPostgresTests : IAsyncLifetime
         Assert.Equal(4, (await Placas(new FiltroEquipos(Estado: EstadosEquipo.CodigoOperativo))).Length);
     }
 
+    /// <summary>UI-005: «Nombre o modelo» busca en el tipo, la marca y el modelo; «Tipo de equipo» filtra por el tipo.</summary>
+    [FactIntegracion(Variable)]
+    public async Task Listar_PorNombreOModelo_YPorTipoDeEquipo()
+    {
+        TipoEquipo bomba;
+        var (contexto, repositorio) = Crear(_tenantA);
+        await using (contexto)
+        {
+            bomba = new TipoEquipo(_tenantA, "Bomba de infusión");
+            contexto.TiposEquipo.Add(bomba);
+            await contexto.SaveChangesAsync();
+            var equipo = new EquipoBiomedico(_tenantA, bomba.Id, _ubicacionA, "SN-BI-05", "BI-05", "Baxter", "Sigma 100%", DateTimeOffset.UtcNow);
+            equipo.DefinirInformacionRegulatoria(TiposAutorizacion.RegistroSanitario, "R-2", Hoy.AddYears(1), ClasesRiesgo.IIb, false, null);
+            repositorio.Agregar(equipo);
+            await repositorio.GuardarAsync(CancellationToken.None);
+        }
+
+        Assert.Equal(["BI-05"], await Placas(new FiltroEquipos(Texto: "bomba")));
+        Assert.Equal(["BI-05"], await Placas(new FiltroEquipos(Texto: "BAXTER")));
+        Assert.Equal(["BI-05"], await Placas(new FiltroEquipos(Texto: "100%")));
+        Assert.Equal(["BI-05"], await Placas(new FiltroEquipos(Texto: "baxter sigma")));
+        Assert.Equal(["AB-01", "XYZ04", "XY_03", "ab-02"], await Placas(new FiltroEquipos(Texto: "mindray t5")));
+        Assert.Equal(4, (await Placas(new FiltroEquipos(Texto: "monitor"))).Length);
+        Assert.Equal(["BI-05"], await Placas(new FiltroEquipos(TipoEquipoId: bomba.Id)));
+        Assert.Equal(["XYZ04"], await Placas(new FiltroEquipos(Texto: "t5", TipoEquipoId: _tipoA.Id, Clase: ClasesRiesgo.III)));
+        Assert.Empty(await Placas(new FiltroEquipos(TipoEquipoId: _tipoB.Id)));
+    }
+
     [FactIntegracion(Variable)]
     public async Task Listar_PaginaYTraeNombresYPlanActivo()
     {

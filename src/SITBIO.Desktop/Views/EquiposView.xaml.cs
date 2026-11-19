@@ -1,4 +1,6 @@
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using Sitbio.Desktop.ViewModels;
 
@@ -25,6 +27,20 @@ public partial class EquiposView : UserControl
         {
             e.Handled = true;
             Abrir();
+        }
+    }
+
+    private const double AnchoMenu = 200;
+
+    /// <summary>Menú «…» de la hoja de vida, alineado al borde derecho del botón para que no se salga de la ventana.</summary>
+    private void AbrirMenuAcciones(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button { ContextMenu: { } menu } boton)
+        {
+            menu.PlacementTarget = boton;
+            menu.Placement = PlacementMode.Bottom;
+            menu.HorizontalOffset = boton.ActualWidth - AnchoMenu;
+            menu.IsOpen = true;
         }
     }
 

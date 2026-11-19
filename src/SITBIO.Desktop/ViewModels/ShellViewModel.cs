@@ -13,6 +13,12 @@ namespace Sitbio.Desktop.ViewModels;
 /// </summary>
 public partial class ShellViewModel : ObservableObject
 {
+    /// <summary>Pie del menú: «SITBIO v1.1.1», tomado de &lt;Version&gt; en Directory.Build.props.</summary>
+    public static string VersionProducto { get; } = TextoVersion(typeof(ShellViewModel).Assembly.GetName().Version);
+
+    public static string TextoVersion(Version? version) =>
+        version is null ? "SITBIO" : $"SITBIO v{version.Major}.{version.Minor}.{Math.Max(version.Build, 0)}";
+
     private readonly string _codigoRol;
     private readonly IFabricaPantallas? _pantallas;
     private readonly Func<CambioClaveViewModel>? _crearCambioClave;

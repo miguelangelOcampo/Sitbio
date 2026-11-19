@@ -4,6 +4,32 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [Sin publicar]
 
+## [1.1.1] - 2026-11-20
+
+Corrige los hallazgos de operación de la v1.1.0 y agrega el historial de intervenciones. Incluye todo lo de la versión 1.1.0.
+
+### Agregado
+- HU-005 Historial de intervenciones (`GET /api/v1/intervenciones`): consulta paginada de las intervenciones de la institución, de la más reciente a la más antigua, con filtros por equipo, tipo de equipo, técnico, tipo de mantenimiento y fechas, y totales del filtro (cantidad, correctivas y preventivas, costo total y tiempo promedio). La consultan AC-01, AC-02, AC-03, AC-05 y AC-07, con aislamiento entre instituciones.
+- Pantalla «Historial de intervenciones» en el menú Gestión: indicadores, filtros con fechas dd/mm/aaaa, páginas de 20, la intervención en solo lectura (AC-01, AC-02, AC-03 y AC-07) y acceso a la hoja de vida del equipo. Ya no aparece como «Disponible en una próxima versión».
+- Acciones «Reportar falla» y «Hoja de vida PDF» en la hoja de vida del equipo (UI-006).
+- Filtro por tipo de equipo y búsqueda por nombre o modelo en Equipos biomédicos (UI-005).
+- `scripts/analitica.ps1` y `scripts/analitica.sh` para ejecutar el lote de analítica (HU-008, HU-009) con las credenciales del `.env`.
+
+### Cambiado
+- Versión del producto 1.1.1 (`Directory.Build.props`). El pie del menú ahora toma la versión del ensamblado («SITBIO v1.1.1») en vez de un texto fijo.
+- La interfaz ya no muestra los códigos de la documentación (RF, HU, MSG, UI) en títulos, avisos ni guías de rol.
+- «Analítica» (UI-023) muestra un aviso informativo con el comando del lote cuando todavía no hay resultados.
+
+### Corregido
+- La descripción de la falla se ve en la bandeja de tiquetes, en la orden y en la intervención (HU-004).
+- La hoja de vida en PDF incluye la fotografía del equipo (versión de 512 px) junto a los datos técnicos; si el archivo falta o está dañado, el PDF sale sin ella (HU-027, RF-031).
+- La rueda del mouse desplaza la página aunque el puntero esté sobre una tabla.
+- El cliente se cerraba al abrir «Mantenimientos» por una recursión en el texto de un registro (`FilaPlan`).
+
+### Pendiente
+- CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes (k6).
+- Filtro por técnico en la pantalla del historial: la API ya lo admite, pero la sesión del cliente todavía no guarda el id del usuario.
+
 ## [1.1.0] - 2026-11-21
 
 Completa las 28 historias del DOC-04 e iguala el cliente WPF con el prototipo v0.24. Incluye todo lo de la versión 1.0.0.

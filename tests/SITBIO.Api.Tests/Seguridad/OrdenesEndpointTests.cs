@@ -36,7 +36,7 @@ public class OrdenesEndpointTests(WebApplicationFactory<Program> fabrica) : ICla
 
     private static Tiquete Recibido()
     {
-        var tiquete = new Tiquete(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "No enciende", null, Criticidades.Alta, DateTimeOffset.UtcNow);
+        var tiquete = new Tiquete(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "No enciende", "La pantalla queda en negro al conectarlo", Criticidades.Alta, DateTimeOffset.UtcNow);
         tiquete.Numerar(1);
         return tiquete;
     }
@@ -57,7 +57,7 @@ public class OrdenesEndpointTests(WebApplicationFactory<Program> fabrica) : ICla
             });
         _repositorio.ObtenerAsync(Arg.Any<Guid>(), Arg.Any<Guid?>(), Arg.Any<CancellationToken>())
             .Returns(llamada => _guardada is { } o && o.Id == llamada.ArgAt<Guid>(0)
-                ? new OrdenLeida(o, "PL-001", "SN-1", "Monitor", "Urgencias", "Carlos Ruiz", _tiquete.Codigo, _tiquete.TipoFalla)
+                ? new OrdenLeida(o, "PL-001", "SN-1", "Monitor", "Urgencias", "Carlos Ruiz", _tiquete.Codigo, _tiquete.TipoFalla, _tiquete.Descripcion, "Laura Gómez")
                 : null);
         _repositorio.ListarAsync(Arg.Any<FiltroOrdenes>(), Arg.Any<Guid?>(), Arg.Any<CancellationToken>()).Returns(([], 0));
 
@@ -101,6 +101,17 @@ public class OrdenesEndpointTests(WebApplicationFactory<Program> fabrica) : ICla
         Assert.Equal((_tecnico, (Guid?)_usuario.Id, EstadosOrden.Asignada), (creada.TecnicoId, creada.AsignadoPorId, creada.Estado));
         Assert.Equal(("TQT-000001", Criticidades.Alta), (creada.CodigoTiquete, creada.Prioridad));
         Assert.Equal(EstadosTiquete.Asignado, _tiquete.Estado);
+    }
+
+    /// <summary>HU-004: la orden trae la descripción de la falla y quién la reportó para la bandeja, «Mis órdenes» y la intervención.</summary>
+    [Fact]
+    public async Task LaOrden_TraeLaDescripcionDeLaFallaYElReportante()
+    {
+        var respuesta = await Cliente(CodigosRol.IngenieroBiomedico).PostAsJsonAsync(Ruta, Cuerpo());
+
+        var creada = await respuesta.Content.ReadFromJsonAsync<OrdenDto>(Json);
+        Assert.Equal(("No enciende", "La pantalla queda en negro al conectarlo", "Laura Gómez"),
+            (creada!.TipoFalla, creada.DescripcionFalla, creada.Reportante));
     }
 
     [Theory]

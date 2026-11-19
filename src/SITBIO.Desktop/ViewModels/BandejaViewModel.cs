@@ -329,6 +329,11 @@ public sealed record FilaBandeja(Tiquete Tiquete, string? AsignadoA = null)
 
     public string TipoFalla => Tiquete.TipoFalla;
 
+    /// <summary>HU-004: lo que escribió quien reportó, para decidir a quién asignar.</summary>
+    public string DescripcionFalla => TextosTiquete.DescripcionFalla(Tiquete.Descripcion);
+
+    public string ReportadoPor => $"Reportó {Tiquete.Reportante} el {TextosTiquete.FechaHora(Tiquete.FechaReporte)}";
+
     public string Criticidad => TextosTiquete.Criticidad(Tiquete.Criticidad);
 
     public TonoEstado TonoCriticidad => TextosTiquete.TonoCriticidad(Tiquete.Criticidad);

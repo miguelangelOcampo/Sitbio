@@ -169,5 +169,7 @@ public sealed class RepositorioOrdenes(SitbioDbContext contexto) : IRepositorioO
             u.Nombre,
             tec.Nombres + " " + tec.Apellidos,
             t == null ? null : t.Codigo,
-            t == null ? null : t.TipoFalla);
+            t == null ? null : t.TipoFalla,
+            t == null ? null : t.Descripcion,
+            t == null ? null : contexto.Usuarios.Where(r => r.Id == t.ReportanteId).Select(r => r.Nombres + " " + r.Apellidos).FirstOrDefault());
 }

@@ -110,7 +110,7 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
         var (contexto, _, tiquetes) = Crear(_tenantA);
         await using (contexto)
         {
-            var tiquete = new Tiquete(_tenantA, _equipoA, _ingenieroA, "No enciende", null, criticidad, DateTimeOffset.UtcNow);
+            var tiquete = new Tiquete(_tenantA, _equipoA, _ingenieroA, "No enciende", "Pantalla en negro", criticidad, DateTimeOffset.UtcNow);
             await tiquetes.RegistrarAsync(tiquete, tiquete.Recepcion(), null, CancellationToken.None);
             return tiquete.Id;
         }
@@ -151,6 +151,7 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
             Assert.Equal((EstadosOrden.Asignada, TiposMantenimiento.Correctivo, Criticidades.Critica), (leida.Orden.Estado, leida.Orden.TipoMantenimiento, leida.Orden.Prioridad));
             Assert.Equal(("PL-OT1", "Monitor", "Urgencias", "Carlos Ruiz"), (leida.PlacaInventario, leida.TipoEquipo, leida.Ubicacion, leida.Tecnico));
             Assert.Equal(("TQT-000001", "No enciende"), (leida.CodigoTiquete, leida.TipoFalla));
+            Assert.Equal(("Pantalla en negro", "Carlos Ruiz"), (leida.DescripcionFalla, leida.Reportante));
 
             var tiquete = await contexto.Tiquetes.AsNoTracking().SingleAsync(t => t.Id == tiqueteId);
             Assert.Equal(EstadosTiquete.Asignado, tiquete.Estado);

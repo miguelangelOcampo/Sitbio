@@ -149,7 +149,12 @@
             <DataGridTemplateColumn Header="FALLA" Width="1.2*">
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate DataType="{x:Type vm:FilaOrden}">
-                  <TextBlock Text="{Binding Falla}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Falla}" />
+                  <StackPanel>
+                    <TextBlock Text="{Binding Falla}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Falla}" />
+                    <TextBlock Text="{Binding DescripcionFalla}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" TextWrapping="Wrap"
+                               MaxHeight="34" TextTrimming="CharacterEllipsis" ToolTip="{Binding DescripcionFalla}"
+                               Visibility="{Binding DescripcionFalla, Converter={StaticResource TextoVisible}}" />
+                  </StackPanel>
                 </DataTemplate>
               </DataGridTemplateColumn.CellTemplate>
             </DataGridTemplateColumn>

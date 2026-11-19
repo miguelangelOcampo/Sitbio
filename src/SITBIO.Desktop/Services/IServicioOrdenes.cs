@@ -114,7 +114,9 @@ public sealed record Orden(
     Guid? AprobadoPorId = null,
     DateTimeOffset? FechaAprobacion = null,
     string? FirmaAprobacion = null,
-    DateTimeOffset? FechaCreacion = null);
+    DateTimeOffset? FechaCreacion = null,
+    string? DescripcionFalla = null,
+    string? Reportante = null);
 
 /// <summary>Filtros de GET /ordenes; con <c>EquipoId</c>, las de ese equipo de la más reciente a la más antigua.</summary>
 public sealed record FiltroOrdenes(string? Estado = null, bool AsignadasAMi = false, int Pagina = 1, int Tamano = 20, Guid? EquipoId = null);

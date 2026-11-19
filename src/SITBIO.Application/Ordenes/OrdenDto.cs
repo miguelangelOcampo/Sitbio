@@ -28,7 +28,9 @@ public sealed record OrdenDto(
     Guid? AprobadoPorId = null,
     DateTimeOffset? FechaAprobacion = null,
     string? FirmaAprobacion = null,
-    Guid? PlanId = null)
+    Guid? PlanId = null,
+    string? DescripcionFalla = null,
+    string? Reportante = null)
 {
     public static OrdenDto Desde(OrdenLeida leida)
     {
@@ -59,7 +61,9 @@ public sealed record OrdenDto(
             o.AprobadoPorId,
             o.FechaAprobacion,
             o.FirmaAprobacion,
-            o.PlanId);
+            o.PlanId,
+            leida.DescripcionFalla,
+            leida.Reportante);
     }
 }
 
@@ -75,7 +79,10 @@ public sealed record DatosOrden(Guid? TiqueteId, Guid? TecnicoId, string? Priori
 /// </summary>
 public sealed record FiltroOrdenes(string? Estado, bool AsignadasAMi = false, int Pagina = 1, int Tamano = 20, Guid? EquipoId = null);
 
-/// <summary>Orden con los datos del equipo, del técnico y del tiquete de origen, para armar el DTO.</summary>
+/// <summary>
+/// Orden con los datos del equipo, del técnico y del tiquete de origen (código, tipo y descripción de la
+/// falla y quién la reportó, HU-004), para armar el DTO.
+/// </summary>
 public sealed record OrdenLeida(
     OrdenTrabajo Orden,
     string PlacaInventario,
@@ -84,7 +91,9 @@ public sealed record OrdenLeida(
     string Ubicacion,
     string Tecnico,
     string? CodigoTiquete,
-    string? TipoFalla);
+    string? TipoFalla,
+    string? DescripcionFalla = null,
+    string? Reportante = null);
 
 /// <summary>Usuario candidato a ejecutar la orden, con su rol y si está activo (RN-003).</summary>
 public sealed record TecnicoCandidato(Guid Id, string CodigoRol, bool Activo);

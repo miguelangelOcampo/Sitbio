@@ -248,4 +248,16 @@ public class OrdenesViewModelTests
         Assert.True(pantalla.Cargado);
         Assert.Equal(["TQT-000007"], pantalla.Filas.Select(f => f.Referencia));
     }
+
+    /// <summary>HU-004: la fila de «Mis órdenes» muestra la descripción del tiquete; sin ella, «Sin descripción», y nada en las preventivas.</summary>
+    [Fact]
+    public void Fila_MuestraLaDescripcionDeLaFalla()
+    {
+        var conDescripcion = Orden(EstadosOrden.Asignada) with { DescripcionFalla = "  Pantalla en negro  " };
+        var preventiva = Orden(EstadosOrden.Asignada) with { TiqueteId = null, CodigoTiquete = null, TipoFalla = null };
+
+        Assert.Equal("Pantalla en negro", new FilaOrden(conDescripcion).DescripcionFalla);
+        Assert.Equal(TextosTiquete.SinDescripcion, new FilaOrden(Orden(EstadosOrden.Asignada)).DescripcionFalla);
+        Assert.Equal(string.Empty, new FilaOrden(preventiva).DescripcionFalla);
+    }
 }

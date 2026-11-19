@@ -305,6 +305,9 @@ public sealed record FilaOrden(Orden Orden, bool EsTecnico = false, bool EsIngen
 
     public string Falla => Orden.TipoFalla ?? "Mantenimiento programado";
 
+    /// <summary>HU-004: la descripción del tiquete de origen; vacía en las preventivas, que no tienen tiquete.</summary>
+    public string DescripcionFalla => Orden.TiqueteId is null && Orden.CodigoTiquete is null ? string.Empty : TextosTiquete.DescripcionFalla(Orden.DescripcionFalla);
+
     public string Prioridad => TextosTiquete.Criticidad(Orden.Prioridad);
 
     public TonoEstado TonoPrioridad => TextosTiquete.TonoCriticidad(Orden.Prioridad);

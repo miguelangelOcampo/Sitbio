@@ -7,7 +7,9 @@ Uso::
 
 Se escribe un documento por tenant (``_id`` = ``tenant_id``) que se reemplaza en cada ejecución; la API lo
 entrega a UI-023. Los resultados no son en tiempo real: llevan
-``generado_en`` y la huella de los datos de entrada.
+``generado_en`` y la huella de los datos de entrada. ``agrupaciones`` trae una agrupación por cada k de 2 a 6
+(con inercia y el nombre de cada grupo); ``agrupacion`` repite la del k por defecto para clientes
+anteriores.
 """
 
 from __future__ import annotations
@@ -63,7 +65,17 @@ def calcular(
 
     resultados = []
     for tenant_id, del_tenant in df.groupby("tenant_id", sort=True):
-        equipos, grupos = agrupacion.agrupar(agrupacion.caracteristicas_por_equipo(del_tenant), k=k)
+        caracteristicas = agrupacion.caracteristicas_por_equipo(del_tenant)
+        equipos, grupos, inercia = agrupacion.agrupar_con_inercia(caracteristicas, k=k)
+        todas = [
+            {
+                "algoritmo": "KMeans",
+                "semilla": agrupacion.SEMILLA,
+                "caracteristicas": agrupacion.CARACTERISTICAS,
+                **a,
+            }
+            for a in agrupacion.agrupaciones(caracteristicas)
+        ]
         ids = set(del_tenant["_id"])
         resultados.append(
             {
@@ -78,11 +90,13 @@ def calcular(
                 "agrupacion": {
                     "algoritmo": "KMeans",
                     "k": len(grupos),
+                    "inercia": inercia,
                     "semilla": agrupacion.SEMILLA,
                     "caracteristicas": agrupacion.CARACTERISTICAS,
                     "grupos": grupos,
                     "equipos": equipos,
                 },
+                "agrupaciones": todas,
             }
         )
     return resultados
@@ -114,7 +128,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--fecha-corte", type=_fecha, help="Fecha de corte ISO-8601 (por defecto, ahora en UTC)."
     )
-    parser.add_argument("-k", type=int, default=3, help="Número de grupos de K-Means (por defecto 3).")
+    parser.add_argument(
+        "-k",
+        type=int,
+        default=3,
+        help="Grupos de la agrupación por defecto (3); además se guardan las de 2 a 6.",
+    )
     parser.add_argument(
         "--sin-escribir", action="store_true", help="Imprime el resultado sin escribir en MongoDB."
     )

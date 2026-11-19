@@ -339,4 +339,35 @@ public class ReportarFallaViewModelTests
         Assert.True(pantalla.Cargado);
         Assert.Equal(["No enciende"], pantalla.TiposFalla);
     }
+
+    /// <summary>«Reportar falla» de la hoja de vida (UI-006) abre el formulario con el equipo ya elegido.</summary>
+    [Fact]
+    public async Task Recibir_PreseleccionaElEquipo()
+    {
+        var vm = await AbrirAsync();
+        _equipos.ObtenerAsync(_monitor.Id, Arg.Any<CancellationToken>()).Returns(_monitor);
+
+        vm.Recibir(_monitor.Id.ToString());
+        await Task.Yield();
+
+        Assert.Same(_monitor, vm.EquipoSeleccionado);
+        Assert.Equal(_monitor.PlacaInventario, vm.Busqueda);
+        Assert.True(vm.HayEquipo);
+    }
+
+    [Fact]
+    public async Task Recibir_NoPreseleccionaUnEquipoDeBaja_NiFallaSinConexion()
+    {
+        var vm = await AbrirAsync();
+        _equipos.ObtenerAsync(_baja.Id, Arg.Any<CancellationToken>()).Returns(_baja);
+        var otro = Guid.NewGuid();
+        _equipos.ObtenerAsync(otro, Arg.Any<CancellationToken>()).ThrowsAsync(Error(null, "Sin conexión", sinConexion: true));
+
+        vm.Recibir(_baja.Id.ToString());
+        vm.Recibir(otro.ToString());
+        vm.Recibir("no-es-un-id");
+        await Task.Yield();
+
+        Assert.Null(vm.EquipoSeleccionado);
+    }
 }

@@ -22,8 +22,14 @@ public partial class EquiposViewModel(
     IDialogoArchivos? dialogo = null,
     IServicioFotoEquipo? fotos = null,
     IReductorFoto? reductor = null,
-    IServicioPreferencias? preferencias = null) : ObservableObject, IRecibeParametro
+    IServicioPreferencias? preferencias = null,
+    IServicioReportes? reportes = null) : ObservableObject, IRecibeParametro, ISolicitaNavegacion
 {
+    /// <summary>UI-009 Reportar falla: «Reportar falla» de la hoja de vida la abre con el equipo ya elegido.</summary>
+    public const string PantallaReportarFalla = "UI-009";
+
+    public event EventHandler<SolicitudNavegacion>? NavegacionSolicitada;
+
     public const string IdPantalla = "UI-005";
 
     public const int TamanoPagina = 20;
@@ -175,7 +181,11 @@ public partial class EquiposViewModel(
     private bool VerFotos => preferencias?.Leer().VerFotosEquipo ?? true;
 
     private DetalleEquipoViewModel NuevoDetalle(Guid id, string placa) => new(
-        servicio, tiempo, id, placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), mantenimiento, ordenes, sesion.Sesion?.Rol, documentos, dialogo, fotos, reductor, VerFotos);
+        servicio, tiempo, id, placa, Volver, PuedeGestionar, () => ConsultarAsync(Pagina), mantenimiento, ordenes, sesion.Sesion?.Rol, documentos, dialogo, fotos, reductor, VerFotos,
+        reportes, ReportarFalla);
+
+    private void ReportarFalla(Guid id, string placa) =>
+        NavegacionSolicitada?.Invoke(this, new SolicitudNavegacion(PantallaReportarFalla, id.ToString()));
 
     /// <summary>Dato para abrir la hoja de vida desde otra pantalla (búsqueda global, D-04): «id|placa».</summary>
     public static string ParametroDetalle(Guid id, string placa) => $"{id}|{placa}";

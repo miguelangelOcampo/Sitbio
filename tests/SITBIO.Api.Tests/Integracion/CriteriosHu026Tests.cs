@@ -68,6 +68,49 @@ public class CriteriosHu026Tests(ApiConBaseRealFixture api) : IClassFixture<ApiC
         Assert.Equal(HttpStatusCode.BadRequest, (await directiva.GetAsync($"{Indicadores}?desde=2026-11-30&hasta=2026-11-01")).StatusCode);
     }
 
+    /// <summary>I-02: la serie mensual de los gráficos solo cuenta las órdenes de la institución del token.</summary>
+    [FactIntegracion(requiereMongo: true)]
+    public async Task SerieMensual_CuentaSoloLasOrdenesDeLaInstitucion()
+    {
+        var i = await NuevaInstitucion();
+        await Atender(i, await Orden(i, await Equipo(i, "SER-81"), Criticidades.Alta));
+        var otra = await NuevaInstitucion();
+        await Atender(otra, await Orden(otra, await Equipo(otra, "SER-91"), Criticidades.Alta));
+        await Atender(otra, await Orden(otra, await Equipo(otra, "SER-92"), Criticidades.Media));
+
+        var (directiva, _) = await SesionDe(i.Tenant, CodigosRol.DirectivaInstitucional);
+        var serie = await Cuerpo(await directiva.GetAsync($"{Indicadores}/series?meses=3"));
+
+        Assert.Equal(3, serie.GetArrayLength());
+        var actual = serie[2];
+        Assert.Equal(new DateOnly(Hoy.Year, Hoy.Month, 1), DateOnly.Parse(actual.GetProperty("mes").GetString()!, System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal(1, actual.GetProperty("correctivos").GetInt32());
+        Assert.Equal(0, serie[0].GetProperty("correctivos").GetInt32() + serie[1].GetProperty("correctivos").GetInt32());
+        Assert.Equal(HttpStatusCode.Forbidden, (await i.Tecnico.GetAsync($"{Indicadores}/series")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await directiva.GetAsync($"{Indicadores}/series?meses=13")).StatusCode);
+    }
+
+    /// <summary>I-02: el estado del parque y los equipos fuera de servicio son solo los de la institución.</summary>
+    [FactIntegracion]
+    public async Task Parque_CuentaLosEquiposPorEstado_SoloDeLaInstitucion()
+    {
+        var i = await NuevaInstitucion();
+        await Equipo(i, "PAR-81");
+        await Orden(i, await Equipo(i, "PAR-82"), Criticidades.Critica);
+        var otra = await NuevaInstitucion();
+        await Orden(otra, await Equipo(otra, "PAR-91"), Criticidades.Critica);
+
+        var (directiva, _) = await SesionDe(i.Tenant, CodigosRol.DirectivaInstitucional);
+        var parque = await Cuerpo(await directiva.GetAsync($"{Indicadores}/parque"));
+
+        Assert.Equal(1, parque.GetProperty("operativos").GetInt32());
+        Assert.Equal(1, parque.GetProperty("fueraDeServicio").GetInt32());
+        var fuera = Assert.Single(parque.GetProperty("equiposFuera").EnumerateArray());
+        Assert.Equal("PAR-82", fuera.GetProperty("placaInventario").GetString());
+        Assert.Equal("UCI adultos", fuera.GetProperty("ubicacion").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await i.Tecnico.GetAsync($"{Indicadores}/parque")).StatusCode);
+    }
+
     // ---------- Apoyo ----------
 
     private async Task<Guid> Orden(Institucion i, Guid equipo, string criticidad)

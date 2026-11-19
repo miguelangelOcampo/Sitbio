@@ -75,4 +75,37 @@ public class ConsultaIndicadoresTests
     public async Task PeriodoInvalido_Responde400(string desde, string hasta) =>
         Assert.Contains("hasta", (await Assert.ThrowsAsync<ErrorValidacion>(() =>
             Caso().ConsultarAsync(DateOnly.Parse(desde), DateOnly.Parse(hasta), CancellationToken.None))).Errores.Keys);
+
+    /// <summary>I-02: serie mensual para los gráficos de Reportes e indicadores.</summary>
+    [Fact]
+    public async Task Serie_UnMesPorConsulta_DelMasAntiguoAlActual_ElActualHastaHoy()
+    {
+        var hoy = new DateTimeOffset(2026, 11, 19, 10, 0, 0, TimeSpan.FromHours(-5));
+        _repositorio.DatosAsync(default, default, default).ReturnsForAnyArgs(
+            new DatosIndicadores(4, 3, [TimeSpan.FromHours(2), TimeSpan.FromHours(5)], 1, 10, 0),
+            new DatosIndicadores(0, 0, [], 0, 10, 0),
+            new DatosIndicadores(2, 2, [TimeSpan.FromHours(1)], 1, 10, 1));
+
+        var serie = await new ConsultaIndicadores(_repositorio, _intervenciones, new Reloj(hoy)).SerieAsync(3, CancellationToken.None);
+
+        Assert.Equal([new DateOnly(2026, 9, 1), new DateOnly(2026, 10, 1), new DateOnly(2026, 11, 1)], serie.Select(m => m.Mes));
+        Assert.Equal(new MesIndicadoresDto(new DateOnly(2026, 9, 1), 3, 2, 75.0, 3.5), serie[0]);
+        Assert.Equal(new MesIndicadoresDto(new DateOnly(2026, 10, 1), 0, 0, null, null), serie[1]);
+        var desfase = TimeSpan.FromHours(-5);
+        await _repositorio.Received(1).DatosAsync(
+            new DateTimeOffset(2026, 9, 1, 0, 0, 0, desfase), new DateTimeOffset(2026, 10, 1, 0, 0, 0, desfase), Arg.Any<CancellationToken>());
+        await _repositorio.Received(1).DatosAsync(
+            new DateTimeOffset(2026, 11, 1, 0, 0, 0, desfase), new DateTimeOffset(2026, 11, 20, 0, 0, 0, desfase), Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(13)]
+    public async Task Serie_FueraDeUnoADoceMeses_EsUnErrorDeValidacion(int meses) =>
+        await Assert.ThrowsAsync<ErrorValidacion>(() => Caso().SerieAsync(meses, CancellationToken.None));
+
+    private sealed class Reloj(DateTimeOffset ahora) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => ahora.ToUniversalTime();
+    }
 }

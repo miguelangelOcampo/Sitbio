@@ -1,3 +1,4 @@
+using Sitbio.Desktop.Controls;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -24,10 +25,6 @@ public partial class PanelViewModel(
     public const string IdPantalla = "UI-003";
 
     /// <summary>Área del gráfico de actividad, en unidades de la vista.</summary>
-    public const double AnchoGrafico = 560;
-
-    public const double AltoGrafico = 150;
-
     public const string Periodo7Dias = "7d";
     public const string Periodo30Dias = "30d";
     public const string Periodo6Meses = "6m";
@@ -50,7 +47,7 @@ public partial class PanelViewModel(
     private Aviso? _aviso;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Serie), nameof(LineaPreventivos), nameof(LineaCorrectivos), nameof(MaximoSerie))]
+    [NotifyPropertyChangedFor(nameof(Serie), nameof(EtiquetasActividad), nameof(SeriesActividad))]
     private string _periodo = Periodo6Meses;
 
     public ObservableCollection<TarjetaIndicador> Indicadores { get; } = [];
@@ -118,12 +115,21 @@ public partial class PanelViewModel(
     /// <summary>Barras del periodo: preventivos y correctivos cerrados por día, semana o mes.</summary>
     public IReadOnlyList<PuntoSerie> Serie => CalcularSerie();
 
-    public int MaximoSerie => Math.Max(1, Serie.Count == 0 ? 0 : Serie.Max(p => Math.Max(p.Preventivos, p.Correctivos)));
+    /// <summary>Periodos del gráfico «Actividad de mantenimiento» (componente de gráficos, I-01).</summary>
+    public IReadOnlyList<string> EtiquetasActividad => Serie.Select(p => p.Etiqueta).ToList();
 
-    /// <summary>Puntos de la línea de preventivos para un Polyline ("x,y x,y ...").</summary>
-    public string LineaPreventivos => Linea(p => p.Preventivos);
-
-    public string LineaCorrectivos => Linea(p => p.Correctivos);
+    public IReadOnlyList<SerieGrafico> SeriesActividad
+    {
+        get
+        {
+            var serie = Serie;
+            return
+            [
+                new SerieGrafico("Preventivos", "Brush.Primary", serie.Select(p => (double)p.Preventivos).ToList()),
+                new SerieGrafico("Correctivos", "Brush.Jade", serie.Select(p => (double)p.Correctivos).ToList(), Discontinua: true),
+            ];
+        }
+    }
 
     [RelayCommand]
     private async Task CargarAsync()
@@ -163,9 +169,8 @@ public partial class PanelViewModel(
         {
             Cargando = false;
             OnPropertyChanged(nameof(Serie));
-            OnPropertyChanged(nameof(LineaPreventivos));
-            OnPropertyChanged(nameof(LineaCorrectivos));
-            OnPropertyChanged(nameof(MaximoSerie));
+            OnPropertyChanged(nameof(EtiquetasActividad));
+            OnPropertyChanged(nameof(SeriesActividad));
             OnPropertyChanged(nameof(SinAtencion));
             OnPropertyChanged(nameof(MuestraIndicadoresPeriodo));
         }
@@ -485,22 +490,6 @@ public partial class PanelViewModel(
                 cierres.Count(x => x.Preventiva && x.Dia >= c.Desde && x.Dia <= c.Hasta),
                 cierres.Count(x => !x.Preventiva && x.Dia >= c.Desde && x.Dia <= c.Hasta)))
             .ToList();
-    }
-
-    private string Linea(Func<PuntoSerie, int> valor)
-    {
-        var serie = Serie;
-        if (serie.Count < 2)
-        {
-            return string.Empty;
-        }
-
-        // Cada punto queda al centro de su columna, debajo de la etiqueta del periodo.
-        var maximo = MaximoSerie;
-        var paso = AnchoGrafico / serie.Count;
-        return string.Join(' ', serie.Select((p, i) => string.Create(
-            CultureInfo.InvariantCulture,
-            $"{(i + 0.5) * paso:0.#},{AltoGrafico - (valor(p) * AltoGrafico / maximo):0.#}")));
     }
 
     // ---------------- Lecturas ----------------

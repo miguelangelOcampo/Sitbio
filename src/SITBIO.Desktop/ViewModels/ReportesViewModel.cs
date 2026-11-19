@@ -1,6 +1,7 @@
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Sitbio.Desktop.Controls;
 using Sitbio.Desktop.Services;
 
 namespace Sitbio.Desktop.ViewModels;
@@ -35,9 +36,14 @@ public static class FechasFiltro
 /// UI-021 Reportes e indicadores (HU-026): los cinco indicadores de la institución en el periodo
 /// (CA-HU-026-01). Solo consulta: la Directiva (AC-06) no tiene más acciones (CA-HU-026-02).
 /// </summary>
-public partial class ReportesViewModel(IServicioReportes servicio) : ObservableObject
+public partial class ReportesViewModel(IServicioReportes servicio, SesionActual? sesion = null) : ObservableObject, ISolicitaNavegacion
 {
     public const string IdPantalla = "UI-021";
+
+    /// <summary>Meses del gráfico «Mantenimientos por mes» (prototipo: 3, 6 o 12 meses).</summary>
+    public const int MesesPorDefecto = 6;
+
+    public event EventHandler<SolicitudNavegacion>? NavegacionSolicitada;
 
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
 
@@ -59,8 +65,164 @@ public partial class ReportesViewModel(IServicioReportes servicio) : ObservableO
     [ObservableProperty]
     [NotifyPropertyChangedFor(
         nameof(HayDatos), nameof(Periodo), nameof(Cumplimiento), nameof(DetalleCumplimiento), nameof(Mttr), nameof(Mtbf),
-        nameof(Costo), nameof(DetalleCosto), nameof(Fuera), nameof(DetalleFuera), nameof(AvisoCostos))]
+        nameof(Costo), nameof(DetalleCosto), nameof(Fuera), nameof(DetalleFuera), nameof(AvisoCostos), nameof(MiniDisponibilidad))]
     private Indicadores? _indicadores;
+
+    // ---------------- Gráficos (I-02, prototipo Tablero) ----------------
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Meses3), nameof(Meses6), nameof(Meses12))]
+    private int _mesesSerie = MesesPorDefecto;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(VistaGrafico))]
+    private bool _vistaTabla;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(
+        nameof(HaySerie), nameof(EtiquetasSerie), nameof(SeriesMantenimientos), nameof(FilasSerie), nameof(MiniCumplimiento), nameof(MiniMttr))]
+    private IReadOnlyList<MesIndicadores> _serie = [];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(
+        nameof(HayParque), nameof(SeriesParque), nameof(TextoOperativos), nameof(Operativos), nameof(EnMantenimiento),
+        nameof(FueraDeServicio), nameof(EquiposFuera), nameof(SinEquiposFuera))]
+    private Parque? _parque;
+
+    [ObservableProperty]
+    private Aviso? _avisoGraficos;
+
+    public bool Meses3
+    {
+        get => MesesSerie == 3;
+        set => ElegirMeses(value, 3);
+    }
+
+    public bool Meses6
+    {
+        get => MesesSerie == 6;
+        set => ElegirMeses(value, 6);
+    }
+
+    public bool Meses12
+    {
+        get => MesesSerie == 12;
+        set => ElegirMeses(value, 12);
+    }
+
+    /// <summary>«Vista: Gráfico / Tabla de datos»; la tabla es la alternativa accesible del gráfico.</summary>
+    public bool VistaGrafico
+    {
+        get => !VistaTabla;
+        set => VistaTabla = !value;
+    }
+
+    public bool HaySerie => Serie.Count > 0;
+
+    public IReadOnlyList<string> EtiquetasSerie => Serie.Select(m => NombreMes(m.Mes)).ToList();
+
+    public IReadOnlyList<SerieGrafico> SeriesMantenimientos =>
+    [
+        new SerieGrafico("Preventivos", "Brush.Primary", Serie.Select(m => (double)m.Preventivos).ToList()),
+        new SerieGrafico("Correctivos", "Brush.Jade", Serie.Select(m => (double)m.Correctivos).ToList(), Discontinua: true),
+    ];
+
+    public IReadOnlyList<FilaMes> FilasSerie => Serie
+        .Select(m => new FilaMes(MesCompleto(m.Mes), m.Preventivos, m.Correctivos, m.Preventivos + m.Correctivos))
+        .ToList();
+
+    /// <summary>Mini barras del cumplimiento preventivo por mes (%).</summary>
+    public IReadOnlyList<SerieGrafico> MiniCumplimiento =>
+        [new SerieGrafico("Cumplimiento (%)", "Brush.Primary", Serie.Select(m => m.CumplimientoPreventivo ?? 0).ToList())];
+
+    /// <summary>Mini línea del MTTR por mes (horas).</summary>
+    public IReadOnlyList<SerieGrafico> MiniMttr =>
+        [new SerieGrafico("MTTR (h)", "Brush.Jade", Serie.Select(m => m.MttrHoras ?? 0).ToList())];
+
+    /// <summary>Mini arco: equipos disponibles frente a fuera de servicio.</summary>
+    public IReadOnlyList<SerieGrafico> MiniDisponibilidad => Indicadores?.FueraDeServicio is { EquiposActivos: > 0 } f
+        ? [new SerieGrafico("Disponibles", "Brush.Primary", [f.EquiposActivos - f.Equipos]), new SerieGrafico("Fuera de servicio", "Brush.Danger", [f.Equipos])]
+        : [];
+
+    public bool HayParque => Parque is not null;
+
+    public int Operativos => Parque?.Operativos ?? 0;
+
+    public int EnMantenimiento => Parque?.EnMantenimiento ?? 0;
+
+    public int FueraDeServicio => Parque?.FueraDeServicio ?? 0;
+
+    public IReadOnlyList<SerieGrafico> SeriesParque => Parque is { } p
+        ?
+        [
+            new SerieGrafico("Operativo", "Brush.Success", [p.Operativos]),
+            new SerieGrafico("En mantenimiento", "Brush.Warning", [p.EnMantenimiento]),
+            new SerieGrafico("Fuera de servicio", "Brush.Danger", [p.FueraDeServicio]),
+        ]
+        : [];
+
+    public string TextoOperativos => Parque is { } p && p.Operativos + p.EnMantenimiento + p.FueraDeServicio is > 0 and var total
+        ? $"{Math.Round(100.0 * p.Operativos / total).ToString("0", Cultura)} %"
+        : "—";
+
+    public IReadOnlyList<EquipoFuera> EquiposFuera => Parque?.EquiposFuera ?? [];
+
+    public bool SinEquiposFuera => Parque is { EquiposFuera.Count: 0 };
+
+    /// <summary>Solo los roles con Equipos biomédicos en su menú abren la hoja de vida (la Directiva no).</summary>
+    public bool PuedeAbrirEquipos => sesion?.Sesion?.Rol is { } rol && MenuPorRol.Para(rol).SelectMany(m => m.Opciones).Any(o => o.Id == EquiposViewModel.IdPantalla);
+
+    [RelayCommand]
+    private void AbrirEquipo(EquipoFuera? equipo)
+    {
+        if (equipo is not null && PuedeAbrirEquipos)
+        {
+            NavegacionSolicitada?.Invoke(this, new SolicitudNavegacion(EquiposViewModel.IdPantalla, EquiposViewModel.ParametroDetalle(equipo.Id, equipo.PlacaInventario)));
+        }
+    }
+
+    private void ElegirMeses(bool elegido, int meses)
+    {
+        if (elegido && MesesSerie != meses)
+        {
+            MesesSerie = meses;
+            _ = CargarSerieAsync();
+        }
+    }
+
+    [RelayCommand]
+    private async Task CargarSerieAsync()
+    {
+        try
+        {
+            Serie = await servicio.SerieIndicadoresAsync(MesesSerie, CancellationToken.None);
+            AvisoGraficos = null;
+        }
+        catch (ErrorApi error)
+        {
+            AvisoGraficos = new Aviso(error.SinConexion ? "Sin conexión" : "No pudimos cargar los gráficos", error.Message, error.SinConexion ? "MSG-011" : error.Codigo, PuedeReintentar: true);
+        }
+    }
+
+    private async Task CargarParqueAsync()
+    {
+        try
+        {
+            Parque = await servicio.ParqueAsync(CancellationToken.None);
+        }
+        catch (ErrorApi error)
+        {
+            AvisoGraficos = new Aviso(error.SinConexion ? "Sin conexión" : "No pudimos cargar el estado del parque", error.Message, error.SinConexion ? "MSG-011" : error.Codigo, PuedeReintentar: true);
+        }
+    }
+
+    private static string NombreMes(DateOnly mes) => mes.ToString("MMM", Cultura).TrimEnd('.');
+
+    private static string MesCompleto(DateOnly mes)
+    {
+        var texto = mes.ToString("MMMM yyyy", Cultura);
+        return char.ToUpper(texto[0], Cultura) + texto[1..];
+    }
 
     public bool HayDatos => Indicadores is not null;
 
@@ -113,6 +275,8 @@ public partial class ReportesViewModel(IServicioReportes servicio) : ObservableO
         {
             Indicadores = await servicio.IndicadoresAsync(desde, hasta, CancellationToken.None);
             Aviso = null;
+            await CargarSerieAsync();
+            await CargarParqueAsync();
         }
         catch (ErrorApi error)
         {
@@ -128,6 +292,9 @@ public partial class ReportesViewModel(IServicioReportes servicio) : ObservableO
 
     private static string Horas(double? valor) => valor is { } v ? $"{v.ToString("0.#", Cultura)} h" : "—";
 }
+
+/// <summary>Fila de la «Tabla de datos» de «Mantenimientos por mes».</summary>
+public sealed record FilaMes(string Mes, int Preventivos, int Correctivos, int Total);
 
 /// <summary>
 /// UI-022 Exportación (HU-007, HU-027): el historial de órdenes del rango en PDF o Excel (CA-HU-007-01/02) para

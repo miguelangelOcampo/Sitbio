@@ -69,6 +69,139 @@ public class ReportesViewModelTests
         Assert.False(vm.HayDatos);
     }
 
+    // ---------- UI-021 gráficos (I-02) ----------
+
+    private static IReadOnlyList<MesIndicadores> Meses(int cantidad) => Enumerable.Range(0, cantidad)
+        .Select(i => new MesIndicadores(new DateOnly(2026, 11, 1).AddMonths(i - cantidad + 1), 3 + i, i % 2, i == 0 ? null : 80, 4))
+        .ToList();
+
+    private static readonly Guid Bomba = Guid.NewGuid();
+
+    private static Parque ParqueDe(params EquipoFuera[] fuera) => new(6, 2, fuera.Length, fuera);
+
+    private ReportesViewModel ConGraficos(string? rol = null)
+    {
+        _servicio.IndicadoresAsync(default, default, default).ReturnsForAnyArgs(Kpi());
+        _servicio.SerieIndicadoresAsync(Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(c => Meses(c.Arg<int>()));
+        _servicio.ParqueAsync(Arg.Any<CancellationToken>()).Returns(ParqueDe(new EquipoFuera(Bomba, "HDS-0014", "Bomba de infusión", "UCI · Cama 3")));
+        if (rol is null)
+        {
+            return new ReportesViewModel(_servicio);
+        }
+
+        var sesion = new SesionActual();
+        sesion.Iniciar(new SesionUsuario("token", DateTimeOffset.UtcNow.AddHours(1), rol, false));
+        return new ReportesViewModel(_servicio, sesion);
+    }
+
+    [Fact]
+    public async Task Graficos_CarganSeisMeses_ConPreventivosCorrectivosYTabla()
+    {
+        var vm = ConGraficos();
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        await _servicio.Received(1).SerieIndicadoresAsync(6, Arg.Any<CancellationToken>());
+        Assert.True(vm.Meses6 && vm.VistaGrafico && vm.HaySerie);
+        Assert.Equal(("jun", "nov", 6), (vm.EtiquetasSerie[0], vm.EtiquetasSerie[^1], vm.EtiquetasSerie.Count));
+        Assert.Equal(["Preventivos", "Correctivos"], vm.SeriesMantenimientos.Select(x => x.Nombre));
+        Assert.Equal([3d, 4, 5, 6, 7, 8], vm.SeriesMantenimientos[0].Valores);
+        Assert.Equal(new FilaMes("Noviembre 2026", 8, 1, 9), vm.FilasSerie[^1]);
+        Assert.Equal(0, vm.MiniCumplimiento[0].Valores[0]);
+        Assert.Equal(6, vm.MiniMttr[0].Valores.Count);
+        Assert.Equal([18d, 2], vm.MiniDisponibilidad.Select(x => x.Valores[0]));
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(12)]
+    public async Task Graficos_ElegirOtroPeriodo_RecargaLaSerie(int meses)
+    {
+        var vm = ConGraficos();
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        if (meses == 3)
+        {
+            vm.Meses3 = true;
+        }
+        else
+        {
+            vm.Meses12 = true;
+        }
+
+        await _servicio.Received(1).SerieIndicadoresAsync(meses, Arg.Any<CancellationToken>());
+        Assert.Equal(meses, vm.FilasSerie.Count);
+        Assert.False(vm.Meses6);
+
+        vm.VistaTabla = true;
+        Assert.False(vm.VistaGrafico);
+    }
+
+    [Fact]
+    public async Task EstadoDelParque_MuestraLosTresEstados_YLosEquiposFuera()
+    {
+        var vm = ConGraficos();
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.True(vm.HayParque);
+        Assert.Equal((6, 2, 1), (vm.Operativos, vm.EnMantenimiento, vm.FueraDeServicio));
+        Assert.Equal(["Operativo", "En mantenimiento", "Fuera de servicio"], vm.SeriesParque.Select(x => x.Nombre));
+        Assert.Equal("67 %", vm.TextoOperativos);
+        Assert.Equal("HDS-0014", Assert.Single(vm.EquiposFuera).PlacaInventario);
+        Assert.False(vm.SinEquiposFuera);
+    }
+
+    [Fact]
+    public async Task EstadoDelParque_SinEquiposFuera_LoDice()
+    {
+        var vm = ConGraficos();
+        _servicio.ParqueAsync(Arg.Any<CancellationToken>()).Returns(ParqueDe());
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.True(vm.SinEquiposFuera);
+        Assert.Empty(vm.EquiposFuera);
+    }
+
+    [Fact]
+    public async Task EquipoFuera_AbreSuHojaDeVida_SoloSiElRolTieneEquipos()
+    {
+        var gestion = ConGraficos("AC-02");
+        await gestion.CargarCommand.ExecuteAsync(null);
+        SolicitudNavegacion? solicitud = null;
+        gestion.NavegacionSolicitada += (_, s) => solicitud = s;
+
+        gestion.AbrirEquipoCommand.Execute(gestion.EquiposFuera[0]);
+
+        Assert.True(gestion.PuedeAbrirEquipos);
+        Assert.Equal(new SolicitudNavegacion(EquiposViewModel.IdPantalla, EquiposViewModel.ParametroDetalle(Bomba, "HDS-0014")), solicitud);
+
+        var directiva = ConGraficos("AC-06");
+        await directiva.CargarCommand.ExecuteAsync(null);
+        var navego = false;
+        directiva.NavegacionSolicitada += (_, _) => navego = true;
+
+        directiva.AbrirEquipoCommand.Execute(directiva.EquiposFuera[0]);
+
+        Assert.False(directiva.PuedeAbrirEquipos);
+        Assert.False(navego);
+    }
+
+    [Fact]
+    public async Task Graficos_ErrorDeLaApi_MuestraAvisoSinOcultarLosIndicadores()
+    {
+        var vm = ConGraficos();
+        _servicio.SerieIndicadoresAsync(Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .ThrowsAsync(new ErrorApi("ERR", "Falló la consulta", new Dictionary<string, string>()));
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal("No pudimos cargar los gráficos", vm.AvisoGraficos?.Titulo);
+        Assert.True(vm.HayDatos);
+        Assert.False(vm.HaySerie);
+    }
+
     // ---------- UI-022 ----------
 
     [Fact]

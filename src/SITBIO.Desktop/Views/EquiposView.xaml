@@ -103,7 +103,7 @@
             <DockPanel Margin="0,0,0,14">
               <TextBlock Text="Plan preventivo vigente" Style="{StaticResource SectionTitle}" />
             </DockPanel>
-            <ContentControl Content="{Binding AvisoPlan}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+            <ContentControl Content="{Binding AvisoPlan}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Visibility="{Binding AvisoPlan, Converter={StaticResource NuloVisible}}" />
             <TextBlock Text="Este equipo no tiene un plan preventivo activo." Style="{StaticResource Muted}"
                        Visibility="{Binding SinPlan, Converter={StaticResource Visible}}" />
             <StackPanel Visibility="{Binding HayPlan, Converter={StaticResource Visible}}">
@@ -154,7 +154,7 @@
             </DockPanel>
             <TextBlock Text="Solo ves las órdenes asignadas a ti." Style="{StaticResource Muted}" FontSize="13" Margin="0,0,0,10"
                        Visibility="{Binding SoloSuyas, Converter={StaticResource Visible}}" />
-            <ContentControl Content="{Binding AvisoOrdenes}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+            <ContentControl Content="{Binding AvisoOrdenes}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Visibility="{Binding AvisoOrdenes, Converter={StaticResource NuloVisible}}" />
             <TextBlock Text="Este equipo aún no tiene órdenes de trabajo." Style="{StaticResource Muted}"
                        Visibility="{Binding SinOrdenes, Converter={StaticResource Visible}}" />
             <Grid Visibility="{Binding ResumenOrdenes, Converter={StaticResource TextoVisible}}">
@@ -232,7 +232,7 @@
               <TextBlock Text="{Binding DetalleVigencia}" Style="{StaticResource Muted}" FontSize="13"
                          Visibility="{Binding DetalleVigencia, Converter={StaticResource TextoVisible}}" />
             </StackPanel>
-            <ContentControl Content="{Binding AvisoCalibraciones}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+            <ContentControl Content="{Binding AvisoCalibraciones}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Visibility="{Binding AvisoCalibraciones, Converter={StaticResource NuloVisible}}" />
             <TextBlock Text="Aún no hay calibraciones registradas para este equipo." Style="{StaticResource Muted}"
                        Visibility="{Binding SinCalibraciones, Converter={StaticResource Visible}}" />
             <ItemsControl ItemsSource="{Binding Calibraciones}" Focusable="False" AutomationProperties.Name="Calibraciones del equipo">
@@ -386,7 +386,7 @@
 
         <!-- Confirmación tras guardar cambios -->
         <Grid Margin="0,18,0,0" Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
-          <ContentControl Content="{Binding Confirmacion}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+          <ContentControl Content="{Binding Confirmacion}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}" />
           <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarConfirmacionCommand}"
                   HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" />
         </Grid>
@@ -652,7 +652,7 @@
 
           <!-- Historial: línea de tiempo (HU-023, CMP-UI-014) -->
           <StackPanel Visibility="{Binding EnHistorial, Converter={StaticResource Visible}}" Margin="0,22,0,0">
-            <ContentControl Content="{Binding AvisoHistorial}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+            <ContentControl Content="{Binding AvisoHistorial}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Visibility="{Binding AvisoHistorial, Converter={StaticResource NuloVisible}}" />
             <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarHistorialCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"
                     Visibility="{Binding AvisoHistorial, Converter={StaticResource NuloVisible}}" />
             <Border Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,14"
@@ -729,7 +729,7 @@
 
         <!-- Confirmación tras registrar -->
         <Grid Margin="0,0,0,18" Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
-          <ContentControl Content="{Binding Confirmacion}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
+          <ContentControl Content="{Binding Confirmacion}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}" />
           <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarConfirmacionCommand}"
                   HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" />
         </Grid>

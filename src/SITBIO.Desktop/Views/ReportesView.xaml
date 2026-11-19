@@ -1,12 +1,53 @@
-<!-- UI-021 Reportes e indicadores (HU-026): cinco indicadores de la institución en franja; solo consulta. -->
+<!-- UI-021 Reportes e indicadores (HU-026): cinco indicadores con mini gráficos, mantenimientos por mes, estado del
+     parque y equipos fuera de servicio (prototipo Tablero, I-02); solo consulta. -->
 <UserControl x:Class="Sitbio.Desktop.Views.ReportesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Sitbio.Desktop.Controls"
+             xmlns:services="clr-namespace:Sitbio.Desktop.Services"
              xmlns:views="clr-namespace:Sitbio.Desktop.Views">
   <UserControl.Resources>
     <BooleanToVisibilityConverter x:Key="Visible" />
     <views:NuloVisibleConverter x:Key="NuloVisible" />
     <views:TextoVisibleConverter x:Key="TextoVisible" />
+    <views:RecursoConverter x:Key="Recurso" />
+
+    <!-- Mini gráfico de un indicador (barras, línea o arco) con etiqueta al pasar el mouse -->
+    <Style x:Key="MiniGrafico" TargetType="controls:Grafico">
+      <Setter Property="Compacto" Value="True" />
+      <Setter Property="Width" Value="68" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="DockPanel.Dock" Value="Right" />
+      <Setter Property="VerticalAlignment" Value="Bottom" />
+      <Setter Property="Margin" Value="10,0,0,6" />
+    </Style>
+
+    <!-- Equipo fuera de servicio: fila que abre la hoja de vida -->
+    <Style x:Key="FilaFuera" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Focusable" Value="True" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="Fondo" Background="Transparent" CornerRadius="8" Padding="8,8">
+              <ContentPresenter />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface3}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Fondo" Property="Background" Value="{DynamicResource Brush.Surface3}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Fondo" Property="Background" Value="Transparent" />
+                <Setter Property="Cursor" Value="Arrow" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
   </UserControl.Resources>
 
   <ScrollViewer VerticalScrollBarVisibility="Auto" Focusable="False">
@@ -73,14 +114,26 @@
             <Border Style="{StaticResource KpiItem}" BorderThickness="0" Padding="0,14,20,14">
               <StackPanel>
                 <TextBlock Text="CUMPLIMIENTO PREVENTIVO" Style="{StaticResource Overline}" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding Cumplimiento}" Style="{StaticResource KpiValue}" />
+                <DockPanel>
+                  <controls:Grafico Style="{StaticResource MiniGrafico}" Tipo="Barras" FormatoValor="0.#"
+                                    Etiquetas="{Binding EtiquetasSerie}" Series="{Binding MiniCumplimiento}"
+                                    Visibility="{Binding HaySerie, Converter={StaticResource Visible}}"
+                                    AutomationProperties.Name="Cumplimiento preventivo por mes" />
+                  <TextBlock Text="{Binding Cumplimiento}" Style="{StaticResource KpiValue}" />
+                </DockPanel>
                 <TextBlock Text="{Binding DetalleCumplimiento}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
               </StackPanel>
             </Border>
             <Border Style="{StaticResource KpiItem}">
               <StackPanel>
                 <TextBlock Text="MTTR" Style="{StaticResource Overline}" />
-                <TextBlock Text="{Binding Mttr}" Style="{StaticResource KpiValue}" />
+                <DockPanel>
+                  <controls:Grafico Style="{StaticResource MiniGrafico}" Tipo="Linea" FormatoValor="0.#"
+                                    Etiquetas="{Binding EtiquetasSerie}" Series="{Binding MiniMttr}"
+                                    Visibility="{Binding HaySerie, Converter={StaticResource Visible}}"
+                                    AutomationProperties.Name="Tiempo medio de reparación por mes" />
+                  <TextBlock Text="{Binding Mttr}" Style="{StaticResource KpiValue}" />
+                </DockPanel>
                 <TextBlock Text="Tiempo medio de reparación" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
               </StackPanel>
             </Border>
@@ -101,12 +154,167 @@
             <Border Style="{StaticResource KpiItem}">
               <StackPanel>
                 <TextBlock Text="FUERA DE SERVICIO" Style="{StaticResource Overline}" />
-                <TextBlock Text="{Binding Fuera}" Style="{StaticResource KpiValue}" />
+                <DockPanel>
+                  <controls:Grafico Style="{StaticResource MiniGrafico}" Tipo="Arco" Width="40" Height="40" Margin="10,0,0,2"
+                                    Series="{Binding MiniDisponibilidad}" AutomationProperties.Name="Equipos disponibles y fuera de servicio" />
+                  <TextBlock Text="{Binding Fuera}" Style="{StaticResource KpiValue}" />
+                </DockPanel>
                 <TextBlock Text="{Binding DetalleFuera}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
               </StackPanel>
             </Border>
           </UniformGrid>
         </Border>
+
+        <!-- Error de los gráficos -->
+        <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,16,0,0"
+                Visibility="{Binding AvisoGraficos, Converter={StaticResource NuloVisible}}">
+          <DockPanel>
+            <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
+            <StackPanel>
+              <TextBlock Text="{Binding AvisoGraficos.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+              <TextBlock Text="{Binding AvisoGraficos.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+        <Grid Margin="0,28,0,0">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="40" />
+            <ColumnDefinition Width="*" MinWidth="260" />
+          </Grid.ColumnDefinitions>
+
+          <!-- Mantenimientos por mes: gráfico o tabla de datos -->
+          <Border Style="{StaticResource Section}" VerticalAlignment="Top">
+            <StackPanel>
+              <DockPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                  <RadioButton Style="{StaticResource Pestana}" GroupName="MesesReportes" Content="3 meses" IsChecked="{Binding Meses3}" />
+                  <RadioButton Style="{StaticResource Pestana}" GroupName="MesesReportes" Content="6 meses" IsChecked="{Binding Meses6}" />
+                  <RadioButton Style="{StaticResource Pestana}" GroupName="MesesReportes" Content="12 meses" IsChecked="{Binding Meses12}" />
+                </StackPanel>
+                <TextBlock Text="Mantenimientos por mes" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+              </DockPanel>
+              <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Text="Vista:" Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center" Margin="0,0,4,0" />
+                <RadioButton Style="{StaticResource Pestana}" GroupName="VistaReportes" Content="Gráfico" IsChecked="{Binding VistaGrafico}" />
+                <RadioButton Style="{StaticResource Pestana}" GroupName="VistaReportes" Content="Tabla de datos" IsChecked="{Binding VistaTabla}" />
+              </StackPanel>
+              <controls:Grafico Height="240" Margin="0,14,0,0" Tipo="Linea" Etiquetas="{Binding EtiquetasSerie}" Series="{Binding SeriesMantenimientos}"
+                                AutomationProperties.Name="Mantenimientos preventivos y correctivos por mes"
+                                Visibility="{Binding VistaGrafico, Converter={StaticResource Visible}}" />
+              <StackPanel Margin="0,14,0,0" Visibility="{Binding VistaTabla, Converter={StaticResource Visible}}">
+                <Grid Margin="0,0,0,6">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <TextBlock Text="MES" Style="{StaticResource Overline}" />
+                  <TextBlock Grid.Column="1" Text="PREVENTIVOS" Style="{StaticResource Overline}" />
+                  <TextBlock Grid.Column="2" Text="CORRECTIVOS" Style="{StaticResource Overline}" />
+                  <TextBlock Grid.Column="3" Text="TOTAL" Style="{StaticResource Overline}" />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding FilasSerie}" Focusable="False">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Style="{StaticResource ListRow}" Padding="0,10">
+                        <Grid>
+                          <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                          </Grid.ColumnDefinitions>
+                          <TextBlock Text="{Binding Mes}" Foreground="{DynamicResource Brush.Text}" />
+                          <TextBlock Grid.Column="1" Text="{Binding Preventivos}" Foreground="{DynamicResource Brush.Text}" />
+                          <TextBlock Grid.Column="2" Text="{Binding Correctivos}" Foreground="{DynamicResource Brush.Text}" />
+                          <TextBlock Grid.Column="3" Text="{Binding Total}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <StackPanel Grid.Column="2" Visibility="{Binding HayParque, Converter={StaticResource Visible}}">
+            <!-- Estado del parque -->
+            <Border Style="{StaticResource Section}">
+              <StackPanel>
+                <TextBlock Text="Estado del parque" Style="{StaticResource SectionTitle}" />
+                <DockPanel Margin="0,14,0,0">
+                  <Grid DockPanel.Dock="Left" Width="118" Height="118" Margin="0,0,18,0">
+                    <controls:Grafico Tipo="Arco" Series="{Binding SeriesParque}" AutomationProperties.Name="Equipos activos por estado" />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
+                      <TextBlock Text="{Binding TextoOperativos}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" HorizontalAlignment="Center" />
+                      <TextBlock Text="operativos" Style="{StaticResource Muted}" FontSize="11" HorizontalAlignment="Center" />
+                    </StackPanel>
+                  </Grid>
+                  <StackPanel VerticalAlignment="Center">
+                    <DockPanel Margin="0,0,0,8">
+                      <Rectangle Width="10" Height="10" RadiusX="3" RadiusY="3" Fill="{DynamicResource Brush.Success}" Margin="0,0,8,0" />
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding Operativos}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Text="Operativo" Style="{StaticResource Muted}" FontSize="13" />
+                    </DockPanel>
+                    <DockPanel Margin="0,0,0,8">
+                      <Rectangle Width="10" Height="10" RadiusX="3" RadiusY="3" Fill="{DynamicResource Brush.Warning}" Margin="0,0,8,0" />
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding EnMantenimiento}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Text="En mantenimiento" Style="{StaticResource Muted}" FontSize="13" />
+                    </DockPanel>
+                    <DockPanel>
+                      <Rectangle Width="10" Height="10" RadiusX="3" RadiusY="3" Fill="{DynamicResource Brush.Danger}" Margin="0,0,8,0" />
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding FueraDeServicio}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Text="Fuera de servicio" Style="{StaticResource Muted}" FontSize="13" />
+                    </DockPanel>
+                  </StackPanel>
+                </DockPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- Equipos fuera de servicio -->
+            <Border Style="{StaticResource Section}" Margin="0,24,0,0">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="Fuera de servicio" Style="{StaticResource SectionTitle}" />
+                  <Border Background="{DynamicResource Brush.DangerSoft}" CornerRadius="10" Padding="8,1" Margin="10,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding FueraDeServicio}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+                  </Border>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,14,0,0" Visibility="{Binding SinEquiposFuera, Converter={StaticResource Visible}}">
+                  <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.CheckCirculo}" Width="18" Height="18"
+                                  Foreground="{DynamicResource Brush.Success}" Margin="0,0,8,0" />
+                  <TextBlock Text="Todos los equipos están disponibles" Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center" />
+                </StackPanel>
+                <ItemsControl ItemsSource="{Binding EquiposFuera}" Margin="-8,8,-8,0" Focusable="False">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type services:EquipoFuera}">
+                      <Button Style="{StaticResource FilaFuera}"
+                              Command="{Binding DataContext.AbrirEquipoCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
+                              IsEnabled="{Binding DataContext.PuedeAbrirEquipos, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                              AutomationProperties.Name="{Binding PlacaInventario, StringFormat='Abrir la hoja de vida de {0}'}">
+                        <DockPanel>
+                          <Border Width="32" Height="32" CornerRadius="9" Background="{DynamicResource Brush.Surface2}" Margin="0,0,12,0">
+                            <ContentControl Style="{StaticResource Icono}" Content="{Binding IconoTipo, Converter={StaticResource Recurso}}" Width="17" Height="17"
+                                            Foreground="{DynamicResource Brush.Primary}" />
+                          </Border>
+                          <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis">
+                              <Run Text="{Binding TipoEquipo, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding PlacaInventario, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Text="{Binding Ubicacion}" Style="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis" />
+                          </StackPanel>
+                        </DockPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Grid>
       </StackPanel>
     </StackPanel>
   </ScrollViewer>

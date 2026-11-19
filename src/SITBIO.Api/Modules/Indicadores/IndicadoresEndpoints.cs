@@ -30,6 +30,14 @@ public static class IndicadoresEndpoints
                 Results.Ok(await caso.ConsultarAsync(desde, hasta, cancellationToken)))
             .WithName("Indicadores")
             .RequireAuthorization(PoliticaIndicadores);
+        api.MapGet("/indicadores/series", async (ConsultaIndicadores caso, CancellationToken cancellationToken, int meses = 6) =>
+                Results.Ok(await caso.SerieAsync(meses, cancellationToken)))
+            .WithName("SerieIndicadores")
+            .RequireAuthorization(PoliticaIndicadores);
+        api.MapGet("/indicadores/parque", async (ConsultaIndicadores caso, CancellationToken cancellationToken) =>
+                Results.Ok(await caso.ParqueAsync(cancellationToken)))
+            .WithName("ParqueIndicadores")
+            .RequireAuthorization(PoliticaIndicadores);
         return api;
     }
 }

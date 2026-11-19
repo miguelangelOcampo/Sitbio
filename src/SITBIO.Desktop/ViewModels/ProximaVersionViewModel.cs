@@ -8,12 +8,11 @@ public sealed class ProximaVersionViewModel(string idOpcion, string detalle)
 {
     public const string Titulo = "Disponible en una próxima versión";
 
-    /// <summary>Opciones del menú que muestran este estado, con el texto que explica qué llegará.</summary>
-    public static readonly IReadOnlyDictionary<string, string> Opciones = new Dictionary<string, string>
-    {
-        // Sin fila asignada: el historial ya se consulta en la hoja de vida de cada equipo y en Exportación.
-        ["HIST"] = "La consulta del historial de intervenciones de todos los equipos llega con la próxima versión. Mientras tanto, consulta el historial en la hoja de vida de cada equipo o descárgalo desde Exportación.",
-    };
+    /// <summary>
+    /// Opciones del menú que muestran este estado, con el texto que explica qué llegará. Hoy ninguna: el
+    /// historial de intervenciones (HIST) ya tiene su pantalla.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Opciones = new Dictionary<string, string>();
 
     public string IdOpcion { get; } = idOpcion;
 

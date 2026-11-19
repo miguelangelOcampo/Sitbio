@@ -79,6 +79,7 @@ public static class DependencyInjection
         services.AddScoped<IRepositorioEquipos, RepositorioEquipos>();
         services.AddScoped<IRepositorioTiquetes, RepositorioTiquetes>();
         services.AddScoped<IRepositorioOrdenes, RepositorioOrdenes>();
+        services.AddScoped<IRepositorioHistorialIntervenciones, RepositorioHistorialIntervenciones>();
         services.AddScoped<IRepositorioPlanes, RepositorioPlanes>();
         services.AddScoped<IRepositorioCalibraciones, RepositorioCalibraciones>();
         services.AddScoped<IRepositorioLineaTiempo, RepositorioLineaTiempo>();

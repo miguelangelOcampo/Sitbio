@@ -15,6 +15,12 @@ public interface IServicioReportes
 {
     Task<Indicadores> IndicadoresAsync(DateOnly? desde, DateOnly? hasta, CancellationToken cancellationToken);
 
+    /// <summary>Últimos <paramref name="meses"/> meses (1 a 12) para los gráficos de Reportes e indicadores.</summary>
+    Task<IReadOnlyList<MesIndicadores>> SerieIndicadoresAsync(int meses, CancellationToken cancellationToken);
+
+    /// <summary>Equipos activos por estado y los fuera de servicio.</summary>
+    Task<Parque> ParqueAsync(CancellationToken cancellationToken);
+
     /// <summary>Historial de órdenes del rango; <paramref name="formato"/> es «pdf» o «xlsx».</summary>
     Task<ArchivoDescargado> HistorialOrdenesAsync(DateOnly desde, DateOnly hasta, string formato, CancellationToken cancellationToken);
 
@@ -37,6 +43,17 @@ public sealed record CumplimientoPreventivo(int Programadas, int Cumplidas, doub
 public sealed record CostoPorEquipo(decimal? CostoTotal, int EquiposActivos, decimal? Promedio);
 
 public sealed record FueraDeServicio(int Equipos, int EquiposActivos, double? Porcentaje);
+
+/// <summary>Un mes de GET /indicadores/series (MesIndicadoresDto).</summary>
+public sealed record MesIndicadores(DateOnly Mes, int Preventivos, int Correctivos, double? CumplimientoPreventivo, double? MttrHoras);
+
+/// <summary>Respuesta de GET /indicadores/parque (ParqueDto).</summary>
+public sealed record Parque(int Operativos, int EnMantenimiento, int FueraDeServicio, IReadOnlyList<EquipoFuera> EquiposFuera);
+
+public sealed record EquipoFuera(Guid Id, string PlacaInventario, string TipoEquipo, string Ubicacion)
+{
+    public string IconoTipo => IconosTipoEquipo.Clave(TipoEquipo);
+}
 
 /// <summary>Archivo que respondió la API, con el nombre que propone.</summary>
 public sealed record ArchivoDescargado(byte[] Contenido, string NombreArchivo);
@@ -66,6 +83,12 @@ public sealed class ServicioReportesHttp(ClienteApi cliente) : IServicioReportes
         var ruta = partes.Count == 0 ? "indicadores" : $"indicadores?{string.Join('&', partes)}";
         return PeticionApi.EnviarAsync<Indicadores>(cliente, HttpMethod.Get, ruta, null, Mensaje, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<MesIndicadores>> SerieIndicadoresAsync(int meses, CancellationToken cancellationToken) =>
+        await PeticionApi.EnviarAsync<List<MesIndicadores>>(cliente, HttpMethod.Get, $"indicadores/series?meses={meses}", null, Mensaje, cancellationToken);
+
+    public Task<Parque> ParqueAsync(CancellationToken cancellationToken) =>
+        PeticionApi.EnviarAsync<Parque>(cliente, HttpMethod.Get, "indicadores/parque", null, Mensaje, cancellationToken);
 
     public Task<ArchivoDescargado> HistorialOrdenesAsync(DateOnly desde, DateOnly hasta, string formato, CancellationToken cancellationToken) =>
         PeticionApi.DescargarAsync(cliente, $"reportes/ordenes?desde={Iso(desde)}&hasta={Iso(hasta)}&formato={formato}", Mensaje, cancellationToken);

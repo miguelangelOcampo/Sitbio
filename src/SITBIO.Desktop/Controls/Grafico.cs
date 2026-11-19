@@ -13,6 +13,9 @@ public enum TipoGrafico
     Area,
     Barras,
     Dispersion,
+
+    /// <summary>Anillo: cada serie es un segmento con el primer valor de <see cref="SerieGrafico.Valores"/>.</summary>
+    Arco,
 }
 
 /// <summary>Serie de un gráfico. <paramref name="ClaveColor"/> es un pincel del tema («Brush.Primary»).</summary>
@@ -46,6 +49,7 @@ public sealed class Grafico : Control
     public static readonly DependencyProperty TituloEjeYProperty = Registrar(nameof(TituloEjeY), string.Empty);
     public static readonly DependencyProperty FormatoValorProperty = Registrar(nameof(FormatoValor), "N0");
     public static readonly DependencyProperty ComandoPuntoProperty = Registrar<ICommand?>(nameof(ComandoPunto), null);
+    public static readonly DependencyProperty CompactoProperty = Registrar(nameof(Compacto), false);
 
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
 
@@ -57,7 +61,7 @@ public sealed class Grafico : Control
 
     public Grafico()
     {
-        MinHeight = 120;
+        MinHeight = 24;
         SnapsToDevicePixels = true;
         FocusVisualStyle = null;
     }
@@ -125,6 +129,13 @@ public sealed class Grafico : Control
         set => SetValue(ComandoPuntoProperty, value);
     }
 
+    /// <summary>Mini gráfico de los indicadores: sin ejes, cuadrícula ni leyenda, pero con la etiqueta al pasar el mouse.</summary>
+    public bool Compacto
+    {
+        get => (bool)GetValue(CompactoProperty);
+        set => SetValue(CompactoProperty, value);
+    }
+
     /// <summary>Periodo (línea, área, barras) o punto (dispersión) bajo el mouse; null = sin etiqueta.</summary>
     public int? Resaltado { get; private set; }
 
@@ -183,6 +194,19 @@ public sealed class Grafico : Control
             return string.Join('\n', new[] { punto.Titulo, punto.Detalle, ejes, serie }.Where(t => !string.IsNullOrWhiteSpace(t)));
         }
 
+        if (Tipo == TipoGrafico.Arco)
+        {
+            if (indice < 0 || indice >= Series.Count || Series[indice].Valores.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var total = Series.Sum(x => x.Valores.Count > 0 ? x.Valores[0] : 0);
+            var parte = Series[indice].Valores[0];
+            var porcentaje = total > 0 ? $" ({(100 * parte / total).ToString("0.#", Cultura)} %)" : string.Empty;
+            return $"{Series[indice].Nombre}: {Valor(parte)}{porcentaje}";
+        }
+
         var valores = string.Join(" · ", Series
             .Where(s => indice < s.Valores.Count)
             .Select(s => $"{s.Nombre}: {Valor(s.Valores[indice])}"));
@@ -194,7 +218,12 @@ public sealed class Grafico : Control
 
     private string Valor(double valor) => valor.ToString(FormatoValor, Cultura);
 
-    private int Cantidad => Tipo == TipoGrafico.Dispersion ? Puntos.Count : Series.Count == 0 ? 0 : Series.Max(s => s.Valores.Count);
+    private int Cantidad => Tipo switch
+    {
+        TipoGrafico.Dispersion => Puntos.Count,
+        TipoGrafico.Arco => Series.Count,
+        _ => Series.Count == 0 ? 0 : Series.Max(s => s.Valores.Count),
+    };
 
     private double MaximoY => Maximo ?? Tope(Tipo == TipoGrafico.Dispersion
         ? Puntos.Select(p => p.Y)
@@ -211,6 +240,11 @@ public sealed class Grafico : Control
 
     private Rect Area()
     {
+        if (Compacto || Tipo == TipoGrafico.Arco)
+        {
+            return new Rect(2, 4, Math.Max(0, ActualWidth - 4), Math.Max(0, ActualHeight - 6));
+        }
+
         var arriba = MargenSuperior + (MostrarLeyenda && Series.Count > 0 ? AltoLeyenda : 0);
         var abajo = MargenInferior + (Tipo == TipoGrafico.Dispersion && !string.IsNullOrEmpty(TituloEjeX) ? 18 : 0);
         var izquierda = MargenIzquierdo + (Tipo == TipoGrafico.Dispersion && !string.IsNullOrEmpty(TituloEjeY) ? 16 : 0);
@@ -315,6 +349,11 @@ public sealed class Grafico : Control
             return null;
         }
 
+        if (Tipo == TipoGrafico.Arco)
+        {
+            return SegmentoEn(posicion, area);
+        }
+
         if (Tipo != TipoGrafico.Dispersion)
         {
             var dentro = posicion.X >= area.Left - 8 && posicion.X <= area.Right + 8 && posicion.Y >= area.Top - 8 && posicion.Y <= area.Bottom + 8;
@@ -367,7 +406,7 @@ public sealed class Grafico : Control
 
     protected override Size MeasureOverride(Size constraint) => new(
         double.IsInfinity(constraint.Width) ? 300 : constraint.Width,
-        double.IsInfinity(constraint.Height) ? Math.Max(MinHeight, 180) : Math.Max(MinHeight, Math.Min(constraint.Height, 400)));
+        double.IsInfinity(constraint.Height) ? Math.Max(MinHeight, Compacto ? 40 : 180) : Math.Max(MinHeight, Math.Min(constraint.Height, 400)));
 
     protected override void OnRender(DrawingContext dc)
     {
@@ -383,6 +422,28 @@ public sealed class Grafico : Control
         var cuadricula = new Pen(Pincel("Brush.Border", Brushes.LightGray), 1) { DashStyle = new DashStyle([3, 4], 0) };
         var base0 = new Pen(Pincel("Brush.Border", Brushes.LightGray), 1);
         var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+
+        if (Tipo == TipoGrafico.Arco)
+        {
+            DibujarArco(dc, area);
+            if (Resaltado is { } segmento)
+            {
+                DibujarEtiqueta(dc, segmento, area, dpi);
+            }
+
+            return;
+        }
+
+        if (Compacto)
+        {
+            DibujarPeriodos(dc, area, texto3, dpi);
+            if (Resaltado is { } periodo)
+            {
+                DibujarEtiqueta(dc, periodo, area, dpi);
+            }
+
+            return;
+        }
 
         if (MostrarLeyenda && Series.Count > 0)
         {
@@ -451,14 +512,14 @@ public sealed class Grafico : Control
         if (Resaltado is { } r)
         {
             var centro = Posicion(r, 0, area).X;
-            var ancho = barras ? Math.Max(anchoPeriodo - 6, 12) : 28;
+            var ancho = barras ? Math.Max(anchoPeriodo - (Compacto ? 1 : 6), Compacto ? 4 : 12) : Compacto ? 8 : 28;
             dc.DrawRoundedRectangle(Pincel("Brush.Surface2", Brushes.WhiteSmoke), null,
                 new Rect(centro - (ancho / 2), area.Top, ancho, area.Height), 8, 8);
         }
 
         // Etiquetas del eje horizontal (como mucho unas diez)
         var cada = n <= 12 ? 1 : (int)Math.Ceiling(n / 10.0);
-        for (var i = 0; i < n && i < Etiquetas.Count; i++)
+        for (var i = 0; i < n && i < Etiquetas.Count && !Compacto; i++)
         {
             if (i % cada != 0)
             {
@@ -472,7 +533,7 @@ public sealed class Grafico : Control
 
         if (barras)
         {
-            var grupo = Math.Min(anchoPeriodo * 0.7, Series.Count * 22.0);
+            var grupo = Math.Min(anchoPeriodo * (Compacto ? 0.75 : 0.7), Series.Count * 22.0);
             var ancho = Math.Max(2, (grupo - ((Series.Count - 1) * 3)) / Math.Max(Series.Count, 1));
             for (var s = 0; s < Series.Count; s++)
             {
@@ -484,7 +545,7 @@ public sealed class Grafico : Control
                     var alto = area.Bottom - tope.Y;
                     if (alto > 0)
                     {
-                        var radio = Math.Min(5, Math.Min(ancho / 2, alto / 2));
+                        var radio = Math.Min(Compacto ? 2 : 5, Math.Min(ancho / 2, alto / 2));
                         dc.DrawRoundedRectangle(color, null, new Rect(izquierda, tope.Y, ancho, alto), radio, radio);
                     }
                 }
@@ -537,7 +598,8 @@ public sealed class Grafico : Control
             dc.DrawGeometry(null, pluma, linea);
             if (Resaltado is { } h && h < puntos.Count)
             {
-                dc.DrawEllipse(Pincel("Brush.Surface", Brushes.White), new Pen(color, 2), puntos[h], 4.5, 4.5);
+                var radioPunto = Compacto ? 3 : 4.5;
+                dc.DrawEllipse(Pincel("Brush.Surface", Brushes.White), new Pen(color, 2), puntos[h], radioPunto, radioPunto);
             }
         }
     }
@@ -596,7 +658,11 @@ public sealed class Grafico : Control
         var alto = textos.Sum(t => t.Height) + 10;
 
         Point ancla;
-        if (Tipo == TipoGrafico.Dispersion)
+        if (Tipo == TipoGrafico.Arco)
+        {
+            ancla = new Point(area.Left + (area.Width / 2), area.Top + 4);
+        }
+        else if (Tipo == TipoGrafico.Dispersion)
         {
             ancla = PosicionDispersion(Puntos[indice], area);
         }
@@ -621,6 +687,89 @@ public sealed class Grafico : Control
             arriba += t.Height;
         }
     }
+
+    private (Point Centro, double Radio, double Grosor) Anillo(Rect area)
+    {
+        var exterior = Math.Max(0, (Math.Min(area.Width, area.Height) / 2) - 1);
+        var grosor = Compacto ? Math.Max(4, exterior * 0.22) : Math.Max(8, exterior * 0.2);
+        return (new Point(area.Left + (area.Width / 2), area.Top + (area.Height / 2)), exterior - (grosor / 2), grosor);
+    }
+
+    private IEnumerable<(int Indice, double Inicio, double Barrido)> Segmentos()
+    {
+        var total = Series.Sum(x => x.Valores.Count > 0 ? Math.Max(0, x.Valores[0]) : 0);
+        if (total <= 0)
+        {
+            yield break;
+        }
+
+        var inicio = -90.0;
+        for (var i = 0; i < Series.Count; i++)
+        {
+            var valor = Series[i].Valores.Count > 0 ? Math.Max(0, Series[i].Valores[0]) : 0;
+            var barrido = 360 * valor / total;
+            if (barrido > 0)
+            {
+                yield return (i, inicio, barrido);
+            }
+
+            inicio += barrido;
+        }
+    }
+
+    private int? SegmentoEn(Point posicion, Rect area)
+    {
+        var (centro, radio, grosor) = Anillo(area);
+        var dx = posicion.X - centro.X;
+        var dy = posicion.Y - centro.Y;
+        var distancia = Math.Sqrt((dx * dx) + (dy * dy));
+        if (distancia < radio - grosor - 4 || distancia > radio + grosor + 4)
+        {
+            return null;
+        }
+
+        var angulo = Math.Atan2(dy, dx) * 180 / Math.PI;
+        foreach (var (indice, inicio, barrido) in Segmentos())
+        {
+            var relativo = (((angulo - inicio) % 360) + 360) % 360;
+            if (relativo <= barrido)
+            {
+                return indice;
+            }
+        }
+
+        return null;
+    }
+
+    private void DibujarArco(DrawingContext dc, Rect area)
+    {
+        var (centro, radio, grosor) = Anillo(area);
+        if (radio <= 0)
+        {
+            return;
+        }
+
+        dc.DrawEllipse(null, new Pen(Pincel("Brush.Surface3", Brushes.WhiteSmoke), grosor), centro, radio, radio);
+        foreach (var (indice, inicio, barrido) in Segmentos())
+        {
+            var pluma = new Pen(Pincel(Series[indice].ClaveColor, Brushes.SeaGreen), Resaltado == indice ? grosor + 3 : grosor);
+            if (barrido >= 359.99)
+            {
+                dc.DrawEllipse(null, pluma, centro, radio, radio);
+                continue;
+            }
+
+            var figura = new PathFigure { StartPoint = EnAnillo(centro, radio, inicio), IsClosed = false, IsFilled = false };
+            figura.Segments.Add(new ArcSegment(EnAnillo(centro, radio, inicio + barrido), new Size(radio, radio), 0, barrido > 180, SweepDirection.Clockwise, true));
+            var geometria = new PathGeometry([figura]);
+            geometria.Freeze();
+            dc.DrawGeometry(null, pluma, geometria);
+        }
+    }
+
+    private static Point EnAnillo(Point centro, double radio, double grados) => new(
+        centro.X + (radio * Math.Cos(grados * Math.PI / 180)),
+        centro.Y + (radio * Math.Sin(grados * Math.PI / 180)));
 
     private FormattedText Texto(string texto, double tamano, Brush color, double dpi, FontWeight? peso = null) => new(
         texto,

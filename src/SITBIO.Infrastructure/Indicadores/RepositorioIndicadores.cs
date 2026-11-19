@@ -42,4 +42,24 @@ public sealed class RepositorioIndicadores(SitbioDbContext contexto) : IReposito
             inventario?.Activos ?? 0,
             inventario?.Fuera ?? 0);
     }
+
+    public async Task<ParqueDto> ParqueAsync(CancellationToken cancellationToken)
+    {
+        var activos = contexto.Equipos.AsNoTracking().Where(e => e.FechaBaja == null && e.EstadoEquipoId != EstadosEquipo.Baja);
+        var conteo = await activos
+            .GroupBy(e => e.EstadoEquipoId)
+            .Select(g => new { Estado = g.Key, Cantidad = g.Count() })
+            .ToListAsync(cancellationToken);
+        var fuera = await (
+                from e in activos
+                where e.EstadoEquipoId == EstadosEquipo.FueraDeServicio
+                join t in contexto.TiposEquipo.AsNoTracking() on e.TipoEquipoId equals t.Id
+                join u in contexto.Ubicaciones.AsNoTracking() on e.UbicacionId equals u.Id
+                orderby e.PlacaInventario
+                select new EquipoFueraDto(e.Id, e.PlacaInventario, t.Nombre, u.Nombre))
+            .ToListAsync(cancellationToken);
+
+        int Cantidad(short estado) => conteo.Where(c => c.Estado == estado).Sum(c => c.Cantidad);
+        return new ParqueDto(Cantidad(EstadosEquipo.Operativo), Cantidad(EstadosEquipo.EnMantenimiento), Cantidad(EstadosEquipo.FueraDeServicio), fuera);
+    }
 }

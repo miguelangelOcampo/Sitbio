@@ -28,6 +28,18 @@ public sealed record CostoPorEquipoDto(decimal? CostoTotal, int EquiposActivos, 
 /// <summary>Equipos activos fuera de servicio hoy y su porcentaje sobre el inventario activo.</summary>
 public sealed record FueraDeServicioDto(int Equipos, int EquiposActivos, double? Porcentaje);
 
+/// <summary>
+/// Un mes de GET /indicadores/series (I-02): preventivas cumplidas y correctivas cerradas en el mes, cumplimiento del
+/// plan preventivo y MTTR del mes. El mes en curso se cuenta hasta hoy.
+/// </summary>
+public sealed record MesIndicadoresDto(DateOnly Mes, int Preventivos, int Correctivos, double? CumplimientoPreventivo, double? MttrHoras);
+
+/// <summary>Equipo activo fuera de servicio, para la lista de Reportes e indicadores.</summary>
+public sealed record EquipoFueraDto(Guid Id, string PlacaInventario, string TipoEquipo, string Ubicacion);
+
+/// <summary>Estado del parque hoy (GET /indicadores/parque, I-02): equipos activos por estado y los fuera de servicio.</summary>
+public sealed record ParqueDto(int Operativos, int EnMantenimiento, int FueraDeServicio, IReadOnlyList<EquipoFueraDto> EquiposFuera);
+
 /// <summary>Lo que PostgreSQL aporta al tablero, ya filtrado por tenant (RN-008).</summary>
 public sealed record DatosIndicadores(
     int PreventivasProgramadas,
@@ -45,6 +57,9 @@ public interface IRepositorioIndicadores
     /// inventario activo (sin bajas).
     /// </summary>
     Task<DatosIndicadores> DatosAsync(DateTimeOffset desde, DateTimeOffset hasta, CancellationToken cancellationToken);
+
+    /// <summary>Equipos activos (sin bajas) por estado y la lista de los fuera de servicio, por placa.</summary>
+    Task<ParqueDto> ParqueAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -97,6 +112,43 @@ public sealed class ConsultaIndicadores(IRepositorioIndicadores repositorio, IRe
             new CostoPorEquipoDto(costo, datos.EquiposActivos, costo is { } c && datos.EquiposActivos > 0 ? Math.Round(c / datos.EquiposActivos, 2) : null),
             new FueraDeServicioDto(datos.EquiposFueraDeServicio, datos.EquiposActivos, Porcentaje(datos.EquiposFueraDeServicio, datos.EquiposActivos)),
             costo is not null);
+    }
+
+    public Task<ParqueDto> ParqueAsync(CancellationToken cancellationToken) => repositorio.ParqueAsync(cancellationToken);
+
+    public const int MaximoMeses = 12;
+
+    /// <summary>
+    /// Serie mensual para los gráficos de Reportes e indicadores: los últimos <paramref name="meses"/> meses
+    /// calendario hasta el actual, del más antiguo al más reciente, con los mismos criterios del tablero.
+    /// </summary>
+    public async Task<IReadOnlyList<MesIndicadoresDto>> SerieAsync(int meses, CancellationToken cancellationToken)
+    {
+        if (meses is < 1 or > MaximoMeses)
+        {
+            throw ErrorValidacion.DeCampo("meses", $"El número de meses va de 1 a {MaximoMeses}.");
+        }
+
+        var hoy = FechaColombia.Hoy(tiempo);
+        var actual = new DateOnly(hoy.Year, hoy.Month, 1);
+        var serie = new List<MesIndicadoresDto>(meses);
+        for (var i = meses - 1; i >= 0; i--)
+        {
+            var mes = actual.AddMonths(-i);
+            var fin = i == 0 ? hoy.AddDays(1) : mes.AddMonths(1);
+            var datos = await repositorio.DatosAsync(
+                new DateTimeOffset(mes.ToDateTime(TimeOnly.MinValue), FechaColombia.Desfase).ToUniversalTime(),
+                new DateTimeOffset(fin.ToDateTime(TimeOnly.MinValue), FechaColombia.Desfase).ToUniversalTime(),
+                cancellationToken);
+            serie.Add(new MesIndicadoresDto(
+                mes,
+                datos.PreventivasCumplidas,
+                datos.Reparaciones.Count,
+                Porcentaje(datos.PreventivasCumplidas, datos.PreventivasProgramadas),
+                datos.Reparaciones.Count == 0 ? null : Math.Round(datos.Reparaciones.Average(r => r.TotalHours), 1)));
+        }
+
+        return serie;
     }
 
     private static double? Porcentaje(int parte, int total) => total == 0 ? null : Math.Round(100.0 * parte / total, 1);

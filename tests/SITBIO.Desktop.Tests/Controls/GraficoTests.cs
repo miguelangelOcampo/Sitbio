@@ -7,7 +7,7 @@ using Sitbio.Desktop.Controls;
 
 namespace Sitbio.Desktop.Tests.Controls;
 
-/// <summary>I-01: componente de gráficos con etiqueta al pasar el mouse (línea, área, barras y dispersión).</summary>
+/// <summary>I-01: componente de gráficos con etiqueta al pasar el mouse (línea, área, barras, dispersión y arco; I-02 mini gráficos).</summary>
 public class GraficoTests
 {
     private static void EnSta(Action accion)
@@ -160,6 +160,56 @@ public class GraficoTests
 
     [Fact]
     public void SinDatos_SeDibujaVacio() => EnSta(() => Dibujar(new Grafico()));
+
+    private static Grafico Arco(bool compacto = false) => new()
+    {
+        Tipo = TipoGrafico.Arco,
+        Compacto = compacto,
+        Series =
+        [
+            new SerieGrafico("Operativo", "Brush.Success", [6]),
+            new SerieGrafico("En mantenimiento", "Brush.Warning", [0]),
+            new SerieGrafico("Fuera de servicio", "Brush.Danger", [2]),
+        ],
+    };
+
+    [Fact]
+    public void LaEtiquetaDelArco_MuestraElValorYElPorcentaje() => EnSta(() =>
+    {
+        var grafico = Arco();
+
+        grafico.Resaltar(2);
+        Assert.Equal("Fuera de servicio: 2 (25 %)", grafico.TextoEtiqueta);
+
+        grafico.Resaltar(5);
+        Assert.Null(grafico.Resaltado);
+    });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ElArco_SeDibujaConYSinEtiqueta(bool compacto) => EnSta(() =>
+    {
+        var grafico = Arco(compacto);
+        Dibujar(grafico);
+
+        grafico.Resaltar(0);
+        Dibujar(grafico);
+    });
+
+    [Theory]
+    [InlineData(TipoGrafico.Linea)]
+    [InlineData(TipoGrafico.Barras)]
+    public void ElMiniGrafico_ConservaLaEtiqueta_YSeDibuja(TipoGrafico tipo) => EnSta(() =>
+    {
+        var grafico = Lineas(tipo);
+        grafico.Compacto = true;
+        Dibujar(grafico);
+
+        grafico.Resaltar(2);
+        Assert.Equal("Preventivos: 2 · Correctivos: 4\nago", grafico.TextoEtiqueta);
+        Dibujar(grafico);
+    });
 
     private static void Dibujar(Grafico grafico)
     {

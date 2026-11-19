@@ -59,7 +59,7 @@ public class MiInstitucionViewModelTests
     [Theory]
     [InlineData(239, 79, TonoEstado.Exito, null)]
     [InlineData(240, 80, TonoEstado.Advertencia, "Usado el 80 %.")]
-    [InlineData(300, 100, TonoEstado.Critico, "Límite alcanzado: no se pueden crear más (RN-009).")]
+    [InlineData(300, 100, TonoEstado.Critico, "Límite alcanzado: no se pueden crear más.")]
     public async Task CA_HU_024_03_TonoYNotaSegunElConsumo(int usados, int porcentaje, TonoEstado tono, string? nota)
     {
         var vm = await AbrirAsync(Institucion(equipos: Medidor(usados, 300, porcentaje)));
@@ -105,7 +105,7 @@ public class MiInstitucionViewModelTests
 
         await _servicio.Received(1).ActualizarAsync(new DatosInstitucion("Clínica San Rafael", "900.123.456-7", 30), Arg.Any<CancellationToken>());
         Assert.Equal("Datos de la institución guardados", vm.Confirmacion!.Titulo);
-        Assert.Contains("30 días de anticipación (RF-020)", vm.Confirmacion.Mensaje);
+        Assert.Contains("30 días de anticipación.", vm.Confirmacion.Mensaje);
         Assert.Null(vm.Aviso);
     }
 

@@ -125,7 +125,7 @@ public class BandejaViewModelTests
         await vm.CargarCommand.ExecuteAsync(null);
 
         Assert.True(vm.SinTecnicos);
-        Assert.Contains("RN-003", BandejaViewModel.SinTecnicosActivos);
+        Assert.Contains("técnicos de mantenimiento activos", BandejaViewModel.SinTecnicosActivos);
     }
 
     // ---------- Asignar y crear orden (CA-HU-004-01) ----------

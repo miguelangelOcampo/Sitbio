@@ -60,7 +60,7 @@
         <!-- Aviso de error -->
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                 Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
-                Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+                Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" ToolTip="{Binding Aviso.Codigo}">
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
@@ -71,7 +71,6 @@
                             Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
             <StackPanel Grid.Column="1">
               <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                 <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
               </DockPanel>
               <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />

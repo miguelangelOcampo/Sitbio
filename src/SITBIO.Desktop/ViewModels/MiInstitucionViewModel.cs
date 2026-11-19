@@ -122,7 +122,7 @@ public partial class MiInstitucionViewModel(IServicioInstitucion servicio) : Obs
             Aviso = null;
             Confirmacion = new Aviso(
                 "Datos de la institución guardados",
-                $"Las alertas de vencimiento se mostrarán con {guardada.DiasAnticipacionAlerta} días de anticipación (RF-020).",
+                $"Las alertas de vencimiento se mostrarán con {guardada.DiasAnticipacionAlerta} días de anticipación.",
                 null,
                 EsError: false);
         }
@@ -182,7 +182,7 @@ public sealed record MedidorVista(string Etiqueta, string Uso, string Unidad, do
         var uso = $"{medidor.Usados.ToString(formato, TextosEquipo.Cultura)} de {medidor.Maximo.ToString("N0", TextosEquipo.Cultura)}";
         var (tono, nota) = medidor switch
         {
-            { LimiteAlcanzado: true } => (TonoEstado.Critico, "Límite alcanzado: no se pueden crear más (RN-009)."),
+            { LimiteAlcanzado: true } => (TonoEstado.Critico, "Límite alcanzado: no se pueden crear más."),
             { Alerta: true } => (TonoEstado.Advertencia, $"Usado el {medidor.Porcentaje} %."),
             _ => (TonoEstado.Exito, (string?)null),
         };

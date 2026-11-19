@@ -94,7 +94,7 @@
       <!-- Error -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
               Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
-              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
+              Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" ToolTip="{Binding Aviso.Codigo}">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
@@ -105,7 +105,6 @@
                           Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
           <StackPanel Grid.Column="1">
             <DockPanel>
-              <TextBlock DockPanel.Dock="Right" Text="{Binding Aviso.Codigo}" Style="{StaticResource Overline}" Margin="8,2,0,0" />
               <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
             </DockPanel>
             <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -119,7 +118,7 @@
       <!-- MSG-005: tiquete creado -->
       <StackPanel Visibility="{Binding Enviado, Converter={StaticResource Visible}}">
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
-                AutomationProperties.LiveSetting="Polite">
+                AutomationProperties.LiveSetting="Polite" ToolTip="MSG-005">
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
@@ -129,7 +128,6 @@
                             Foreground="{DynamicResource Brush.SuccessText}" VerticalAlignment="Top" Margin="0,1,10,0" />
             <StackPanel Grid.Column="1">
               <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="MSG-005" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                 <TextBlock Text="Tiquete creado" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
               </DockPanel>
               <TextBlock Text="{Binding TextoResultado}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
@@ -243,7 +241,7 @@
         <!-- MSG-006: confirmación de falla crítica (RN-005) -->
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
                 Margin="0,24,0,0" AutomationProperties.LiveSetting="Assertive"
-                Visibility="{Binding ConfirmandoCritica, Converter={StaticResource Visible}}">
+                Visibility="{Binding ConfirmandoCritica, Converter={StaticResource Visible}}" ToolTip="MSG-006">
           <Grid>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto" />
@@ -253,7 +251,6 @@
                             Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
             <StackPanel Grid.Column="1">
               <DockPanel>
-                <TextBlock DockPanel.Dock="Right" Text="MSG-006" Style="{StaticResource Overline}" Margin="8,2,0,0" />
                 <TextBlock Text="Falla crítica" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
               </DockPanel>
               <TextBlock Text="{Binding TextoConfirmacionCritica}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />

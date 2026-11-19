@@ -152,7 +152,7 @@ public partial class FormularioEquipoViewModel : ObservableObject
 
     public string AyudaCalibracion => RequiereCalibracion || Calibracion is null
         ? "Si mide (presión, peso, temperatura, energía…), se calibra. Entre 1 y 60 meses."
-        : "No se programarán calibraciones ni alertas de calibración (RN-010).";
+        : "No se programarán calibraciones ni alertas de calibración.";
 
     /// <summary>La clase o la calibración no coinciden con los valores del tipo: queda en la bitácora.</summary>
     public bool Difiere

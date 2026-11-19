@@ -400,7 +400,7 @@ public partial class DetalleEquipoViewModel(
 
     public string Calibracion => Equipo is null ? string.Empty : TextosEquipo.Calibracion(Equipo);
 
-    public string DetalleCalibracion => Equipo?.RequiereCalibracion == false ? "No requiere calibración (RN-010)" : "Periodicidad de calibración";
+    public string DetalleCalibracion => Equipo?.RequiereCalibracion == false ? "No requiere calibración" : "Periodicidad de calibración";
 
     public string Autorizacion => Equipo?.AvisoRegistro switch
     {

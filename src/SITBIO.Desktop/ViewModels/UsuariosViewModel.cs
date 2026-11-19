@@ -226,7 +226,7 @@ public partial class UsuariosViewModel(IServicioUsuarios servicio, SesionActual 
         EjecutarAsync(async () =>
         {
             Reemplazar(await servicio.CambiarEstadoAsync(fila.Id, "desbloquear", CancellationToken.None));
-            Aviso = Exito($"Cuenta de {fila.NombreCompleto} desbloqueada", "Ya puede iniciar sesión; el contador de intentos volvió a cero (RN-006).");
+            Aviso = Exito($"Cuenta de {fila.NombreCompleto} desbloqueada", "Ya puede iniciar sesión; el contador de intentos volvió a cero.");
         });
 
     [RelayCommand]

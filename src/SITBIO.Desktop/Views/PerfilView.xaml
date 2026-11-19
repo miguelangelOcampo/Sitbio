@@ -111,7 +111,7 @@
                               VerticalAlignment="Top" Margin="0,1,10,0" />
               <StackPanel>
                 <TextBlock Text="¿Algún dato es incorrecto?" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
-                <TextBlock Text="El nombre, el correo y el rol los gestiona el Administrador del Sistema (UI-004)." Foreground="{DynamicResource Brush.Text}"
+                <TextBlock Text="El nombre, el correo y el rol los gestiona el Administrador del Sistema." Foreground="{DynamicResource Brush.Text}"
                            TextWrapping="Wrap" Margin="0,3,0,0" />
               </StackPanel>
             </DockPanel>
@@ -148,7 +148,7 @@
           <Border Style="{StaticResource Section}" Margin="0,16,0,0">
             <StackPanel>
               <TextBlock Text="Intentos fallidos" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
-              <TextBlock Text="La cuenta se bloquea tras 5 intentos fallidos seguidos (RN-006)." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0" />
+              <TextBlock Text="La cuenta se bloquea tras 5 intentos fallidos seguidos." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0" />
             </StackPanel>
           </Border>
         </StackPanel>
@@ -206,7 +206,7 @@
           <StackPanel>
             <TextBlock Text="Idioma y formato" Style="{StaticResource Etiqueta}" />
             <TextBlock Text="Español (Colombia) · dd/mm/aaaa · COP" Style="{StaticResource Valor}" Margin="0,3,0,10" />
-            <TextBlock Text="Tamaño de texto base: 16 px (RNF-017). Usa el escalado de Windows para ampliarlo." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
+            <TextBlock Text="Tamaño de texto base: 16 px. Usa el escalado de Windows para ampliarlo." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
       </StackPanel>

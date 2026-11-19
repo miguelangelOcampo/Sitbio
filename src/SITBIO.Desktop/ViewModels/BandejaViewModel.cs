@@ -20,7 +20,7 @@ public partial class BandejaViewModel(IServicioTiquetes tiquetes, IServicioOrden
     public const string FechaInvalida = "Escribe la fecha como dd/mm/aaaa.";
     public const string FechaPasada = "La fecha programada no puede ser anterior a hoy.";
     public const string SinTecnicosActivos =
-        "Tu institución no tiene técnicos de mantenimiento activos. Pide al Administrador que cree o reactive uno (RN-003).";
+        "Tu institución no tiene técnicos de mantenimiento activos. Pide al Administrador que cree o reactive uno.";
 
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
 

@@ -164,7 +164,7 @@ public partial class IntervencionViewModel(
             if (guardada?.CerradaFirmada == true)
             {
                 Editable = false;
-                Nota = "La intervención está firmada y aprobada; ya no se puede modificar (RN-004).";
+                Nota = "La intervención está firmada y aprobada; ya no se puede modificar.";
             }
             else if (!Editable)
             {

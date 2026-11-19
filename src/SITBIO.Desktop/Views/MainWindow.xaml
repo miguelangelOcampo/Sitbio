@@ -45,10 +45,9 @@
     <!-- Sesión terminada: MSG-003 por inactividad o token rechazado (HU-012) -->
     <Grid Visibility="{Binding Cierre, Converter={StaticResource NuloVisible}}">
       <Border Style="{StaticResource Dialog}" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center"
-              DataContext="{Binding Cierre}" AutomationProperties.LiveSetting="Assertive">
+              DataContext="{Binding Cierre}" AutomationProperties.LiveSetting="Assertive" ToolTip="{Binding Codigo}">
         <StackPanel>
           <DockPanel>
-            <TextBlock DockPanel.Dock="Right" Text="{Binding Codigo}" Style="{StaticResource Overline}" VerticalAlignment="Center" />
             <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Candado}" Width="20" Height="20"
                             Foreground="{DynamicResource Brush.WarningText}" Margin="0,0,10,0" />
             <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="18" />

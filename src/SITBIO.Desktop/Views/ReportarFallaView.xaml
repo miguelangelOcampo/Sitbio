@@ -109,7 +109,7 @@
             </DockPanel>
             <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
           </StackPanel>
-          <Button Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
+          <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
                   VerticalAlignment="Bottom" Margin="16,0,0,0"
                   Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
         </Grid>
@@ -147,7 +147,7 @@
         <StackPanel Orientation="Horizontal" Margin="0,18,0,0">
           <Button Content="Copiar código" Style="{StaticResource PrimaryButton}" Command="{Binding CopiarCodigoCommand}" Margin="0,0,20,0" />
           <Button Content="Ver seguimiento" Style="{StaticResource LinkButton}" Command="{Binding VerSeguimientoCommand}" VerticalAlignment="Center" Margin="0,0,20,0" />
-          <Button Content="Reportar otra falla" Style="{StaticResource LinkButton}" Command="{Binding ReportarOtraCommand}" VerticalAlignment="Center" />
+          <Button views:Boton.Icono="{StaticResource Icono.Sirena}" Content="Reportar otra falla" Style="{StaticResource LinkButton}" Command="{Binding ReportarOtraCommand}" VerticalAlignment="Center" />
         </StackPanel>
         <TextBlock Text="{Binding TextoCopiado}" Style="{StaticResource Muted}" Margin="0,10,0,0" AutomationProperties.LiveSetting="Polite"
                    Visibility="{Binding TextoCopiado, Converter={StaticResource TextoVisible}}" />
@@ -255,7 +255,7 @@
               </DockPanel>
               <TextBlock Text="{Binding TextoConfirmacionCritica}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
               <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                <Button Content="Reportar como crítica" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarCriticaCommand}" Margin="0,0,20,0" />
+                <Button views:Boton.Icono="{StaticResource Icono.Sirena}" Content="Reportar como crítica" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarCriticaCommand}" Margin="0,0,20,0" />
                 <Button Content="Cambiar criticidad" Style="{StaticResource LinkButton}" Command="{Binding CambiarCriticidadCommand}" VerticalAlignment="Center" />
               </StackPanel>
             </StackPanel>
@@ -264,7 +264,7 @@
 
         <!-- Acciones -->
         <StackPanel Orientation="Horizontal" Margin="0,28,0,0">
-          <Button Content="Enviar reporte" Style="{StaticResource PrimaryButton}" Command="{Binding EnviarCommand}" Margin="0,0,20,0"
+          <Button views:Boton.Icono="{StaticResource Icono.Enviar}" Content="Enviar reporte" Style="{StaticResource PrimaryButton}" Command="{Binding EnviarCommand}" Margin="0,0,20,0"
                   AutomationProperties.Name="Enviar reporte" />
           <Button Content="Cancelar" Style="{StaticResource LinkButton}" Command="{Binding CancelarCommand}" VerticalAlignment="Center" />
           <TextBlock Text="Enviando…" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="20,0,0,0"

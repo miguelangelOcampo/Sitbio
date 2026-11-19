@@ -90,7 +90,7 @@
               <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
-              <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
+              <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
                       Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
               <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarAvisoCommand}" />
             </StackPanel>
@@ -144,7 +144,7 @@
                   Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" ToolTip="{Binding Aviso.Codigo}">
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
-                <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
+                <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
                         Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
                 <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarAvisoCommand}" />
               </StackPanel>
@@ -200,12 +200,16 @@
               <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                       Margin="0,14,0,0" AutomationProperties.LiveSetting="Assertive"
                       Visibility="{Binding AvisoFormulario, Converter={StaticResource NuloVisible}}" ToolTip="{Binding AvisoFormulario.Codigo}">
-                <StackPanel>
-                  <DockPanel>
-                    <TextBlock Text="{Binding AvisoFormulario.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
-                  </DockPanel>
-                  <TextBlock Text="{Binding AvisoFormulario.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-                </StackPanel>
+                <DockPanel>
+                  <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                                  Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                  <StackPanel>
+                    <DockPanel>
+                      <TextBlock Text="{Binding AvisoFormulario.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding AvisoFormulario.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                  </StackPanel>
+                </DockPanel>
               </Border>
 
               <!-- Equipo (CMP-UI-003): solo al registrar y solo equipos que requieren calibración -->
@@ -310,10 +314,14 @@
 
           <WrapPanel Margin="0,0,0,14" Visibility="{Binding HayFiltroEquipo, Converter={StaticResource Visible}}">
             <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.PrimarySoft}" BorderBrush="{DynamicResource Brush.Primary}" Padding="12,7">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding TextoFiltroEquipo}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
-                <Button Content="Ver todas" Style="{StaticResource LinkButton}" Command="{Binding QuitarFiltroEquipoCommand}" Margin="14,0,0,0" />
-              </StackPanel>
+              <DockPanel>
+                <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}"
+                                Foreground="{DynamicResource Brush.Primary}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="{Binding TextoFiltroEquipo}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+                  <Button Content="Ver todas" Style="{StaticResource LinkButton}" Command="{Binding QuitarFiltroEquipoCommand}" Margin="14,0,0,0" />
+                </StackPanel>
+              </DockPanel>
             </Border>
           </WrapPanel>
 
@@ -324,7 +332,7 @@
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
                 <Button Content="Cancelar" Style="{StaticResource LinkButton}" Command="{Binding CancelarAprobarCommand}" Margin="0,0,16,0" />
-                <Button Content="Aprobar calibración" Style="{StaticResource PrimaryButton}" Command="{Binding AprobarCommand}"
+                <Button views:Boton.Icono="{StaticResource Icono.CheckCirculo}" Content="Aprobar calibración" Style="{StaticResource PrimaryButton}" Command="{Binding AprobarCommand}"
                         CommandParameter="{Binding ConfirmandoAprobar}" />
               </StackPanel>
               <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" VerticalAlignment="Center">
@@ -391,7 +399,7 @@
                               Visibility="{Binding PuedeCorregir, Converter={StaticResource Visible}}"
                               Command="{Binding DataContext.AbrirCorreccionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"
                               AutomationProperties.Name="{Binding Calibracion.PlacaInventario, StringFormat='Corregir la calibración de {0}'}" />
-                      <Button Content="Aprobar" Style="{StaticResource LinkButton}"
+                      <Button views:Boton.Icono="{StaticResource Icono.CheckCirculo}" Content="Aprobar" Style="{StaticResource LinkButton}"
                               Visibility="{Binding PuedeAprobar, Converter={StaticResource Visible}}"
                               Command="{Binding DataContext.AprobarCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}" CommandParameter="{Binding}"
                               AutomationProperties.Name="{Binding Calibracion.PlacaInventario, StringFormat='Aprobar la calibración de {0}'}" />
@@ -404,14 +412,16 @@
 
           <TextBlock Text="Consultando las calibraciones…" Style="{StaticResource Muted}" Margin="0,16,0,0"
                      Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
-          <StackPanel Margin="0,24,0,0" Visibility="{Binding SinCalibraciones, Converter={StaticResource Visible}}">
-            <TextBlock Text="No hay calibraciones registradas." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
-            <TextBlock Text="Las calibraciones de los equipos que la requieren aparecerán aquí con su vencimiento." Style="{StaticResource Muted}" Margin="0,4,0,0" />
+          <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinCalibraciones, Converter={StaticResource Visible}}">
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Regla}" Width="28" Height="28"
+                            Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+            <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No hay calibraciones registradas." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+            <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Las calibraciones de los equipos que la requieren aparecerán aquí con su vencimiento." Style="{StaticResource Muted}" Margin="0,4,0,0" />
           </StackPanel>
 
           <DockPanel Margin="0,14,0,0">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-              <Button Content="Actualizar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,20,0" />
+              <Button views:Boton.Icono="{StaticResource Icono.Recalcular}" Content="Actualizar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,20,0" />
               <Button Content="‹ Anterior" Style="{StaticResource LinkButton}" Command="{Binding PaginaAnteriorCommand}" Margin="0,0,20,0"
                       AutomationProperties.Name="Página anterior de calibraciones" />
               <Button Content="Siguiente ›" Style="{StaticResource LinkButton}" Command="{Binding PaginaSiguienteCommand}"
@@ -434,10 +444,14 @@
             </StackPanel>
             <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.PrimarySoft}" BorderBrush="{DynamicResource Brush.Primary}"
                     VerticalAlignment="Bottom" Padding="12,7" Visibility="{Binding HayFiltroEquipo, Converter={StaticResource Visible}}">
-              <StackPanel Orientation="Horizontal">
-                <TextBlock Text="{Binding TextoFiltroEquipo}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
-                <Button Content="Ver todos" Style="{StaticResource LinkButton}" Command="{Binding QuitarFiltroEquipoCommand}" Margin="14,0,0,0" />
-              </StackPanel>
+              <DockPanel>
+                <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}"
+                                Foreground="{DynamicResource Brush.Primary}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                <StackPanel Orientation="Horizontal">
+                  <TextBlock Text="{Binding TextoFiltroEquipo}" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+                  <Button Content="Ver todos" Style="{StaticResource LinkButton}" Command="{Binding QuitarFiltroEquipoCommand}" Margin="14,0,0,0" />
+                </StackPanel>
+              </DockPanel>
             </Border>
           </WrapPanel>
 
@@ -448,7 +462,7 @@
             <DockPanel>
               <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
                 <Button Content="Cancelar" Style="{StaticResource LinkButton}" Command="{Binding CancelarFinalizarCommand}" Margin="0,0,16,0" />
-                <Button Content="Finalizar plan" Style="{StaticResource PrimaryButton}" Command="{Binding CambiarEstadoCommand}"
+                <Button views:Boton.Icono="{StaticResource Icono.CheckCirculo}" Content="Finalizar plan" Style="{StaticResource PrimaryButton}" Command="{Binding CambiarEstadoCommand}"
                         CommandParameter="{Binding ConfirmandoFinalizar.Finalizar}" />
               </StackPanel>
               <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" VerticalAlignment="Center">
@@ -513,7 +527,7 @@
                 <DataGridTemplateColumn.CellTemplate>
                   <DataTemplate DataType="{x:Type vm:FilaPlan}">
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Visibility="{Binding Editable, Converter={StaticResource Visible}}">
-                      <Button Content="Editar" Style="{StaticResource LinkButton}" Margin="0,0,14,0"
+                      <Button views:Boton.Icono="{StaticResource Icono.Lapiz}" Content="Editar" Style="{StaticResource LinkButton}" Margin="0,0,14,0"
                               Command="{Binding DataContext.AbrirEdicionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                               AutomationProperties.Name="{Binding Plan.PlacaInventario, StringFormat='Editar el plan de {0}'}" />
                       <Button Content="Suspender" Style="{StaticResource LinkButton}" Margin="0,0,14,0"
@@ -536,14 +550,16 @@
 
           <TextBlock Text="Consultando los planes…" Style="{StaticResource Muted}" Margin="0,16,0,0"
                      Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
-          <StackPanel Margin="0,24,0,0" Visibility="{Binding SinPlanes, Converter={StaticResource Visible}}">
-            <TextBlock Text="No hay planes con este filtro." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
-            <TextBlock Text="Los planes que se definan al registrar un equipo o con «Nuevo plan» aparecerán aquí." Style="{StaticResource Muted}" Margin="0,4,0,0" />
+          <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinPlanes, Converter={StaticResource Visible}}">
+            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Calendario}" Width="28" Height="28"
+                            Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+            <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No hay planes con este filtro." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+            <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Los planes que se definan al registrar un equipo o con «Nuevo plan» aparecerán aquí." Style="{StaticResource Muted}" Margin="0,4,0,0" />
           </StackPanel>
 
           <DockPanel Margin="0,14,0,0">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-              <Button Content="Actualizar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,20,0" />
+              <Button views:Boton.Icono="{StaticResource Icono.Recalcular}" Content="Actualizar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,20,0" />
               <Button Content="‹ Anterior" Style="{StaticResource LinkButton}" Command="{Binding PaginaAnteriorCommand}" Margin="0,0,20,0"
                       AutomationProperties.Name="Página anterior" />
               <Button Content="Siguiente ›" Style="{StaticResource LinkButton}" Command="{Binding PaginaSiguienteCommand}"
@@ -582,12 +598,16 @@
             <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                     Margin="0,16,0,0" AutomationProperties.LiveSetting="Assertive"
                     Visibility="{Binding AvisoPanel, Converter={StaticResource NuloVisible}}" ToolTip="{Binding AvisoPanel.Codigo}">
-              <StackPanel>
-                <DockPanel>
-                  <TextBlock Text="{Binding AvisoPanel.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
-                </DockPanel>
-                <TextBlock Text="{Binding AvisoPanel.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-              </StackPanel>
+              <DockPanel>
+                <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                                Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                <StackPanel>
+                  <DockPanel>
+                    <TextBlock Text="{Binding AvisoPanel.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+                  </DockPanel>
+                  <TextBlock Text="{Binding AvisoPanel.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                </StackPanel>
+              </DockPanel>
             </Border>
 
             <!-- Equipo (CMP-UI-003): solo al crear; el plan queda asociado a él (CA-HU-019-01) -->

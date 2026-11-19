@@ -45,7 +45,7 @@
             </DockPanel>
             <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
           </StackPanel>
-          <Button Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
+          <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
                   VerticalAlignment="Bottom" Margin="16,0,0,0"
                   Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
         </Grid>
@@ -134,7 +134,7 @@
                   </TextBlock>
                 </Grid>
               </Border>
-              <Button Grid.Column="1" Content="Agregar" Style="{StaticResource PrimaryButton}" Command="{Binding AgregarCommand}" Margin="12,0,0,0" />
+              <Button views:Boton.Icono="{StaticResource Icono.Agregar}" Grid.Column="1" Content="Agregar" Style="{StaticResource PrimaryButton}" Command="{Binding AgregarCommand}" Margin="12,0,0,0" />
             </Grid>
 
             <!-- Proveedores: NIT y tipo son obligatorios -->

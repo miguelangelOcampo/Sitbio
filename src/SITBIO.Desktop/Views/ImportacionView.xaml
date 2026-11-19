@@ -16,10 +16,10 @@
       <DockPanel>
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
           <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Descargar}" Foreground="{DynamicResource Brush.Primary}" Margin="0,0,6,0" />
-          <Button Style="{StaticResource LinkButton}" Content="Plantilla Excel" Command="{Binding DescargarPlantillaCommand}" CommandParameter="xlsx"
+          <Button views:Boton.Icono="{StaticResource Icono.Descargar}" Style="{StaticResource LinkButton}" Content="Plantilla Excel" Command="{Binding DescargarPlantillaCommand}" CommandParameter="xlsx"
                   IsEnabled="{Binding Libre}" AutomationProperties.Name="Descargar plantilla de Excel" />
           <TextBlock Text="·" Style="{StaticResource Muted}" Margin="8,0" />
-          <Button Style="{StaticResource LinkButton}" Content="CSV" Command="{Binding DescargarPlantillaCommand}" CommandParameter="csv"
+          <Button views:Boton.Icono="{StaticResource Icono.Descargar}" Style="{StaticResource LinkButton}" Content="CSV" Command="{Binding DescargarPlantillaCommand}" CommandParameter="csv"
                   IsEnabled="{Binding Libre}" AutomationProperties.Name="Descargar plantilla CSV" />
         </StackPanel>
         <StackPanel>
@@ -96,13 +96,17 @@
       <!-- Error -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,0,0,16"
               Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
-        <StackPanel>
-          <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}">
-            <Run Text="{Binding Aviso.Titulo, Mode=OneWay}" />
-            <Run Text="{Binding Aviso.Codigo, Mode=OneWay}" FontWeight="Normal" />
-          </TextBlock>
-          <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-        </StackPanel>
+        <DockPanel>
+          <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                          Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+          <StackPanel>
+            <TextBlock FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}">
+              <Run Text="{Binding Aviso.Titulo, Mode=OneWay}" />
+              <Run Text="{Binding Aviso.Codigo, Mode=OneWay}" FontWeight="Normal" />
+            </TextBlock>
+            <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+        </DockPanel>
       </Border>
 
       <!-- Guardado -->
@@ -132,7 +136,7 @@
                 <Run Text="{Binding TamanoArchivo, Mode=OneWay}" />
                 <Run Text="Formato .xlsx o .csv · máximo 5 MB · hasta 500 filas" />
               </TextBlock>
-              <Button Style="{StaticResource LinkButton}" Content="Seleccionar archivo…" Command="{Binding ElegirArchivoCommand}" IsEnabled="{Binding Libre}"
+              <Button views:Boton.Icono="{StaticResource Icono.Subir}" Style="{StaticResource LinkButton}" Content="Seleccionar archivo…" Command="{Binding ElegirArchivoCommand}" IsEnabled="{Binding Libre}"
                       HorizontalAlignment="Center" Margin="0,10,0,0" />
             </StackPanel>
           </Border>
@@ -178,16 +182,20 @@
 
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0"
                 Visibility="{Binding TextoSinCupo, Converter={StaticResource TextoVisible}}">
-          <StackPanel>
-            <TextBlock Text="Capacidad del plan" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
-            <TextBlock Text="{Binding TextoSinCupo}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-          </StackPanel>
+          <DockPanel>
+            <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.AlertaTriangulo}"
+                            Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+            <StackPanel>
+              <TextBlock Text="Capacidad del plan" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+              <TextBlock Text="{Binding TextoSinCupo}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+            </StackPanel>
+          </DockPanel>
         </Border>
 
         <Border Style="{StaticResource Section}" Margin="0,16,0,0">
           <StackPanel>
             <DockPanel Margin="0,0,0,10">
-              <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Descargar informe de errores" Command="{Binding DescargarInformeCommand}"
+              <Button views:Boton.Icono="{StaticResource Icono.Descargar}" DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Descargar informe de errores" Command="{Binding DescargarInformeCommand}"
                       Visibility="{Binding HayErrores, Converter={StaticResource Visible}}" IsEnabled="{Binding Libre}" VerticalAlignment="Center" />
               <TextBlock Text="Filas que no se importarán" Style="{StaticResource SectionTitle}" />
             </DockPanel>
@@ -218,7 +226,7 @@
 
         <DockPanel Margin="0,16,0,0">
           <Button DockPanel.Dock="Left" Style="{StaticResource LinkButton}" Content="Atrás" Command="{Binding AtrasCommand}" />
-          <Button Style="{StaticResource PrimaryButton}" Content="{Binding TextoContinuar}" Command="{Binding ContinuarCommand}"
+          <Button views:Boton.Icono="{StaticResource Icono.Iniciar}" Style="{StaticResource PrimaryButton}" Content="{Binding TextoContinuar}" Command="{Binding ContinuarCommand}"
                   IsEnabled="{Binding PuedeContinuar}" HorizontalAlignment="Right" />
         </DockPanel>
       </StackPanel>
@@ -249,11 +257,15 @@
               </StackPanel>
             </Grid>
             <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}">
-              <StackPanel>
-                <TextBlock Text="Qué pasará" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
-                <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                           Text="Los equipos se crean en una sola operación: si algo falla, no se guarda ninguno. Quedan sin plan preventivo; el Ingeniero Biomédico lo completa desde la hoja de vida o Mantenimientos." />
-              </StackPanel>
+              <DockPanel>
+                <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}"
+                                Foreground="{DynamicResource Brush.InfoText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                <StackPanel>
+                  <TextBlock Text="Qué pasará" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                  <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                             Text="Los equipos se crean en una sola operación: si algo falla, no se guarda ninguno. Quedan sin plan preventivo; el Ingeniero Biomédico lo completa desde la hoja de vida o Mantenimientos." />
+                </StackPanel>
+              </DockPanel>
             </Border>
             <DockPanel Margin="0,16,0,0">
               <Button DockPanel.Dock="Left" Style="{StaticResource LinkButton}" Content="Atrás" Command="{Binding AtrasCommand}" />
@@ -279,7 +291,7 @@
             <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,14,0,0"
                     Visibility="{Binding Msg015Visible, Converter={StaticResource Visible}}">
               <DockPanel>
-                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Descargar informe" Command="{Binding DescargarInformeCommand}"
+                <Button views:Boton.Icono="{StaticResource Icono.Descargar}" DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Descargar informe" Command="{Binding DescargarInformeCommand}"
                         VerticalAlignment="Center" Margin="12,0,0,0" />
                 <StackPanel>
                   <TextBlock Text="Importación con errores" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />

@@ -30,7 +30,7 @@
                     Visibility="{Binding PuedeGestionar, Converter={StaticResource Visible}}">
           <Button Content="Descartar cambios" Style="{StaticResource LinkButton}" Command="{Binding DescartarCommand}" Margin="0,0,20,0"
                   Visibility="{Binding HayCambios, Converter={StaticResource Visible}}" />
-          <Button Content="+ Agregar campo" Style="{StaticResource LinkButton}" Command="{Binding AbrirAgregarCommand}" Margin="0,0,20,0" />
+          <Button views:Boton.Icono="{StaticResource Icono.Agregar}" Content="Agregar campo" Style="{StaticResource LinkButton}" Command="{Binding AbrirAgregarCommand}" Margin="0,0,20,0" />
           <Button Content="{Binding TextoPublicar}" Style="{StaticResource PrimaryButton}" Command="{Binding PublicarCommand}" />
         </StackPanel>
         <TextBlock Text="Tipo de equipo" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,12,0" />
@@ -77,7 +77,7 @@
             </DockPanel>
             <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
           </StackPanel>
-          <Button Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
+          <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Grid.Column="2" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}"
                   VerticalAlignment="Bottom" Margin="16,0,0,0"
                   Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
         </Grid>
@@ -155,7 +155,7 @@
           <DockPanel Margin="0,18,0,0">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
               <Button Content="Cancelar" Style="{StaticResource LinkButton}" Command="{Binding CancelarAgregarCommand}" Margin="0,0,20,0" VerticalAlignment="Center" />
-              <Button Content="Agregar al borrador" Style="{StaticResource PrimaryButton}" Command="{Binding AgregarCampoCommand}" />
+              <Button views:Boton.Icono="{StaticResource Icono.Agregar}" Content="Agregar al borrador" Style="{StaticResource PrimaryButton}" Command="{Binding AgregarCampoCommand}" />
             </StackPanel>
             <CheckBox Style="{StaticResource Casilla}" Content="Obligatorio para cerrar la orden" IsChecked="{Binding NuevoObligatorio}" VerticalAlignment="Center" />
           </DockPanel>

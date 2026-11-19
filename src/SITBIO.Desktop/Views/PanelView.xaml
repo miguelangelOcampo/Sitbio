@@ -137,7 +137,7 @@
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
           <Button Style="{StaticResource BotonSecundario}" Content="Ver reportes  →" Height="46" FontSize="15" Padding="20,0" Command="{Binding IrCommand}" CommandParameter="UI-021"
                   Visibility="{Binding PuedeVerReportes, Converter={StaticResource Visible}}" />
-          <Button Style="{StaticResource PrimaryButton}" Content="Registrar equipo" Command="{Binding IrCommand}" CommandParameter="UI-005" Margin="12,0,0,0"
+          <Button views:Boton.Icono="{StaticResource Icono.Agregar}" Style="{StaticResource PrimaryButton}" Content="Registrar equipo" Command="{Binding IrCommand}" CommandParameter="UI-005" Margin="12,0,0,0"
                   Visibility="{Binding PuedeRegistrarEquipo, Converter={StaticResource Visible}}" />
         </StackPanel>
         <StackPanel>
@@ -153,7 +153,7 @@
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}" Margin="0,16,0,0"
               Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" AutomationProperties.LiveSetting="Assertive">
         <DockPanel>
-          <Button DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
+          <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" DockPanel.Dock="Right" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
           <StackPanel>
             <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
             <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />

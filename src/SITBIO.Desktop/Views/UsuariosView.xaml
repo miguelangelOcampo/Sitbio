@@ -118,7 +118,7 @@
         <Grid Margin="0,0,0,18" Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
           <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,14,11">
-            <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
+            <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
                     Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
             <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarAvisoCommand}" />
           </StackPanel>
@@ -168,11 +168,15 @@
           <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
                   Margin="0,18,0,0" Visibility="{Binding HayBloqueados, Converter={StaticResource Visible}}">
             <DockPanel>
-              <StackPanel>
-                <TextBlock Text="{Binding TextoBloqueados}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
-                <TextBlock Text="Verifica la identidad del usuario antes de desbloquear su cuenta." Foreground="{DynamicResource Brush.Text}"
-                           TextWrapping="Wrap" Margin="0,3,0,0" />
-              </StackPanel>
+              <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.AlertaTriangulo}"
+                              Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+              <DockPanel>
+                <StackPanel>
+                  <TextBlock Text="{Binding TextoBloqueados}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                  <TextBlock Text="Verifica la identidad del usuario antes de desbloquear su cuenta." Foreground="{DynamicResource Brush.Text}"
+                             TextWrapping="Wrap" Margin="0,3,0,0" />
+                </StackPanel>
+              </DockPanel>
             </DockPanel>
           </Border>
 
@@ -305,11 +309,15 @@
         <!-- ================= Pestaña Roles y permisos ================= -->
         <StackPanel Visibility="{Binding VerRoles, Converter={StaticResource Visible}}">
           <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}">
-            <StackPanel>
-              <TextBlock Text="Guía de roles de SITBIO" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
-              <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                         Text="Consulta qué puede hacer cada rol antes de asignarlo. Los permisos los define el sistema y se validan en el servidor; aquí asignas roles a las personas, no cambias los permisos." />
-            </StackPanel>
+            <DockPanel>
+              <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}"
+                              Foreground="{DynamicResource Brush.InfoText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+              <StackPanel>
+                <TextBlock Text="Guía de roles de SITBIO" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+                <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                           Text="Consulta qué puede hacer cada rol antes de asignarlo. Los permisos los define el sistema y se validan en el servidor; aquí asignas roles a las personas, no cambias los permisos." />
+              </StackPanel>
+            </DockPanel>
           </Border>
 
           <Grid Margin="0,24,0,0">
@@ -354,7 +362,7 @@
                   <Button Content="{Binding DataContext.TextoVerUsuarios, RelativeSource={RelativeSource AncestorType=UserControl}}"
                           Style="{StaticResource LinkButton}" Margin="0,0,24,0"
                           Command="{Binding DataContext.VerUsuariosDelRolCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
-                  <Button Content="Crear usuario con este rol" Style="{StaticResource LinkButton}"
+                  <Button views:Boton.Icono="{StaticResource Icono.UsuarioMas}" Content="Crear usuario con este rol" Style="{StaticResource LinkButton}"
                           Command="{Binding DataContext.CrearConRolGuiaCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
                 </StackPanel>
 
@@ -595,11 +603,15 @@
 
               <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}" Margin="0,16,0,0"
                       Visibility="{Binding EsNuevo, Converter={StaticResource Visible}}">
-                <StackPanel>
-                  <TextBlock Text="Contraseña temporal" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
-                  <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                             Text="Al guardar se genera una contraseña temporal de un solo uso. La verás una sola vez para entregarla al usuario, que deberá cambiarla al ingresar." />
-                </StackPanel>
+                <DockPanel>
+                  <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}"
+                                  Foreground="{DynamicResource Brush.InfoText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                  <StackPanel>
+                    <TextBlock Text="Contraseña temporal" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                               Text="Al guardar se genera una contraseña temporal de un solo uso. La verás una sola vez para entregarla al usuario, que deberá cambiarla al ingresar." />
+                  </StackPanel>
+                </DockPanel>
               </Border>
             </StackPanel>
           </ScrollViewer>

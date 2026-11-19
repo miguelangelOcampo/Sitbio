@@ -319,8 +319,41 @@ public partial class OpcionViewModel(OpcionMenu opcion) : ObservableObject
 
     public string Etiqueta => Opcion.Etiqueta;
 
+    /// <summary>Clave del ícono de la opción en Themes/Icons.xaml, como en el submenú del prototipo.</summary>
+    public string? ClaveIcono => IconosMenu.Clave(Opcion);
+
     [ObservableProperty]
     private bool _esActual;
+}
+
+/// <summary>Ícono de cada opción del submenú, igual que en el prototipo (lucide).</summary>
+public static class IconosMenu
+{
+    public static string? Clave(OpcionMenu opcion)
+    {
+        ArgumentNullException.ThrowIfNull(opcion);
+        return (opcion.Id, opcion.Etiqueta) switch
+        {
+            ("UI-012", "Mis órdenes") => "Icono.ListaCheck",
+            ("UI-015", "Calibraciones") => "Icono.Regla",
+            ("UI-003", _) => "Icono.Panel",
+            ("UI-004", _) => "Icono.Usuarios",
+            ("UI-005", _) => "Icono.Equipo",
+            ("UI-008", _) => "Icono.Subir",
+            ("UI-009", _) => "Icono.Sirena",
+            ("UI-010", _) => "Icono.Buscar",
+            ("UI-011", _) => "Icono.Bandeja",
+            ("UI-012", _) => "Icono.Portapapeles",
+            ("UI-015", _) => "Icono.Calendario",
+            ("UI-019", _) => "Icono.Ajustes",
+            ("UI-021", _) => "Icono.Grafico",
+            ("UI-022", _) => "Icono.Reporte",
+            ("UI-023", _) => "Icono.Dispersion",
+            ("UI-024", _) => "Icono.EscudoCheck",
+            ("HIST", _) => "Icono.Historial",
+            _ => null,
+        };
+    }
 }
 
 public sealed record GrupoOpciones(string? Titulo, IReadOnlyList<OpcionViewModel> Opciones);

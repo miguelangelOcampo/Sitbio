@@ -76,7 +76,7 @@
               <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
-              <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
+              <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0"
                       Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
               <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarAvisoCommand}" />
             </StackPanel>
@@ -174,11 +174,11 @@
               <DataGridTemplateColumn.CellTemplate>
                 <DataTemplate DataType="{x:Type vm:FilaOrden}">
                   <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="{Binding TextoIniciar}" Style="{StaticResource LinkButton}" Margin="0,0,16,0"
+                    <Button views:Boton.Icono="{StaticResource Icono.Iniciar}" Content="{Binding TextoIniciar}" Style="{StaticResource LinkButton}" Margin="0,0,16,0"
                             Visibility="{Binding PuedeIniciar, Converter={StaticResource Visible}}"
                             Command="{Binding DataContext.IniciarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             AutomationProperties.Name="{Binding Referencia, StringFormat='Iniciar la orden {0}'}" />
-                    <Button Content="Pausar" Style="{StaticResource LinkButton}" Margin="0,0,16,0"
+                    <Button views:Boton.Icono="{StaticResource Icono.Pausa}" Content="Pausar" Style="{StaticResource LinkButton}" Margin="0,0,16,0"
                             Visibility="{Binding PuedePausar, Converter={StaticResource Visible}}"
                             Command="{Binding DataContext.PausarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             AutomationProperties.Name="{Binding Referencia, StringFormat='Pausar la orden {0}'}" />
@@ -186,7 +186,7 @@
                             Visibility="{Binding MuestraIntervencion, Converter={StaticResource Visible}}"
                             Command="{Binding DataContext.AbrirIntervencionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             AutomationProperties.Name="{Binding Referencia, StringFormat='Intervención de la orden {0}'}" />
-                    <Button Content="Revisar y aprobar" Style="{StaticResource LinkButton}"
+                    <Button views:Boton.Icono="{StaticResource Icono.EscudoCheck}" Content="Revisar y aprobar" Style="{StaticResource LinkButton}"
                             Visibility="{Binding PuedeAprobar, Converter={StaticResource Visible}}"
                             Command="{Binding DataContext.AbrirRevisionCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
                             AutomationProperties.Name="{Binding Referencia, StringFormat='Revisar y aprobar la orden {0}'}" />
@@ -204,7 +204,7 @@
 
         <DockPanel Margin="0,14,0,0">
           <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-            <Button Content="Actualizar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,20,0" />
+            <Button views:Boton.Icono="{StaticResource Icono.Recalcular}" Content="Actualizar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,20,0" />
             <Button Content="‹ Anterior" Style="{StaticResource LinkButton}" Command="{Binding PaginaAnteriorCommand}" Margin="0,0,20,0"
                     AutomationProperties.Name="Página anterior" />
             <Button Content="Siguiente ›" Style="{StaticResource LinkButton}" Command="{Binding PaginaSiguienteCommand}"

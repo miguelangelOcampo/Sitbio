@@ -93,7 +93,7 @@
       <StackPanel>
         <TextBlock Text="Consultando el plan, las órdenes y las calibraciones…" Style="{StaticResource Muted}" Margin="0,0,0,14"
                    Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
-        <Button Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,0,0,14"
+        <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,0,0,14"
                 AutomationProperties.Name="Volver a consultar los mantenimientos"
                 Visibility="{Binding HayAviso, Converter={StaticResource Visible}}" />
 
@@ -301,13 +301,13 @@
           <!-- Acciones (prototipo Equipos.tsx): «Reportar falla» (AC-02, AC-04), «Hoja de vida PDF» (política de la API),
                «Editar» principal (UI-007, solo AC-02) y el menú «…» con la fotografía y la baja (HU-014, RF-031) -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-            <Button Content="Reportar falla" Style="{StaticResource LinkButton}" Command="{Binding ReportarFallaCommand}" Margin="0,0,24,0"
+            <Button views:Boton.Icono="{StaticResource Icono.Sirena}" Content="Reportar falla" Style="{StaticResource LinkButton}" Command="{Binding ReportarFallaCommand}" Margin="0,0,24,0"
                     AutomationProperties.Name="Reportar una falla de este equipo"
                     Visibility="{Binding PuedeReportarFalla, Converter={StaticResource Visible}}" />
-            <Button Content="Hoja de vida PDF" Style="{StaticResource LinkButton}" Command="{Binding AbrirHojaVidaPdfCommand}" Margin="0,0,24,0"
+            <Button views:Boton.Icono="{StaticResource Icono.Documento}" Content="Hoja de vida PDF" Style="{StaticResource LinkButton}" Command="{Binding AbrirHojaVidaPdfCommand}" Margin="0,0,24,0"
                     AutomationProperties.Name="Ver la hoja de vida en PDF"
                     Visibility="{Binding PuedeHojaVidaPdf, Converter={StaticResource Visible}}" />
-            <Button Content="Editar" Style="{StaticResource PrimaryButton}" AutomationProperties.Name="Editar equipo"
+            <Button views:Boton.Icono="{StaticResource Icono.Lapiz}" Content="Editar" Style="{StaticResource PrimaryButton}" AutomationProperties.Name="Editar equipo"
                     Command="{Binding DataContext.EditarCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Equipo}"
                     Visibility="{Binding PuedeEditar, Converter={StaticResource Visible}}" />
             <Button Style="{StaticResource IconButton}" Click="AbrirMenuAcciones" Tag="{Binding}" Margin="8,0,0,0"
@@ -397,7 +397,7 @@
                 Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}">
           <DockPanel>
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
-              <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0" />
+              <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0" />
               <Button Content="Volver" Style="{StaticResource LinkButton}" Command="{Binding VolverCommand}" />
             </StackPanel>
             <StackPanel>
@@ -411,7 +411,7 @@
         <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}"
                 Margin="0,18,0,0" Visibility="{Binding AvisoBaja, Converter={StaticResource NuloVisible}}" ToolTip="{Binding AvisoBaja.Codigo}">
           <DockPanel>
-            <Button DockPanel.Dock="Right" Content="Revertir" Style="{StaticResource LinkButton}" VerticalAlignment="Bottom" Margin="16,0,0,0"
+            <Button views:Boton.Icono="{StaticResource Icono.Revertir}" DockPanel.Dock="Right" Content="Revertir" Style="{StaticResource LinkButton}" VerticalAlignment="Bottom" Margin="16,0,0,0"
                     AutomationProperties.Name="Revertir la baja" Command="{Binding AbrirReversionCommand}"
                     Visibility="{Binding PuedeRevertir, Converter={StaticResource Visible}}" />
             <StackPanel>
@@ -565,7 +565,7 @@
                               Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}" />
               <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,0,0,10"
                               Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}, FallbackValue=Collapsed}" />
-              <Button Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,0,0,14"
+              <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,0,0,14"
                       Visibility="{Binding Aviso.PuedeReintentar, Converter={StaticResource Visible}, FallbackValue=Collapsed}" />
               <Border Style="{StaticResource Section}">
                 <StackPanel>
@@ -601,7 +601,7 @@
                               <!-- Acciones secundarias como enlaces de texto (diseño clínico editorial) -->
                               <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Descargar}" Width="16" Height="16" Margin="0,0,6,0"
                                               Foreground="{DynamicResource Brush.Primary}" VerticalAlignment="Center" />
-                              <Button Content="Descargar" Style="{StaticResource LinkButton}" VerticalAlignment="Center"
+                              <Button views:Boton.Icono="{StaticResource Icono.Descargar}" Content="Descargar" Style="{StaticResource LinkButton}" VerticalAlignment="Center"
                                       AutomationProperties.Name="{Binding Nombre, StringFormat=Descargar {0}}"
                                       Command="{Binding DataContext.DescargarCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}" />
                               <Button Content="Desactivar" Style="{StaticResource LinkButton}" Foreground="{DynamicResource Brush.DangerText}" Margin="24,0,0,0" VerticalAlignment="Center"
@@ -653,7 +653,7 @@
           <!-- Historial: línea de tiempo (HU-023, CMP-UI-014) -->
           <StackPanel Visibility="{Binding EnHistorial, Converter={StaticResource Visible}}" Margin="0,22,0,0">
             <ContentControl Content="{Binding AvisoHistorial}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" />
-            <Button Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarHistorialCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"
+            <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Style="{StaticResource LinkButton}" Content="Reintentar" Command="{Binding CargarHistorialCommand}" HorizontalAlignment="Left" Margin="0,10,0,0"
                     Visibility="{Binding AvisoHistorial, Converter={StaticResource NuloVisible}}" />
             <Border Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" BorderThickness="1" CornerRadius="8" Padding="14,10" Margin="0,0,0,14"
                     Visibility="{Binding HistorialIncompleto, Converter={StaticResource NuloVisible}}">
@@ -753,7 +753,7 @@
               <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
             </StackPanel>
             <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Bottom" Margin="16,0,0,0">
-              <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0" />
+              <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" Margin="0,0,16,0" />
               <Button Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarAvisoCommand}" />
             </StackPanel>
           </Grid>
@@ -897,9 +897,11 @@
           </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Margin="0,24,0,0" Visibility="{Binding SinEquipos, Converter={StaticResource Visible}}">
-          <TextBlock Text="No encontramos equipos con esos criterios" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
-          <TextBlock Text="Prueba con otro código o quita algún filtro." Style="{StaticResource Muted}" Margin="0,4,0,0" />
+        <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinEquipos, Converter={StaticResource Visible}}">
+          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Buscar}" Width="28" Height="28"
+                          Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+          <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No encontramos equipos con esos criterios" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+          <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Prueba con otro código o quita algún filtro." Style="{StaticResource Muted}" Margin="0,4,0,0" />
         </StackPanel>
 
         <!-- Pie: resumen y paginación -->
@@ -946,11 +948,15 @@
                               Visibility="{Binding Aviso, Converter={StaticResource NuloVisible}}" />
               <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}"
                       Margin="0,0,0,16" Visibility="{Binding FaltanCatalogos, Converter={StaticResource Visible}}">
-                <StackPanel>
-                  <TextBlock Text="Faltan catálogos" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
-                  <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                             Text="Para registrar equipos, la institución necesita al menos un tipo de equipo y un área activos (Admin › Catálogos)." />
-                </StackPanel>
+                <DockPanel>
+                  <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.AlertaTriangulo}"
+                                  Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                  <StackPanel>
+                    <TextBlock Text="Faltan catálogos" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                               Text="Para registrar equipos, la institución necesita al menos un tipo de equipo y un área activos (Admin › Catálogos)." />
+                  </StackPanel>
+                </DockPanel>
               </Border>
 
               <!-- Identificación -->
@@ -1081,11 +1087,15 @@
                   </Grid>
                   <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.InfoSoft}" BorderBrush="{DynamicResource Brush.Info}" Margin="0,16,0,0"
                           Visibility="{Binding Difiere, Converter={StaticResource Visible}}">
-                    <StackPanel>
-                      <TextBlock Text="Distinto del valor sugerido para el tipo" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
-                      <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                                 Text="Quedará registrado en la bitácora. Usa el dato del registro sanitario del modelo o la indicación del fabricante." />
-                    </StackPanel>
+                    <DockPanel>
+                      <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Info}"
+                                      Foreground="{DynamicResource Brush.InfoText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                      <StackPanel>
+                        <TextBlock Text="Distinto del valor sugerido para el tipo" FontWeight="SemiBold" Foreground="{DynamicResource Brush.InfoText}" />
+                        <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                                   Text="Quedará registrado en la bitácora. Usa el dato del registro sanitario del modelo o la indicación del fabricante." />
+                      </StackPanel>
+                    </DockPanel>
                   </Border>
                 </StackPanel>
               </Border>
@@ -1163,13 +1173,17 @@
                   </Grid>
                   <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0"
                           Visibility="{Binding PreventivoAtrasado, Converter={StaticResource Visible}}">
-                    <StackPanel>
-                      <DockPanel>
-                        <TextBlock Text="Preventivo atrasado" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
-                      </DockPanel>
-                      <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                                 Text="Según el último mantenimiento, el preventivo ya debía hacerse. El plan quedará vencido desde hoy y aparecerá en las alertas para programarlo." />
-                    </StackPanel>
+                    <DockPanel>
+                      <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.AlertaTriangulo}"
+                                      Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                      <StackPanel>
+                        <DockPanel>
+                          <TextBlock Text="Preventivo atrasado" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                        </DockPanel>
+                        <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                                   Text="Según el último mantenimiento, el preventivo ya debía hacerse. El plan quedará vencido desde hoy y aparecerá en las alertas para programarlo." />
+                      </StackPanel>
+                    </DockPanel>
                   </Border>
                   <TextBlock Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,12,0,0"
                              Text="SITBIO no asigna técnicos al plan: la asignación del personal la decide la institución." />
@@ -1193,9 +1207,13 @@
           </StackPanel>
 
           <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0">
-            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}">
-              <Run Text="Antes de subirla: " FontWeight="SemiBold" /><Run Text="{x:Static vm:FotoEquipoViewModel.AvisoDatosPersonales}" />
-            </TextBlock>
+            <DockPanel>
+              <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.AlertaTriangulo}"
+                              Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+              <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}">
+                <Run Text="Antes de subirla: " FontWeight="SemiBold" /><Run Text="{x:Static vm:FotoEquipoViewModel.AvisoDatosPersonales}" />
+              </TextBlock>
+            </DockPanel>
           </Border>
 
           <ContentControl Content="{Binding Aviso}" ContentTemplate="{StaticResource PlantillaAviso}" Focusable="False" Margin="0,16,0,0"
@@ -1213,12 +1231,12 @@
               </Grid>
             </Border>
             <StackPanel VerticalAlignment="Center">
-              <Button Content="Elegir imagen…" Style="{StaticResource LinkButton}" Command="{Binding ElegirImagenCommand}" HorizontalAlignment="Left" />
+              <Button views:Boton.Icono="{StaticResource Icono.Camara}" Content="Elegir imagen…" Style="{StaticResource LinkButton}" Command="{Binding ElegirImagenCommand}" HorizontalAlignment="Left" />
               <TextBlock Text="{Binding TextoPeso}" FontSize="13" Foreground="{DynamicResource Brush.Text}" Margin="0,8,0,0"
                          Visibility="{Binding TextoPeso, Converter={StaticResource TextoVisible}}" />
               <TextBlock Text="{Binding Error}" Style="{StaticResource FieldError}" Visibility="{Binding Error, Converter={StaticResource TextoVisible}}" />
               <TextBlock Text="JPG, PNG o WebP de hasta 10 MB." Style="{StaticResource Muted}" FontSize="13" Margin="0,8,0,0" />
-              <Button Content="Quitar fotografía" Style="{StaticResource LinkButton}" Foreground="{DynamicResource Brush.DangerText}" HorizontalAlignment="Left"
+              <Button views:Boton.Icono="{StaticResource Icono.Papelera}" Content="Quitar fotografía" Style="{StaticResource LinkButton}" Foreground="{DynamicResource Brush.DangerText}" HorizontalAlignment="Left"
                       Margin="0,10,0,0" Command="{Binding QuitarCommand}" Visibility="{Binding PuedeQuitar, Converter={StaticResource Visible}}" />
             </StackPanel>
           </DockPanel>
@@ -1269,10 +1287,14 @@
             <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
                     Margin="0,12,0,0" AutomationProperties.LiveSetting="Assertive"
                     Visibility="{Binding AvisoPdf, Converter={StaticResource NuloVisible}}">
-              <StackPanel>
-                <TextBlock Text="{Binding AvisoPdf.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding AvisoPdf.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-              </StackPanel>
+              <DockPanel>
+                <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Alerta}"
+                                Foreground="{DynamicResource Brush.DangerText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                <StackPanel>
+                  <TextBlock Text="{Binding AvisoPdf.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding AvisoPdf.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                </StackPanel>
+              </DockPanel>
             </Border>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
               <TextBlock Text="Generando…" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,16,0"
@@ -1395,7 +1417,7 @@
             <DockPanel>
               <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.Subir}" Foreground="{DynamicResource Brush.Text2}"
                               VerticalAlignment="Center" Margin="0,0,10,0" />
-              <Button DockPanel.Dock="Right" Content="Elegir archivo…" Style="{StaticResource LinkButton}" Command="{Binding ElegirArchivoCommand}" VerticalAlignment="Center" />
+              <Button views:Boton.Icono="{StaticResource Icono.Subir}" DockPanel.Dock="Right" Content="Elegir archivo…" Style="{StaticResource LinkButton}" Command="{Binding ElegirArchivoCommand}" VerticalAlignment="Center" />
               <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,12,0">
                 <Run Text="{Binding NombreArchivo, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
                 <Run Text="{Binding TamanoArchivo, Mode=OneWay}" Foreground="{DynamicResource Brush.Text2}" />
@@ -1418,7 +1440,7 @@
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
             <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0" IsCancel="True"
                     Command="{Binding CancelarAgregarCommand}" />
-            <Button Content="Adjuntar" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarAgregarCommand}" />
+            <Button views:Boton.Icono="{StaticResource Icono.Clip}" Content="Adjuntar" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarAgregarCommand}" />
           </StackPanel>
         </StackPanel>
       </Border>
@@ -1497,15 +1519,19 @@
 
           <!-- Qué pasará -->
           <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.WarningSoft}" BorderBrush="{DynamicResource Brush.Warning}" Margin="0,16,0,0">
-            <StackPanel>
-              <TextBlock Text="Qué pasará" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
-              <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                         Visibility="{Binding EsBaja, Converter={StaticResource Visible}}"
-                         Text="El equipo sale del inventario activo, de los indicadores y del límite del plan. Su hoja de vida y su historial se conservan, y la baja se puede revertir." />
-              <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
-                         Visibility="{Binding EsReversion, Converter={StaticResource Visible}}"
-                         Text="El equipo vuelve al inventario activo como «Operativo» y cuenta otra vez en el límite de equipos del plan." />
-            </StackPanel>
+            <DockPanel>
+              <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.AlertaTriangulo}"
+                              Foreground="{DynamicResource Brush.WarningText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+              <StackPanel>
+                <TextBlock Text="Qué pasará" FontWeight="SemiBold" Foreground="{DynamicResource Brush.WarningText}" />
+                <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                           Visibility="{Binding EsBaja, Converter={StaticResource Visible}}"
+                           Text="El equipo sale del inventario activo, de los indicadores y del límite del plan. Su hoja de vida y su historial se conservan, y la baja se puede revertir." />
+                <TextBlock Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0"
+                           Visibility="{Binding EsReversion, Converter={StaticResource Visible}}"
+                           Text="El equipo vuelve al inventario activo como «Operativo» y cuenta otra vez en el límite de equipos del plan." />
+              </StackPanel>
+            </DockPanel>
           </Border>
 
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
@@ -1513,7 +1539,7 @@
                     Command="{Binding DataContext.CancelarBajaCommand, ElementName=DialogoBaja}" />
             <Button Content="Dar de baja" Style="{StaticResource DangerButton}" Visibility="{Binding EsBaja, Converter={StaticResource Visible}}"
                     Command="{Binding DataContext.ConfirmarBajaCommand, ElementName=DialogoBaja}" />
-            <Button Content="Revertir baja" Style="{StaticResource PrimaryButton}" Visibility="{Binding EsReversion, Converter={StaticResource Visible}}"
+            <Button views:Boton.Icono="{StaticResource Icono.Revertir}" Content="Revertir baja" Style="{StaticResource PrimaryButton}" Visibility="{Binding EsReversion, Converter={StaticResource Visible}}"
                     Command="{Binding DataContext.ConfirmarBajaCommand, ElementName=DialogoBaja}" />
           </StackPanel>
         </StackPanel>

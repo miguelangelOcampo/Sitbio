@@ -271,6 +271,7 @@
                     <ItemsControl.ItemTemplate>
                       <DataTemplate DataType="{x:Type vm:OpcionViewModel}">
                         <RadioButton Style="{StaticResource NavItem}" GroupName="Opciones" Content="{Binding Etiqueta}"
+                                     views:Boton.Icono="{Binding ClaveIcono, Converter={StaticResource Recurso}}"
                                      IsChecked="{Binding EsActual, Mode=OneWay}"
                                      Command="{Binding DataContext.NavegarCommand, RelativeSource={RelativeSource AncestorType=views:ShellView}}"
                                      CommandParameter="{Binding}" />
@@ -422,23 +423,29 @@
               <StackPanel>
                 <TextBlock Text="{Binding Aviso.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-                <Button Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,6,0,0" />
+                <Button views:Boton.Icono="{StaticResource Icono.Reintentar}" Content="Reintentar" Style="{StaticResource LinkButton}" Command="{Binding CargarCommand}" HorizontalAlignment="Left" Margin="0,6,0,0" />
               </StackPanel>
             </Border>
             <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}"
                     Margin="0,12,0,0" AutomationProperties.LiveSetting="Polite"
                     Visibility="{Binding OrdenesGeneradas, Converter={StaticResource TextoVisible}}">
               <DockPanel>
-                <Button DockPanel.Dock="Right" Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarOrdenesGeneradasCommand}"
-                        VerticalAlignment="Top" Margin="12,0,0,0" />
-                <TextBlock Text="{Binding OrdenesGeneradas}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+                <ContentControl DockPanel.Dock="Left" Style="{StaticResource Icono}" Content="{StaticResource Icono.CheckCirculo}"
+                                Foreground="{DynamicResource Brush.SuccessText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                <DockPanel>
+                  <Button DockPanel.Dock="Right" Content="Cerrar" Style="{StaticResource LinkButton}" Command="{Binding CerrarOrdenesGeneradasCommand}"
+                          VerticalAlignment="Top" Margin="12,0,0,0" />
+                  <TextBlock Text="{Binding OrdenesGeneradas}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+                </DockPanel>
               </DockPanel>
             </Border>
             <TextBlock Text="Consultando las alertas…" Style="{StaticResource Muted}" Margin="0,12,0,0"
                        Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
-            <StackPanel Margin="0,16,0,0" Visibility="{Binding SinAlertas, Converter={StaticResource Visible}}">
-              <TextBlock Text="No hay mantenimientos ni calibraciones por vencer." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
-              <TextBlock Text="Cuando uno entre en los días de anticipación de tu institución, aparecerá aquí." Style="{StaticResource Muted}"
+            <StackPanel HorizontalAlignment="Center" Margin="0,16,0,0" Visibility="{Binding SinAlertas, Converter={StaticResource Visible}}">
+              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Campana}" Width="28" Height="28"
+                              Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+              <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No hay mantenimientos ni calibraciones por vencer." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+              <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Cuando uno entre en los días de anticipación de tu institución, aparecerá aquí." Style="{StaticResource Muted}"
                          TextWrapping="Wrap" Margin="0,4,0,0" />
             </StackPanel>
           </StackPanel>
@@ -489,7 +496,7 @@
           <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
             <Button Content="Cancelar" Style="{StaticResource LinkButton}" VerticalAlignment="Center" Margin="0,0,24,0"
                     Command="{Binding CancelarCierreCommand}" IsCancel="True" />
-            <Button Content="Cerrar sesión" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarCierreCommand}" />
+            <Button views:Boton.Icono="{StaticResource Icono.Salir}" Content="Cerrar sesión" Style="{StaticResource PrimaryButton}" Command="{Binding ConfirmarCierreCommand}" />
           </StackPanel>
         </StackPanel>
       </Border>

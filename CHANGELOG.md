@@ -4,8 +4,36 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [Sin publicar]
 
+## [1.1.0] - 2026-11-21
+
+Completa las 28 historias del DOC-04 e iguala el cliente WPF con el prototipo v0.24. Incluye todo lo de la versión 1.0.0.
+
 ### Agregado
 - HU-015 Documentos adjuntos del equipo (API-EQ-DOC): el Ingeniero Biomédico adjunta PDF, JPG o PNG de hasta 10 MB a la hoja de vida, todos los roles que la consultan los descargan y el Ingeniero los desactiva sin borrar el archivo; el tamaño cuenta en el almacenamiento del plan (RN-009, MSG-019). Pestaña «Documentos» en UI-006. Migración V010 (CP-019).
+- RF-031 Fotografía del equipo (API-EQ-FOTO): el cliente reduce la imagen a 128 y 512 px y no se guarda el original; miniatura en la lista de equipos y en la hoja de vida, con la preferencia «Fotografía» o «Ícono del tipo» (CP-035).
+- HU-016 Importación masiva de equipos (UI-008): plantilla en Excel o CSV, vista previa con errores por fila (RN-001, RN-010), importación de las filas válidas sin superar el plan y MSG-015 con informe descargable (CP-020).
+- Panel de inicio por rol (UI-003): saludo, indicadores, actividad de mantenimiento, «Atención requerida» y equipos recientes.
+- Búsqueda global de equipos, tiquetes y órdenes (Ctrl + K) con resultados por rol (`GET /api/v1/busqueda`).
+- Perfil y Preferencias: datos de la cuenta, cambio de contraseña y tema claro u oscuro.
+- Pestaña «Mantenimientos» en la hoja de vida: plan preventivo vigente, órdenes y calibraciones del equipo.
+- Íconos por tipo de equipo (monitor, bomba de infusión, desfibrilador, ventilador, electrocardiógrafo, autoclave, balanza, estetoscopio, tensiómetro y genérico).
+- Instalador del cliente con Inno Setup (`installer/SITBIO.iss`, `scripts/instalador.ps1`), con `SITBIO_API_URL` configurable (RNF-011, DT-013).
+- Semilla de demostración «Hospital Demo SITBIO» con seis meses de operación simulada (`scripts/semilla-demo.sh`).
+- Prueba de restauración automatizada en un DEP-QA desechable (`scripts/prueba-restauracion.sh`), con su registro en la Tabla 33 del DOC-09.
+- Documentación: DOC-07 con los valores medidos de la v1.1.0, DOC-08 con capturas del cliente y los procedimientos PRU-20 a PRU-24, DOC-09 con el instalador, la restauración y el registro de despliegues; matriz con las 28 historias en `docs/pruebas/`.
+
+### Cambiado
+- Versión del producto 1.1.0 (`Directory.Build.props`) y etiqueta «SITBIO v1.1» en el riel.
+- Ajustes visuales de paridad con el prototipo v0.24: tarjetas de «Atención requerida» con ícono y prioridad, criticidad en tarjetas en Reportar falla, columnas de acciones que ya no recortan los botones y textos de Analítica y Exportación.
+- Las opciones del menú de versiones futuras muestran «Disponible en una próxima versión» en lugar de «Pantalla en construcción».
+- `scripts/regresion.sh` corre los proyectos de prueba uno a la vez y termina con error si alguno falla.
+
+### Corregido
+- La prueba de asignaciones simultáneas repite la verificación de estado de `GestionOrdenes` y ya no falla con carga.
+
+### Pendiente
+- CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes (k6).
+- Instalación y recorrido del cliente en Windows 10 y 11 con el instalador (RNF-011).
 
 ## [1.0.0] - 2026-11-16
 

@@ -1,3 +1,4 @@
+using Sitbio.Desktop.Controls;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Sitbio.Desktop.Services;
@@ -114,7 +115,7 @@ public class PanelViewModelTests
         Assert.Equal(
             ["prev-vencidos", "prev-semana", $"cal-{calibracion.EquipoId}", "ot-aprobar", "tq-sin-tecnico"],
             vm.Atencion.Select(t => t.Clave));
-        Assert.Equal("1 tiquetes sin técnico asignado", vm.Atencion[^1].Titulo);
+        Assert.Equal("1 tiquete sin técnico asignado", vm.Atencion[^1].Titulo);
         Assert.Equal(BandejaViewModel.IdPantalla, vm.Atencion[^1].Destino);
         Assert.Equal($"{MantenimientosViewModel.PrefijoCalibracion}{calibracion.EquipoId}", vm.Atencion[2].Parametro);
         Assert.False(vm.SinAtencion);
@@ -237,5 +238,121 @@ public class PanelViewModelTests
         Assert.Equal("MSG-011", vm.Aviso?.Codigo);
         Assert.Equal("Cumplimiento preventivo", vm.Indicadores[^1].Titulo);
         Assert.False(vm.Cargando);
+    }
+
+    // ---------- I-12: íconos y mini gráficos de los indicadores ----------
+
+    [Fact]
+    public async Task Los_indicadores_traen_icono_y_mini_grafico_como_el_prototipo()
+    {
+        _equipos.ListarAsync(default!, default).ReturnsForAnyArgs(EquiposPrueba.Pagina(
+            4,
+            EquiposPrueba.Equipo("A", plan: EquiposPrueba.Plan(Hoy.AddDays(3))),
+            EquiposPrueba.Equipo("B", plan: EquiposPrueba.Plan(Hoy.AddDays(-2), vencido: true)),
+            EquiposPrueba.Equipo("C", estado: EstadosEquipo.FueraDeServicio, plan: EquiposPrueba.Plan(Hoy.AddDays(20))),
+            EquiposPrueba.Equipo("D", estado: EstadosEquipo.Baja)));
+        Ordenes(EstadosOrden.Asignada, Orden(EstadosOrden.Asignada), Orden(EstadosOrden.Asignada) with { FechaAsignacion = Ahora.AddDays(-60) });
+        var vm = Crear("AC-02");
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal(["Icono.Equipo", "Icono.CheckCirculo", "Icono.Calendario", "Icono.Portapapeles"], vm.Indicadores.Select(i => i.Icono));
+        Assert.Equal([TipoGrafico.Barras, TipoGrafico.Arco, TipoGrafico.Barras, TipoGrafico.Linea], vm.Indicadores.Select(i => i.Grafico));
+        Assert.All(vm.Indicadores, i => Assert.True(i.HayGrafico));
+
+        var tipos = vm.Indicadores[0];
+        Assert.Equal(["Monitor de signos vitales"], tipos.Etiquetas);
+        Assert.Equal([3.0], tipos.Series[0].Valores);
+
+        var operativos = vm.Indicadores[1];
+        Assert.True(operativos.EsArco);
+        Assert.Equal([2.0, 1.0], operativos.Series.Select(s => s.Valores[0]));
+
+        var pendientes = vm.Indicadores[2];
+        Assert.Equal("Brush.Warning", pendientes.Series[0].ClaveColor);
+        Assert.Equal([2.0, 0, 1, 0], pendientes.Series[0].Valores);
+
+        var ordenes = vm.Indicadores[3];
+        Assert.Equal(PanelViewModel.SemanasOrdenes, ordenes.Etiquetas.Count);
+        Assert.Equal(1, ordenes.Series[0].Valores.Sum());
+        Assert.Equal(1, ordenes.Series[0].Valores[^1]);
+    }
+
+    [Fact]
+    public async Task Los_equipos_por_tipo_muestran_a_lo_sumo_seis_barras()
+    {
+        var equipos = Enumerable.Range(0, 8)
+            .Select(i => EquiposPrueba.Equipo($"E{i}") with { TipoEquipo = $"Tipo {i}" })
+            .ToArray();
+        _equipos.ListarAsync(default!, default).ReturnsForAnyArgs(EquiposPrueba.Pagina(equipos.Length, equipos));
+        var vm = Crear("AC-02");
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal(PanelViewModel.MaximoBarras, vm.Indicadores[0].Etiquetas.Count);
+    }
+
+    [Fact]
+    public async Task Sin_ordenes_ni_equipos_el_indicador_no_dibuja_un_grafico_vacio()
+    {
+        var vm = Crear("AC-02");
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.All(vm.Indicadores, i => Assert.False(i.HayGrafico));
+        Assert.All(vm.Indicadores, i => Assert.True(i.TieneIcono));
+    }
+
+    [Fact]
+    public async Task La_directiva_ve_arcos_de_disponibilidad_y_cumplimiento()
+    {
+        var vm = Crear("AC-06");
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal(["Icono.Equipo", "Icono.CheckCirculo", "Icono.Reloj", "Icono.ListaCheck"], vm.Indicadores.Select(i => i.Icono));
+        Assert.Equal([9.0, 1.0], vm.Indicadores[1].Series.Select(s => s.Valores[0]));
+        Assert.Equal([8.0, 2.0], vm.Indicadores[3].Series.Select(s => s.Valores[0]));
+        Assert.False(vm.Indicadores[0].HayGrafico);
+        Assert.False(vm.Indicadores[2].HayGrafico);
+    }
+
+    // ---------- I-13: actividad reciente y atención requerida con íconos ----------
+
+    [Fact]
+    public async Task La_actividad_reciente_lleva_el_icono_del_tipo_de_evento_y_su_etiqueta()
+    {
+        Ordenes(
+            EstadosOrden.Aprobada,
+            Orden(EstadosOrden.Aprobada, "preventivo", cierre: Ahora.AddHours(-1)),
+            Orden(EstadosOrden.Aprobada, "correctivo", cierre: Ahora.AddDays(-2)));
+        Ordenes(EstadosOrden.Pausada, Orden(EstadosOrden.Pausada) with { FechaInicio = Ahora.AddHours(-5) });
+        var vm = Crear("AC-02");
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        var aprobada = vm.Recientes.First(r => r.Titulo == "Mantenimiento preventivo aprobado");
+        Assert.Equal(("Icono.EscudoCheck", "Preventivo", true, TonoTarjeta.Exito), (aprobada.Icono, aprobada.Tipo, aprobada.EsPreventivo, aprobada.Tono));
+        Assert.Contains(vm.Recientes, r => r.Icono == "Icono.Pausa" && r.Tono == TonoTarjeta.Advertencia && !r.EsPreventivo);
+        Assert.All(vm.Recientes, r => Assert.False(string.IsNullOrEmpty(r.Cuando)));
+    }
+
+    [Fact]
+    public async Task Atencion_requerida_dice_la_prioridad_y_cuenta_en_singular()
+    {
+        _mantenimiento.AlertasAsync(default).ReturnsForAnyArgs(new ResumenAlertas(30, [
+            Alerta(TiposAlerta.Preventivo, TiposAlerta.Vencida, -1),
+            Alerta(TiposAlerta.Preventivo, TiposAlerta.Vencida, -3),
+            Alerta(TiposAlerta.Calibracion, TiposAlerta.Proxima, 9),
+        ], 0));
+        Ordenes(EstadosOrden.Cerrada, Orden(EstadosOrden.Cerrada, cierre: Ahora.AddDays(-1)));
+        var vm = Crear("AC-02");
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal(
+            [("2 mantenimientos vencidos", "Prioridad crítica"), ("1 calibración por vencer", "Prioridad media"), ("1 orden por aprobar", "Prioridad media")],
+            vm.Atencion.Select(t => (t.Titulo, t.TextoPrioridad)));
+        Assert.Equal(["Icono.Calendario", "Icono.Regla", "Icono.Portapapeles"], vm.Atencion.Select(t => t.Icono));
     }
 }

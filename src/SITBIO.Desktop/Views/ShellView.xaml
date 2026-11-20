@@ -433,8 +433,7 @@
             <TextBlock Text="Consultando las alertas…" Style="{StaticResource Muted}" Margin="0,12,0,0"
                        Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
             <StackPanel HorizontalAlignment="Center" Margin="0,16,0,0" Visibility="{Binding SinAlertas, Converter={StaticResource Visible}}">
-              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Campana}" Width="28" Height="28"
-                              Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+              <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Campana}" />
               <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No hay mantenimientos ni calibraciones por vencer." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
               <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Cuando uno entre en los días de anticipación de tu institución, aparecerá aquí." Style="{StaticResource Muted}"
                          TextWrapping="Wrap" Margin="0,4,0,0" />

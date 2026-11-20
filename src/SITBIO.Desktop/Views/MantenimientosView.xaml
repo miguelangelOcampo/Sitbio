@@ -437,8 +437,7 @@
           <views:Esqueleto Texto="Consultando las calibraciones…" Margin="0,16,0,0"
                      Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
           <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinCalibraciones, Converter={StaticResource Visible}}">
-            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Regla}" Width="28" Height="28"
-                            Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+            <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Regla}" />
             <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No hay calibraciones registradas." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
             <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Las calibraciones de los equipos que la requieren aparecerán aquí con su vencimiento." Style="{StaticResource Muted}" Margin="0,4,0,0" />
           </StackPanel>
@@ -575,8 +574,7 @@
           <views:Esqueleto Texto="Consultando los planes…" Margin="0,16,0,0"
                      Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
           <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinPlanes, Converter={StaticResource Visible}}">
-            <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Calendario}" Width="28" Height="28"
-                            Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+            <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Calendario}" />
             <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No hay planes con este filtro." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
             <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Los planes que se definan al registrar un equipo o con «Nuevo plan» aparecerán aquí." Style="{StaticResource Muted}" Margin="0,4,0,0" />
           </StackPanel>

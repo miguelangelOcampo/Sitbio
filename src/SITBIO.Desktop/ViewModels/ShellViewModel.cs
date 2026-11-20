@@ -46,6 +46,18 @@ public partial class ShellViewModel : ObservableObject
         {
             Alertas = alertas;
             alertas.NavegacionSolicitada += AlSolicitarNavegacion;
+            alertas.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(CentroAlertasViewModel.HayPendientes))
+                {
+                    MarcarAviso(OpcionAlertas, alertas.HayPendientes);
+                }
+            };
+        }
+
+        if (Alertas is not null)
+        {
+            MarcarAviso(OpcionAlertas, Alertas.HayPendientes);
         }
 
         var inicio = MenuPorRol.Inicio(codigoRol);
@@ -72,6 +84,44 @@ public partial class ShellViewModel : ObservableObject
     public CentroAlertasViewModel? Alertas { get; }
 
     public bool TieneAlertas => Alertas is not null;
+
+    // ---------- I-14: punto de aviso del riel ----------
+
+    /// <summary>Opción cuyo módulo se marca si hay alertas de vencimiento sin revisar (Mantenimientos o Calibraciones).</summary>
+    public const string OpcionAlertas = "UI-015";
+
+    /// <summary>Opción cuyo módulo se marca si hay tiquetes sin técnico asignado (la Bandeja).</summary>
+    public const string OpcionBandeja = "UI-011";
+
+    /// <summary>Tiquetes para el aviso de Solicitudes; sin servicio, el punto no se muestra.</summary>
+    public IServicioTiquetes? Tiquetes { get; init; }
+
+    /// <summary>Consulta si hay tiquetes sin técnico; si la consulta falla, el riel queda como estaba.</summary>
+    [RelayCommand]
+    private async Task CargarAvisosAsync()
+    {
+        if (Tiquetes is null || !TieneOpcion(OpcionBandeja))
+        {
+            return;
+        }
+
+        try
+        {
+            var recibidos = await Tiquetes.ListarAsync(new FiltroTiquetes(EstadosTiquete.Recibido, Tamano: 1), CancellationToken.None);
+            MarcarAviso(OpcionBandeja, recibidos.Total > 0);
+        }
+        catch (ErrorApi)
+        {
+        }
+    }
+
+    private void MarcarAviso(string idOpcion, bool hay)
+    {
+        foreach (var modulo in Modulos.Where(m => m.Opciones.Any(o => o.Opcion.Id == idOpcion)))
+        {
+            modulo.TienePendientes = hay;
+        }
+    }
 
     /// <summary>Persona de la sesión, para el avatar de la barra superior y el pie del panel (H-03).</summary>
     public SesionUsuario? Usuario { get; init; }
@@ -362,7 +412,7 @@ public partial class ModuloViewModel(ModuloMenu modulo) : ObservableObject
 
     public IReadOnlyList<OpcionViewModel> Opciones { get; } = modulo.Opciones.Select(o => new OpcionViewModel(o)).ToList();
 
-    /// <summary>Hay pendientes (punto rojo); se alimenta cuando existan los conteos de cada módulo.</summary>
+    /// <summary>Hay pendientes (punto rojo): alertas sin revisar o tiquetes sin técnico (I-14).</summary>
     [ObservableProperty]
     private bool _tienePendientes;
 

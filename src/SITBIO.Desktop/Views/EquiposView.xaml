@@ -902,8 +902,7 @@
         </DataGrid>
 
         <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinEquipos, Converter={StaticResource Visible}}">
-          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Buscar}" Width="28" Height="28"
-                          Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+          <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Buscar}" />
           <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No encontramos equipos con esos criterios" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
           <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Prueba con otro código o quita algún filtro." Style="{StaticResource Muted}" Margin="0,4,0,0" />
         </StackPanel>

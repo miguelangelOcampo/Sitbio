@@ -84,20 +84,45 @@
     <DataTemplate x:Key="PlantillaIndicador" DataType="{x:Type vm:TarjetaIndicador}">
       <Button Style="{StaticResource BotonPlano}" IsEnabled="{Binding TieneDestino}" AutomationProperties.Name="{Binding Titulo}"
               Command="{Binding DataContext.IrCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding Destino}">
-        <Border Style="{StaticResource KpiItem}">
+        <Border Style="{StaticResource KpiItem}" Padding="16,14">
           <StackPanel>
-            <TextBlock Text="{Binding Titulo}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding Valor}" Style="{StaticResource KpiValue}" Margin="0,4,0,2" />
+            <!-- I-12: ícono del indicador en su tono y mini gráfico (barras, arco o línea) como en el prototipo -->
+            <DockPanel>
+              <Border x:Name="Ficha" DockPanel.Dock="Right" Width="26" Height="26" CornerRadius="7" Margin="6,0,0,0" VerticalAlignment="Top"
+                      Background="{DynamicResource Brush.Surface2}" Visibility="{Binding TieneIcono, Converter={StaticResource Visible}}">
+                <ContentControl x:Name="IconoFicha" Style="{StaticResource Icono}" Width="14" Height="14" Foreground="{DynamicResource Brush.Text2}"
+                                Content="{Binding Icono, Converter={StaticResource Recurso}}" />
+              </Border>
+              <TextBlock Text="{Binding Titulo}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" VerticalAlignment="Center" />
+            </DockPanel>
+            <DockPanel Margin="0,4,0,2">
+              <controls:Grafico x:Name="Mini" Style="{StaticResource MiniGrafico}" Tipo="{Binding Grafico}" Etiquetas="{Binding Etiquetas}" Series="{Binding Series}"
+                                Visibility="{Binding HayGrafico, Converter={StaticResource Visible}}" AutomationProperties.Name="{Binding DescripcionGrafico}" />
+              <TextBlock Text="{Binding Valor}" Style="{StaticResource KpiValue}" VerticalAlignment="Bottom" />
+            </DockPanel>
             <TextBlock x:Name="Detalle" Text="{Binding Detalle}" FontSize="13" Foreground="{DynamicResource Brush.Text2}" TextWrapping="Wrap" />
           </StackPanel>
         </Border>
       </Button>
       <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding EsArco}" Value="True">
+          <Setter TargetName="Mini" Property="Width" Value="40" />
+          <Setter TargetName="Mini" Property="Height" Value="40" />
+          <Setter TargetName="Mini" Property="Margin" Value="10,0,0,2" />
+        </DataTrigger>
         <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoTarjeta.Exito}">
           <Setter TargetName="Detalle" Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+          <Setter TargetName="Ficha" Property="Background" Value="{DynamicResource Brush.SuccessSoft}" />
+          <Setter TargetName="IconoFicha" Property="Foreground" Value="{DynamicResource Brush.SuccessText}" />
+        </DataTrigger>
+        <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoTarjeta.Info}">
+          <Setter TargetName="Ficha" Property="Background" Value="{DynamicResource Brush.InfoSoft}" />
+          <Setter TargetName="IconoFicha" Property="Foreground" Value="{DynamicResource Brush.InfoText}" />
         </DataTrigger>
         <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoTarjeta.Advertencia}">
           <Setter TargetName="Detalle" Property="Foreground" Value="{DynamicResource Brush.WarningText}" />
+          <Setter TargetName="Ficha" Property="Background" Value="{DynamicResource Brush.WarningSoft}" />
+          <Setter TargetName="IconoFicha" Property="Foreground" Value="{DynamicResource Brush.WarningText}" />
         </DataTrigger>
         <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoTarjeta.Critico}">
           <Setter TargetName="Detalle" Property="Foreground" Value="{DynamicResource Brush.DangerText}" />
@@ -147,7 +172,7 @@
         <StackPanel>
           <!-- Cuatro indicadores -->
           <Border Style="{StaticResource KpiStrip}">
-            <ItemsControl ItemsSource="{Binding Indicadores}" ItemTemplate="{StaticResource PlantillaIndicador}" Focusable="False">
+            <ItemsControl ItemsSource="{Binding Indicadores}" ItemTemplate="{StaticResource PlantillaIndicador}" Focusable="False" views:Animacion.Escalonar="True">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                   <UniformGrid Rows="1" />
@@ -185,7 +210,7 @@
             </DockPanel>
 
             <!-- Gráfico de líneas con etiqueta al pasar el mouse (componente de gráficos, I-01) -->
-            <controls:Grafico Height="200" Margin="0,12,0,0" Tipo="Linea" MostrarLeyenda="False"
+            <controls:Grafico views:Animacion.Crecer="True" Height="200" Margin="0,12,0,0" Tipo="Linea" MostrarLeyenda="False"
                               Etiquetas="{Binding EtiquetasActividad}" Series="{Binding SeriesActividad}"
                               AutomationProperties.Name="Preventivos y correctivos cerrados por periodo" />
 
@@ -201,19 +226,30 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="90" />
                       </Grid.ColumnDefinitions>
+                      <!-- I-13: ícono del tipo de evento en el tono del estado -->
                       <Border Style="{StaticResource Pastilla}" Width="32" Height="32" CornerRadius="9" Padding="0" Margin="0,0,12,0">
-                        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}" Width="16" Height="16" />
+                        <ContentControl Style="{StaticResource Icono}" Content="{Binding Icono, Converter={StaticResource Recurso}}" Width="16" Height="16" />
                       </Border>
                       <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
                         <TextBlock Text="{Binding Detalle}" Style="{StaticResource Muted}" FontSize="13" TextTrimming="CharacterEllipsis" />
                       </StackPanel>
-                      <Border Grid.Column="2" CornerRadius="10" Padding="8,2" Background="{DynamicResource Brush.Surface2}" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Tipo}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
+                      <Border x:Name="Etiqueta" Grid.Column="2" CornerRadius="10" Padding="8,2" Background="{DynamicResource Brush.Surface2}" VerticalAlignment="Center">
+                        <TextBlock x:Name="TextoEtiqueta" Text="{Binding Tipo}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text2}" />
                       </Border>
-                      <TextBlock Grid.Column="3" Text="{Binding Cuando}" Style="{StaticResource Muted}" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Reloj}" Width="12" Height="12" Margin="0,0,4,0"
+                                        Foreground="{DynamicResource Brush.Text3}" />
+                        <TextBlock Text="{Binding Cuando}" Style="{StaticResource Muted}" FontSize="12" />
+                      </StackPanel>
                     </Grid>
                   </Border>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding EsPreventivo}" Value="True">
+                      <Setter TargetName="Etiqueta" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+                      <Setter TargetName="TextoEtiqueta" Property="Foreground" Value="{DynamicResource Brush.Primary}" />
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -223,7 +259,7 @@
           <StackPanel Margin="0,28,0,0" Visibility="{Binding MuestraIndicadoresPeriodo, Converter={StaticResource Visible}}">
             <TextBlock Text="Indicadores de los últimos 30 días" Style="{StaticResource SectionTitle}" Margin="0,0,0,10" />
             <Border Style="{StaticResource KpiStrip}">
-              <ItemsControl ItemsSource="{Binding IndicadoresPeriodo}" ItemTemplate="{StaticResource PlantillaIndicador}" Focusable="False">
+              <ItemsControl ItemsSource="{Binding IndicadoresPeriodo}" ItemTemplate="{StaticResource PlantillaIndicador}" Focusable="False" views:Animacion.Escalonar="True">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <UniformGrid Rows="2" Columns="2" />
@@ -253,10 +289,8 @@
           </StackPanel>
 
           <StackPanel Margin="0,32,0,0" HorizontalAlignment="Center" Visibility="{Binding SinAtencion, Converter={StaticResource Visible}}">
-            <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.SuccessSoft}" HorizontalAlignment="Center">
-              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}" Width="24" Height="24" Foreground="{DynamicResource Brush.SuccessText}" />
-            </Border>
-            <TextBlock Text="Todo al día" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" HorizontalAlignment="Center" Margin="0,8,0,0" />
+            <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Check}" Foreground="{DynamicResource Brush.SuccessText}" />
+            <TextBlock Text="Todo al día" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" HorizontalAlignment="Center" />
             <TextBlock Text="No hay pendientes que requieran tu atención." Style="{StaticResource Muted}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,0" />
           </StackPanel>
 
@@ -281,12 +315,17 @@
                                           Foreground="{DynamicResource Brush.Text3}" />
                           <TextBlock Text="{Binding Cuando}" Style="{StaticResource Muted}" FontSize="12" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                          <TextBlock Text="{Binding Tipo}" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" />
-                          <Border Style="{StaticResource Pastilla}" Margin="8,0,0,0">
-                            <TextBlock Text="{Binding Prioridad}" FontSize="12" FontWeight="SemiBold" />
+                        <WrapPanel>
+                          <TextBlock Text="{Binding Tipo}" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                          <!-- I-13: prioridad con punto de color, como la tarjeta de alertas (I-11) -->
+                          <Border Style="{StaticResource Pastilla}" Margin="0,2,0,2">
+                            <StackPanel Orientation="Horizontal">
+                              <Ellipse Width="7" Height="7" Margin="0,0,5,0" VerticalAlignment="Center"
+                                       Fill="{Binding (TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Border}}" />
+                              <TextBlock Text="{Binding TextoPrioridad}" FontSize="12" FontWeight="SemiBold" />
+                            </StackPanel>
                           </Border>
-                        </StackPanel>
+                        </WrapPanel>
                       </DockPanel>
                       <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,8,0,0" />
                       <TextBlock Text="{Binding Descripcion}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0" />

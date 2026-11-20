@@ -12,16 +12,6 @@
     <views:TextoVisibleConverter x:Key="TextoVisible" />
     <views:RecursoConverter x:Key="Recurso" />
 
-    <!-- Mini gráfico de un indicador (barras, línea o arco) con etiqueta al pasar el mouse -->
-    <Style x:Key="MiniGrafico" TargetType="controls:Grafico">
-      <Setter Property="Compacto" Value="True" />
-      <Setter Property="Width" Value="68" />
-      <Setter Property="Height" Value="36" />
-      <Setter Property="DockPanel.Dock" Value="Right" />
-      <Setter Property="VerticalAlignment" Value="Bottom" />
-      <Setter Property="Margin" Value="10,0,0,6" />
-    </Style>
-
     <!-- Equipo fuera de servicio: fila que abre la hoja de vida -->
     <Style x:Key="FilaFuera" TargetType="Button">
       <Setter Property="Cursor" Value="Hand" />
@@ -200,7 +190,7 @@
                 <RadioButton Style="{StaticResource Pestana}" GroupName="VistaReportes" Content="Gráfico" IsChecked="{Binding VistaGrafico}" />
                 <RadioButton Style="{StaticResource Pestana}" GroupName="VistaReportes" Content="Tabla de datos" IsChecked="{Binding VistaTabla}" />
               </StackPanel>
-              <controls:Grafico Height="240" Margin="0,14,0,0" Tipo="Linea" Etiquetas="{Binding EtiquetasSerie}" Series="{Binding SeriesMantenimientos}"
+              <controls:Grafico views:Animacion.Crecer="True" Height="240" Margin="0,14,0,0" Tipo="Linea" Etiquetas="{Binding EtiquetasSerie}" Series="{Binding SeriesMantenimientos}"
                                 AutomationProperties.Name="Mantenimientos preventivos y correctivos por mes"
                                 Visibility="{Binding VistaGrafico, Converter={StaticResource Visible}}" />
               <StackPanel Margin="0,14,0,0" Visibility="{Binding VistaTabla, Converter={StaticResource Visible}}">
@@ -247,7 +237,7 @@
                 <TextBlock Text="Estado del parque" Style="{StaticResource SectionTitle}" />
                 <DockPanel Margin="0,14,0,0">
                   <Grid DockPanel.Dock="Left" Width="118" Height="118" Margin="0,0,18,0">
-                    <controls:Grafico Tipo="Arco" Series="{Binding SeriesParque}" AutomationProperties.Name="Equipos activos por estado" />
+                    <controls:Grafico views:Animacion.Crecer="True" Tipo="Arco" Series="{Binding SeriesParque}" AutomationProperties.Name="Equipos activos por estado" />
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
                       <TextBlock Text="{Binding TextoOperativos}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" HorizontalAlignment="Center" />
                       <TextBlock Text="operativos" Style="{StaticResource Muted}" FontSize="11" HorizontalAlignment="Center" />

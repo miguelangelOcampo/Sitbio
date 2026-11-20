@@ -1,5 +1,49 @@
 # Regresión y prueba de restauración
 
+## v1.2.0 (Z-04)
+
+Ejecución de toda la suite sobre `main` con las filas de la v1.2.0 integradas (I-00 a I-14), con PostgreSQL y MongoDB reales en Docker y la semilla de demostración «Hospital Demo SITBIO» cargada en `sitbio_dev`.
+
+- **Fecha:** 20/11/2026
+- **Commit base:** `20fa169` (`main`, PR #57: panel de inicio como el prototipo, I-12 a I-14).
+- **Cómo reproducir:** `scripts/regresion.sh`, que corre los proyectos de prueba uno a la vez. Los TRX quedan en `TestResults/regresion-20261120-0900/`.
+
+### Resultado
+
+| Proyecto | Pruebas | Correctas | Con error | Omitidas |
+|---|---|---|---|---|
+| SITBIO.Domain.Tests | 200 | 200 | 0 | 0 |
+| SITBIO.Application.Tests | 372 | 372 | 0 | 0 |
+| SITBIO.Infrastructure.Tests | 148 | 148 | 0 | 0 |
+| SITBIO.Api.Tests | 428 | 428 | 0 | 0 |
+| SITBIO.Desktop.Tests | 894 | 894 | 0 | 0 |
+| **Total .NET** | **2 042** | **2 042** | **0** | **0** |
+| tests/analytics (pytest) | — | — | — | Se ejecuta en la CI (job «Analytics»), con las pruebas nuevas del lote de 2 a 6 grupos |
+
+Pasó a la primera; no hubo defectos nuevos. Con las bases activas no se omite ninguna prueba de integración. Frente a la v1.1.1 hay 176 pruebas .NET más (1 866 → 2 042).
+
+### Pruebas nuevas de la v1.2.0
+
+| Fila | Cambio | Pruebas automáticas | CP | Estado |
+|---|---|---|---|---|
+| I-00 | Avisos vacíos de la pestaña Mantenimientos de la hoja de vida (sin la plantilla roja de error) | `AvisosVaciosTests` | CP-004 | Aprobado |
+| I-01 | Componente de gráficos (línea, área, barras, dispersión y arco) con etiqueta al pasar el mouse | `GraficoTests` | — | Aprobado |
+| I-02 | Gráficos de Reportes e indicadores (HU-026): mini gráficos, mantenimientos por mes, estado del parque y fuera de servicio | `CriteriosHu026Tests`, `ConsultaIndicadoresTests`, `ReportesViewModelTests`, `PanelViewModelTests` | CP-030 | Aprobado |
+| I-03 | El lote calcula de 2 a 6 grupos y les da nombre (HU-008) | `tests/analytics/test_lote.py` (CI), `EjecutorAnaliticaPythonTests` | CP-011 | Aprobado en la CI |
+| I-04 | Recálculo de la analítica bajo demanda desde la API | `AnaliticaEndpointTests`, `RecalculoAnaliticaTests`, `ConsultaAnaliticaTests` | CP-011 | Aprobado |
+| I-05 | Pantalla de Analítica con número de grupos, ejes y leyenda con nombres | `AnaliticaViewModelTests`, `GeneradorReportesTests` | CP-011 | Aprobado |
+| I-06 | Textos clave seleccionables para copiar | `CopiarTextoTests` | — | Aprobado |
+| I-07 | Calendario en todos los campos de fecha | `CampoFechaTests` | — | Aprobado |
+| I-08 | Búsqueda incremental del equipo en Exportación | `ReportesViewModelTests` (exportación) | CP-031 | Aprobado |
+| I-09 | Filas que se ven clicables (un clic o Enter abre el detalle) | `FilaClicableTests` | — | Aprobado |
+| I-10 | Foto del equipo en la vista previa de la hoja de vida | `AccionesHojaVidaTests` | CP-035 | Aprobado |
+| I-11 | Alertas de vencimiento con el diseño del prototipo, también en Mantenimientos (HU-020) | `CentroAlertasViewModelTests`, `MantenimientosViewModelTests` | CP-024 | Aprobado |
+| I-12 | Indicadores del Panel con ícono y mini gráfico | `PanelViewModelTests` | — | Aprobado |
+| I-13 | Actividad reciente y «Atención requerida» con íconos y prioridad | `PanelViewModelTests` | — | Aprobado |
+| I-14 | Ilustraciones de estados vacíos, punto de aviso en el riel y animación de entrada | `ShellViewModelTests`, `AnimacionTests` | — | Aprobado |
+
+Las filas sin CP son cambios de la interfaz sin un caso de prueba propio en la matriz; se verificaron además con capturas de pantalla contra el prototipo. El resto de los CP (CP-001 a CP-037) siguen aprobados con las mismas pruebas de la matriz de [go-no-go.md](go-no-go.md). CP-037 sigue sin iniciar (falta la prueba de carga con k6).
+
 ## v1.1.1 (Z-01)
 
 Ejecución de toda la suite sobre `main` con los arreglos de la v1.1.1 integrados (G-01 a G-09 y la fotografía en la hoja de vida), con PostgreSQL y MongoDB reales en Docker y la semilla de demostración «Hospital Demo SITBIO» cargada en `sitbio_dev`.

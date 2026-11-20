@@ -226,19 +226,30 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="90" />
                       </Grid.ColumnDefinitions>
+                      <!-- I-13: ícono del tipo de evento en el tono del estado -->
                       <Border Style="{StaticResource Pastilla}" Width="32" Height="32" CornerRadius="9" Padding="0" Margin="0,0,12,0">
-                        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}" Width="16" Height="16" />
+                        <ContentControl Style="{StaticResource Icono}" Content="{Binding Icono, Converter={StaticResource Recurso}}" Width="16" Height="16" />
                       </Border>
                       <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
                         <TextBlock Text="{Binding Detalle}" Style="{StaticResource Muted}" FontSize="13" TextTrimming="CharacterEllipsis" />
                       </StackPanel>
-                      <Border Grid.Column="2" CornerRadius="10" Padding="8,2" Background="{DynamicResource Brush.Surface2}" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding Tipo}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
+                      <Border x:Name="Etiqueta" Grid.Column="2" CornerRadius="10" Padding="8,2" Background="{DynamicResource Brush.Surface2}" VerticalAlignment="Center">
+                        <TextBlock x:Name="TextoEtiqueta" Text="{Binding Tipo}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text2}" />
                       </Border>
-                      <TextBlock Grid.Column="3" Text="{Binding Cuando}" Style="{StaticResource Muted}" FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="3" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Reloj}" Width="12" Height="12" Margin="0,0,4,0"
+                                        Foreground="{DynamicResource Brush.Text3}" />
+                        <TextBlock Text="{Binding Cuando}" Style="{StaticResource Muted}" FontSize="12" />
+                      </StackPanel>
                     </Grid>
                   </Border>
+                  <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding EsPreventivo}" Value="True">
+                      <Setter TargetName="Etiqueta" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+                      <Setter TargetName="TextoEtiqueta" Property="Foreground" Value="{DynamicResource Brush.Primary}" />
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -306,12 +317,17 @@
                                           Foreground="{DynamicResource Brush.Text3}" />
                           <TextBlock Text="{Binding Cuando}" Style="{StaticResource Muted}" FontSize="12" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                          <TextBlock Text="{Binding Tipo}" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" />
-                          <Border Style="{StaticResource Pastilla}" Margin="8,0,0,0">
-                            <TextBlock Text="{Binding Prioridad}" FontSize="12" FontWeight="SemiBold" />
+                        <WrapPanel>
+                          <TextBlock Text="{Binding Tipo}" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" Margin="0,0,8,0" />
+                          <!-- I-13: prioridad con punto de color, como la tarjeta de alertas (I-11) -->
+                          <Border Style="{StaticResource Pastilla}" Margin="0,2,0,2">
+                            <StackPanel Orientation="Horizontal">
+                              <Ellipse Width="7" Height="7" Margin="0,0,5,0" VerticalAlignment="Center"
+                                       Fill="{Binding (TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Border}}" />
+                              <TextBlock Text="{Binding TextoPrioridad}" FontSize="12" FontWeight="SemiBold" />
+                            </StackPanel>
                           </Border>
-                        </StackPanel>
+                        </WrapPanel>
                       </DockPanel>
                       <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,8,0,0" />
                       <TextBlock Text="{Binding Descripcion}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0" />

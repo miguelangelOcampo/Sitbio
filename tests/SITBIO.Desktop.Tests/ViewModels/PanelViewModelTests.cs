@@ -115,7 +115,7 @@ public class PanelViewModelTests
         Assert.Equal(
             ["prev-vencidos", "prev-semana", $"cal-{calibracion.EquipoId}", "ot-aprobar", "tq-sin-tecnico"],
             vm.Atencion.Select(t => t.Clave));
-        Assert.Equal("1 tiquetes sin técnico asignado", vm.Atencion[^1].Titulo);
+        Assert.Equal("1 tiquete sin técnico asignado", vm.Atencion[^1].Titulo);
         Assert.Equal(BandejaViewModel.IdPantalla, vm.Atencion[^1].Destino);
         Assert.Equal($"{MantenimientosViewModel.PrefijoCalibracion}{calibracion.EquipoId}", vm.Atencion[2].Parametro);
         Assert.False(vm.SinAtencion);
@@ -315,5 +315,44 @@ public class PanelViewModelTests
         Assert.Equal([8.0, 2.0], vm.Indicadores[3].Series.Select(s => s.Valores[0]));
         Assert.False(vm.Indicadores[0].HayGrafico);
         Assert.False(vm.Indicadores[2].HayGrafico);
+    }
+
+    // ---------- I-13: actividad reciente y atención requerida con íconos ----------
+
+    [Fact]
+    public async Task La_actividad_reciente_lleva_el_icono_del_tipo_de_evento_y_su_etiqueta()
+    {
+        Ordenes(
+            EstadosOrden.Aprobada,
+            Orden(EstadosOrden.Aprobada, "preventivo", cierre: Ahora.AddHours(-1)),
+            Orden(EstadosOrden.Aprobada, "correctivo", cierre: Ahora.AddDays(-2)));
+        Ordenes(EstadosOrden.Pausada, Orden(EstadosOrden.Pausada) with { FechaInicio = Ahora.AddHours(-5) });
+        var vm = Crear("AC-02");
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        var aprobada = vm.Recientes.First(r => r.Titulo == "Mantenimiento preventivo aprobado");
+        Assert.Equal(("Icono.EscudoCheck", "Preventivo", true, TonoTarjeta.Exito), (aprobada.Icono, aprobada.Tipo, aprobada.EsPreventivo, aprobada.Tono));
+        Assert.Contains(vm.Recientes, r => r.Icono == "Icono.Pausa" && r.Tono == TonoTarjeta.Advertencia && !r.EsPreventivo);
+        Assert.All(vm.Recientes, r => Assert.False(string.IsNullOrEmpty(r.Cuando)));
+    }
+
+    [Fact]
+    public async Task Atencion_requerida_dice_la_prioridad_y_cuenta_en_singular()
+    {
+        _mantenimiento.AlertasAsync(default).ReturnsForAnyArgs(new ResumenAlertas(30, [
+            Alerta(TiposAlerta.Preventivo, TiposAlerta.Vencida, -1),
+            Alerta(TiposAlerta.Preventivo, TiposAlerta.Vencida, -3),
+            Alerta(TiposAlerta.Calibracion, TiposAlerta.Proxima, 9),
+        ], 0));
+        Ordenes(EstadosOrden.Cerrada, Orden(EstadosOrden.Cerrada, cierre: Ahora.AddDays(-1)));
+        var vm = Crear("AC-02");
+
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal(
+            [("2 mantenimientos vencidos", "Prioridad crítica"), ("1 calibración por vencer", "Prioridad media"), ("1 orden por aprobar", "Prioridad media")],
+            vm.Atencion.Select(t => (t.Titulo, t.TextoPrioridad)));
+        Assert.Equal(["Icono.Calendario", "Icono.Regla", "Icono.Portapapeles"], vm.Atencion.Select(t => t.Icono));
     }
 }

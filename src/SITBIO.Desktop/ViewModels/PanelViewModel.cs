@@ -329,6 +329,8 @@ public partial class PanelViewModel(
     /// <summary>Semanas de la mini línea de órdenes abiertas.</summary>
     public const int SemanasOrdenes = 6;
 
+    private static string Contar(int n, string singular, string plural) => n == 1 ? $"1 {singular}" : $"{n} {plural}";
+
     private static DateOnly? Creada(Orden o) =>
         (o.FechaCreacion ?? o.FechaAsignacion) is { } f ? DateOnly.FromDateTime(f.LocalDateTime) : null;
 
@@ -372,7 +374,7 @@ public partial class PanelViewModel(
             {
                 tarjetas.Add(new(
                     "prev-vencidos", "Mantenimiento", "Crítica", TonoTarjeta.Critico,
-                    $"{vencidas.Count} mantenimientos vencidos",
+                    Contar(vencidas.Count, "mantenimiento vencido", "mantenimientos vencidos"),
                     Equipos(vencidas.Select(a => $"{a.TipoEquipo} {a.PlacaInventario}")),
                     Hace(vencidas.Min(a => a.Fecha), hoy),
                     MantenimientosViewModel.IdPantalla,
@@ -384,7 +386,7 @@ public partial class PanelViewModel(
             {
                 tarjetas.Add(new(
                     "prev-semana", "Mantenimiento", "Media", TonoTarjeta.Advertencia,
-                    $"{semana.Count} mantenimientos próximos a vencer",
+                    Contar(semana.Count, "mantenimiento próximo a vencer", "mantenimientos próximos a vencer"),
                     Equipos(semana.Select(a => $"{a.TipoEquipo} {a.PlacaInventario}")),
                     "Esta semana",
                     MantenimientosViewModel.IdPantalla,
@@ -407,7 +409,7 @@ public partial class PanelViewModel(
             {
                 tarjetas.Add(new(
                     "cal-proximas", "Calibración", "Media", TonoTarjeta.Advertencia,
-                    $"{porVencer} calibraciones por vencer",
+                    Contar(porVencer, "calibración por vencer", "calibraciones por vencer"),
                     $"En los próximos {alertas.DiasAnticipacion} días",
                     "Próximamente",
                     MantenimientosViewModel.IdPantalla,
@@ -422,7 +424,7 @@ public partial class PanelViewModel(
             {
                 tarjetas.Add(new(
                     "ot-aprobar", "Orden de trabajo", "Media", TonoTarjeta.Info,
-                    $"{porAprobar.Count} órdenes por aprobar",
+                    Contar(porAprobar.Count, "orden por aprobar", "órdenes por aprobar"),
                     Equipos(porAprobar.Select(o => $"{o.TipoEquipo} {o.PlacaInventario}")),
                     Hace(porAprobar.Min(o => o.FechaCierre), hoy),
                     OrdenesViewModel.IdPantalla,
@@ -434,7 +436,7 @@ public partial class PanelViewModel(
             {
                 tarjetas.Add(new(
                     "ot-alta", "Orden de trabajo", "Alta", TonoTarjeta.Alto,
-                    $"{altas.Count} órdenes con prioridad alta",
+                    Contar(altas.Count, "orden con prioridad alta", "órdenes con prioridad alta"),
                     Equipos(altas.Select(o => $"{o.TipoEquipo} {o.PlacaInventario}")),
                     "Hoy",
                     OrdenesViewModel.IdPantalla,
@@ -447,7 +449,7 @@ public partial class PanelViewModel(
             var criticos = sinTecnico.Count(t => t.Criticidad == Criticidades.Critica);
             tarjetas.Add(new(
                 "tq-sin-tecnico", "Solicitud", "Alta", TonoTarjeta.Critico,
-                $"{sinTecnico.Count} tiquetes sin técnico asignado",
+                Contar(sinTecnico.Count, "tiquete sin técnico asignado", "tiquetes sin técnico asignado"),
                 criticos > 0 ? $"{criticos} de criticidad crítica" : string.Join(" · ", sinTecnico.Take(3).Select(t => t.Codigo)),
                 Relativo(sinTecnico.Min(t => t.FechaReporte)),
                 Rol == "AC-02" ? BandejaViewModel.IdPantalla : SeguimientoViewModel.IdPantalla,
@@ -487,16 +489,16 @@ public partial class PanelViewModel(
         foreach (var (o, momento) in porMomento.Take(4))
         {
             var preventiva = o.TipoMantenimiento == Preventivo;
-            var (titulo, tono) = o.Estado switch
+            var (titulo, tono, icono) = o.Estado switch
             {
-                EstadosOrden.Aprobada => (preventiva ? "Mantenimiento preventivo aprobado" : "Mantenimiento correctivo aprobado", TonoTarjeta.Exito),
-                EstadosOrden.Cerrada => ("Intervención técnica finalizada", TonoTarjeta.Exito),
-                EstadosOrden.EnEjecucion => ("Orden de trabajo en ejecución", TonoTarjeta.Info),
-                EstadosOrden.Pausada => ("Orden de trabajo pausada", TonoTarjeta.Advertencia),
-                _ => ("Orden de trabajo asignada", TonoTarjeta.Info),
+                EstadosOrden.Aprobada => (preventiva ? "Mantenimiento preventivo aprobado" : "Mantenimiento correctivo aprobado", TonoTarjeta.Exito, "Icono.EscudoCheck"),
+                EstadosOrden.Cerrada => ("Intervención técnica finalizada", TonoTarjeta.Exito, "Icono.CheckCirculo"),
+                EstadosOrden.EnEjecucion => ("Orden de trabajo en ejecución", TonoTarjeta.Info, "Icono.Iniciar"),
+                EstadosOrden.Pausada => ("Orden de trabajo pausada", TonoTarjeta.Advertencia, "Icono.Pausa"),
+                _ => ("Orden de trabajo asignada", TonoTarjeta.Info, "Icono.Usuario"),
             };
             var detalle = $"{o.TipoEquipo} {o.PlacaInventario}{(o.CodigoTiquete is { } codigo ? $" · {codigo}" : string.Empty)}";
-            Recientes.Add(new(titulo, detalle, preventiva ? "Preventivo" : "Correctivo", Relativo(momento!.Value), tono));
+            Recientes.Add(new(titulo, detalle, preventiva ? "Preventivo" : "Correctivo", Relativo(momento!.Value), tono) { Icono = icono });
         }
 
         if (lista is null)
@@ -723,9 +725,18 @@ public sealed record TarjetaAtencion(
         "Equipo" => "Icono.Equipo",
         _ => "Icono.Alerta",
     };
+
+    /// <summary>I-13: «Prioridad crítica», «Prioridad alta»… como la tarjeta de alertas (I-11).</summary>
+    public string TextoPrioridad => $"Prioridad {Prioridad.ToLower(CultureInfo.GetCultureInfo("es-CO"))}";
 }
 
-public sealed record ActividadReciente(string Titulo, string Detalle, string Tipo, string Cuando, TonoTarjeta Tono);
+/// <summary>Evento de «Actividad reciente»: ícono del tipo de evento en su tono, etiqueta del tipo de mantenimiento y tiempo relativo.</summary>
+public sealed record ActividadReciente(string Titulo, string Detalle, string Tipo, string Cuando, TonoTarjeta Tono)
+{
+    public string Icono { get; init; } = "Icono.Check";
+
+    public bool EsPreventivo => Tipo == "Preventivo";
+}
 
 public sealed record EquipoReciente(
     Guid Id,

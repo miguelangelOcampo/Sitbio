@@ -179,7 +179,7 @@ public class ShellViewModelTests
         Assert.Equal("SITBIO v2.0.0", ShellViewModel.TextoVersion(new Version(2, 0)));
         Assert.Equal("SITBIO", ShellViewModel.TextoVersion(null));
         Assert.Equal(ShellViewModel.TextoVersion(typeof(ShellViewModel).Assembly.GetName().Version), ShellViewModel.VersionProducto);
-        Assert.StartsWith("SITBIO v1.1.1", ShellViewModel.VersionProducto);
+        Assert.StartsWith("SITBIO v1.2.0", ShellViewModel.VersionProducto);
     }
 
     // ---------- I-14: punto de aviso del riel ----------

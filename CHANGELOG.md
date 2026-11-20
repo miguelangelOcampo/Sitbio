@@ -4,6 +4,37 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [Sin publicar]
 
+## [1.2.0] - 2026-11-23
+
+Gráficos en Reportes y en el Panel, analítica de 2 a 6 grupos que el Ingeniero biomédico recalcula desde la aplicación, y mejoras de usabilidad y de paridad visual con el prototipo. Incluye todo lo de la versión 1.1.1.
+
+### Agregado
+- Componente de gráficos del cliente (línea, área, barras, dispersión y arco) con eje, cuadrícula suave, leyenda y una etiqueta al pasar el mouse con el valor, la serie y la fecha.
+- Reportes e indicadores (HU-026) con gráficos: cada indicador con su mini gráfico, «Mantenimientos por mes» (preventivos y correctivos) para 3, 6 o 12 meses, «Estado del parque» y «Fuera de servicio» con la lista de equipos que abre su hoja de vida.
+- El lote de analítica (HU-008) calcula de 2 a 6 grupos, guarda la inercia de cada uno y nombra los grupos según su centroide (por ejemplo, «Alto costo y muchas fallas»).
+- Recálculo de la analítica bajo demanda: `POST /api/v1/analitica/agrupamiento` (solo AC-02) ejecuta el lote de la institución en segundo plano y responde 202; `GET` devuelve el estado y la fecha del último cálculo.
+- Pantalla de Analítica con «Número de grupos», «Eje horizontal» y «Eje vertical» (fallas por año, costo, tiempo de atención y disponibilidad), ejes con unidades, leyenda con el nombre de cada grupo, botón «Recalcular» y «Exportar resultado».
+- Calendario en todos los campos de fecha, con formato dd/mm/aaaa y escritura manual (F4 o Alt + ↓ lo abren).
+- Placas, series, códigos de orden y tiquete, registro INVIMA y datos de la hoja de vida se pueden seleccionar y copiar.
+- Búsqueda incremental del equipo en Exportación: sugerencias desde 2 caracteres por placa, serie o nombre, con flechas y Enter para elegir.
+- Panel de inicio como el prototipo: indicadores con ícono y mini gráfico, actividad reciente con un ícono por tipo de evento y «Atención requerida» con la prioridad marcada con un punto de color.
+- Punto de aviso en el riel: Gestión cuando hay alertas de vencimiento sin revisar y Solicitudes cuando hay tiquetes sin técnico.
+- «Atención requerida» en Mantenimientos, con las mismas tarjetas de alerta del centro de alertas.
+
+### Cambiado
+- Versión del producto 1.2.0 (`Directory.Build.props`).
+- Las tablas que abren un detalle (Equipos, Bandeja y Seguimiento) se ven clicables: fondo al pasar el mouse, cursor de mano, chevron «›» y un solo clic o Enter para abrir.
+- La vista previa de la hoja de vida muestra la fotografía del equipo (o el ícono del tipo), como el PDF.
+- Las alertas de vencimiento usan el diseño del prototipo: ícono del tipo, prioridad, tiempo relativo, título, detalle y las acciones «Ver detalle» y «Descartar».
+- Los estados vacíos tienen una ilustración; los indicadores del Panel entran escalonados y los gráficos crecen desde su base. Con «Reducir animaciones» de Windows todo aparece quieto.
+- Los avisos de «Atención requerida» cuentan en singular cuando hay uno («1 orden por aprobar»).
+
+### Corregido
+- La pestaña Mantenimientos de la hoja de vida mostraba una barra roja con solo el ícono cuando el equipo no tenía plan, órdenes ni calibraciones.
+
+### Pendiente
+- CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes (k6).
+
 ## [1.1.1] - 2026-11-20
 
 Corrige los hallazgos de operación de la v1.1.0 y agrega el historial de intervenciones. Incluye todo lo de la versión 1.1.0.

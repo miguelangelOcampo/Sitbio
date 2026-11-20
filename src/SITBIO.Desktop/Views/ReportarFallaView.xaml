@@ -5,6 +5,7 @@
 <UserControl x:Class="Sitbio.Desktop.Views.ReportarFallaView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Sitbio.Desktop.Controls"
              xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
              xmlns:svc="clr-namespace:Sitbio.Desktop.Services"
              xmlns:views="clr-namespace:Sitbio.Desktop.Views">
@@ -131,8 +132,8 @@
                 <TextBlock Text="Tiquete creado" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
               </DockPanel>
               <TextBlock Text="{Binding TextoResultado}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
-              <TextBlock Text="{Binding Creado.Codigo}" FontFamily="Consolas" FontSize="28" FontWeight="SemiBold" Margin="0,12,0,0"
-                         Foreground="{DynamicResource Brush.Text}" AutomationProperties.Name="Código del tiquete" />
+              <controls:TextoCopiable Text="{Binding Creado.Codigo, Mode=OneWay}" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="28" FontWeight="SemiBold" Margin="0,12,0,0"
+                          AutomationProperties.Name="Código del tiquete" />
               <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding Creado.EquipoFueraDeServicio, Converter={StaticResource Visible}, FallbackValue=Collapsed}">
                 <Ellipse Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.Danger}" />
                 <TextBlock Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap">

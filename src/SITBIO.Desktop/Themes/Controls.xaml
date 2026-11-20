@@ -4,6 +4,7 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=System.Runtime"
+                    xmlns:controls="clr-namespace:Sitbio.Desktop.Controls"
                     xmlns:views="clr-namespace:Sitbio.Desktop.Views">
 
   <!-- Foco visible solo con teclado (FocusVisualStyle): anillo de 2 px alrededor del control -->
@@ -46,6 +47,27 @@
   </Style>
 
   <!-- Tipografía -->
+  <!-- I-06: texto de solo lectura que se ve como un TextBlock pero se puede seleccionar y copiar -->
+  <Style TargetType="controls:TextoCopiable">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <!-- El cuadro de texto deja 2 px a cada lado: se compensan para alinear con los TextBlock -->
+    <Setter Property="Padding" Value="-2,0" />
+    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.Primary}" />
+    <Setter Property="SelectionOpacity" Value="0.3" />
+    <Setter Property="Cursor" Value="IBeam" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="controls:TextoCopiable">
+          <ScrollViewer x:Name="PART_ContentHost" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}"
+                        Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
   <Style x:Key="PageTitle" TargetType="TextBlock">
     <Setter Property="FontSize" Value="30" />
     <Setter Property="FontWeight" Value="SemiBold" />
@@ -628,6 +650,8 @@
     </Setter>
   </Style>
   <Style x:Key="OpenGrid" TargetType="DataGrid">
+    <!-- I-06: Ctrl + C copia la celda y Ctrl + Mayús + C la fila -->
+    <Setter Property="controls:TablaCopiable.Activa" Value="True" />
     <Setter Property="Background" Value="Transparent" />
     <Setter Property="RowBackground" Value="Transparent" />
     <Setter Property="BorderThickness" Value="0" />

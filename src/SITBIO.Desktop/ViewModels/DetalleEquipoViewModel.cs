@@ -83,14 +83,33 @@ public partial class DetalleEquipoViewModel(
 
     public string NombrePdf => $"HV_{Placa}.pdf";
 
+    /// <summary>Foto de 512 px de la vista previa, la misma que lleva el PDF (I-10); null = ícono del tipo.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SinFotoPdf))]
+    private byte[]? _fotoPdf;
+
+    public bool SinFotoPdf => FotoPdf is null;
+
     [RelayCommand]
-    private void AbrirHojaVidaPdf()
+    private async Task AbrirHojaVidaPdfAsync()
     {
-        if (PuedeHojaVidaPdf)
+        if (!PuedeHojaVidaPdf)
         {
-            AvisoPdf = null;
-            Confirmacion = null;
-            VistaPreviaPdf = true;
+            return;
+        }
+
+        AvisoPdf = null;
+        Confirmacion = null;
+        VistaPreviaPdf = true;
+        try
+        {
+            // La preferencia «ícono» del usuario no aplica: el PDF lleva la foto si existe.
+            FotoPdf = await VistaAsync();
+        }
+        catch (ErrorApi)
+        {
+            // Sin la foto la vista previa sigue sirviendo; queda el ícono del tipo.
+            FotoPdf = null;
         }
     }
 
@@ -268,6 +287,7 @@ public partial class DetalleEquipoViewModel(
         {
             Miniatura = null;
             _vista = null;
+            FotoPdf = null;
         }
 
         _ = CargarMiniaturaAsync();
@@ -602,6 +622,7 @@ public partial class DetalleEquipoViewModel(
         {
             DialogoFoto = null;
             _vista = cambio.Vista;
+            FotoPdf = null;
             TieneFoto = cambio.Miniatura is not null;
             Miniatura = cambio.Miniatura;
             Confirmacion = cambio.Confirmacion;

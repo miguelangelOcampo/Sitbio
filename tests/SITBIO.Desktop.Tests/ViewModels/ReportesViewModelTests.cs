@@ -17,11 +17,14 @@ public class ReportesViewModelTests
         new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30),
         new CumplimientoPreventivo(8, 6, 75), 6, 2880, new CostoPorEquipo(costos ? 500000m : null, 20, costos ? 25000m : null), new FueraDeServicio(2, 20, 10), costos);
 
-    private ExportacionViewModel Exportacion(string rol)
+    private ExportacionViewModel Exportacion(string rol, TimeSpan? retardo = null)
     {
         var sesion = new SesionActual();
         sesion.Iniciar(new SesionUsuario("token", DateTimeOffset.UtcNow.AddHours(1), rol, false));
-        return new ExportacionViewModel(_servicio, _equipos, _dialogo, sesion);
+
+        // Sin coincidencias salvo lo que cada prueba configure; sin retardo para no esperar en las pruebas.
+        _equipos.ListarAsync(default!, default).ReturnsForAnyArgs(Pagina(0));
+        return new ExportacionViewModel(_servicio, _equipos, _dialogo, sesion, retardo ?? TimeSpan.Zero);
     }
 
     // ---------- UI-021 ----------
@@ -254,11 +257,164 @@ public class ReportesViewModelTests
         Assert.Equal("Elige un equipo", vm.Aviso?.Titulo);
 
         vm.Placa = "HSV";
-        await vm.BuscarEquipoCommand.ExecuteAsync(null);
+        await vm.BusquedaEnCurso;
+        Assert.Equal(equipo, vm.Sugerido);
+        await vm.ElegirEquipoCommand.ExecuteAsync(null);
         await vm.GenerarHojaVidaCommand.ExecuteAsync(null);
 
         Assert.False(vm.PuedeExportarHistorial);
         Assert.Equal(equipo, vm.EquipoElegido);
+        Assert.Equal(equipo.PlacaInventario, vm.Placa);
+        Assert.False(vm.HaySugerencias);
         _dialogo.Received(1).Guardar(@"C:\hv.pdf", Arg.Any<byte[]>());
+    }
+
+    // ---------- I-08: búsqueda incremental del equipo ----------
+
+    [Fact]
+    public async Task HojaDeVida_SugierePorPlacaSerieONombre_SinRepetir()
+    {
+        var vm = Exportacion("AC-02");
+        var porPlaca = Equipo("HSV-EQ-0412");
+        var porNombre = Equipo("HSV-EQ-0007");
+        _equipos.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == "mon"), Arg.Any<CancellationToken>()).Returns(Pagina(1, porPlaca));
+        _equipos.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Serie == "mon"), Arg.Any<CancellationToken>()).Returns(Pagina(1, porPlaca));
+        _equipos.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Texto == "mon"), Arg.Any<CancellationToken>()).Returns(Pagina(2, porPlaca, porNombre));
+
+        vm.Placa = " mon ";
+        await vm.BusquedaEnCurso;
+
+        Assert.Equal([porPlaca, porNombre], vm.Resultados);
+        Assert.Equal(porPlaca, vm.Sugerido);
+        Assert.True(vm.HaySugerencias);
+        await _equipos.Received(1).ListarAsync(Arg.Is<FiltroEquipos>(f => f.Texto == "mon" && f.Tamano == ExportacionViewModel.MaximoSugerencias), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HojaDeVida_ConUnCaracter_NoConsulta()
+    {
+        var vm = Exportacion("AC-02");
+
+        vm.Placa = "H";
+        await vm.BusquedaEnCurso;
+
+        Assert.Null(vm.Resultados);
+        Assert.False(vm.SinResultados);
+        await _equipos.DidNotReceiveWithAnyArgs().ListarAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task HojaDeVida_SinCoincidencias_LoDice_YNoHaySugerencias()
+    {
+        var vm = Exportacion("AC-02");
+
+        vm.Placa = "zzz";
+        await vm.BusquedaEnCurso;
+
+        Assert.True(vm.SinResultados);
+        Assert.False(vm.HaySugerencias);
+        Assert.Null(vm.Sugerido);
+    }
+
+    [Fact]
+    public async Task HojaDeVida_EsperaQueSeDejeDeEscribir_YSoloConsultaLoUltimo()
+    {
+        var vm = Exportacion("AC-02", TimeSpan.FromMilliseconds(60));
+
+        vm.Placa = "HS";
+        vm.Placa = "HSV";
+        vm.Placa = "HSV-";
+        await vm.BusquedaEnCurso;
+
+        await _equipos.DidNotReceive().ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == "HS" || f.Placa == "HSV"), Arg.Any<CancellationToken>());
+        await _equipos.Received(1).ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == "HSV-"), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task HojaDeVida_LasFlechasRecorrenLasSugerencias_YEnterEligeLaResaltada()
+    {
+        var vm = Exportacion("AC-02");
+        var a = Equipo("HSV-EQ-0001");
+        var b = Equipo("HSV-EQ-0002");
+        var c = Equipo("HSV-EQ-0003");
+        _equipos.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == "HSV"), Arg.Any<CancellationToken>()).Returns(Pagina(3, a, b, c));
+        vm.Placa = "HSV";
+        await vm.BusquedaEnCurso;
+
+        vm.SugerenciaSiguienteCommand.Execute(null);
+        vm.SugerenciaSiguienteCommand.Execute(null);
+        Assert.Equal(c, vm.Sugerido);
+        vm.SugerenciaSiguienteCommand.Execute(null);
+        Assert.Equal(a, vm.Sugerido);
+        vm.SugerenciaAnteriorCommand.Execute(null);
+        Assert.Equal(c, vm.Sugerido);
+        vm.SugerenciaAnteriorCommand.Execute(null);
+
+        await vm.ElegirEquipoCommand.ExecuteAsync(null);
+
+        Assert.Equal(b, vm.EquipoElegido);
+        Assert.Equal("HSV-EQ-0002", vm.Placa);
+        Assert.Null(vm.Resultados);
+    }
+
+    [Fact]
+    public async Task HojaDeVida_ClicEnUnaSugerencia_LaElige_YEscribirDeNuevoLaDescarta()
+    {
+        var vm = Exportacion("AC-02");
+        var a = Equipo("HSV-EQ-0001");
+        var b = Equipo("HSV-EQ-0002");
+        _equipos.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == "HSV"), Arg.Any<CancellationToken>()).Returns(Pagina(2, a, b));
+        vm.Placa = "HSV";
+        await vm.BusquedaEnCurso;
+
+        await vm.ElegirEquipoCommand.ExecuteAsync(b);
+        Assert.Equal(b, vm.EquipoElegido);
+
+        vm.Placa = "HSV-EQ-000";
+        await vm.BusquedaEnCurso;
+        Assert.Null(vm.EquipoElegido);
+    }
+
+    [Fact]
+    public async Task HojaDeVida_EnterAntesDeLasSugerencias_BuscaYEligeSiHayUnaSola()
+    {
+        var vm = Exportacion("AC-02", TimeSpan.FromSeconds(30));
+        var equipo = Equipo();
+        _equipos.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == "HSV-EQ-0412"), Arg.Any<CancellationToken>()).Returns(Pagina(1, equipo));
+
+        vm.Placa = "HSV-EQ-0412";
+        await vm.ElegirEquipoCommand.ExecuteAsync(null);
+
+        Assert.Equal(equipo, vm.EquipoElegido);
+        Assert.False(vm.BuscandoEquipo);
+    }
+
+    [Fact]
+    public async Task HojaDeVida_EscCierraLasSugerencias_SinElegir()
+    {
+        var vm = Exportacion("AC-02");
+        _equipos.ListarAsync(Arg.Is<FiltroEquipos>(f => f.Placa == "HSV"), Arg.Any<CancellationToken>()).Returns(Pagina(1, Equipo()));
+        vm.Placa = "HSV";
+        await vm.BusquedaEnCurso;
+
+        vm.CerrarSugerenciasCommand.Execute(null);
+
+        Assert.False(vm.HaySugerencias);
+        Assert.Null(vm.EquipoElegido);
+        Assert.Equal("HSV", vm.Placa);
+    }
+
+    [Fact]
+    public async Task HojaDeVida_ErrorAlBuscar_MuestraAvisoConReintento()
+    {
+        var vm = Exportacion("AC-02");
+        _equipos.ListarAsync(default!, default).ThrowsAsyncForAnyArgs(new ErrorApi(null, "Sin red", new Dictionary<string, string>(), true));
+
+        vm.Placa = "HSV";
+        await vm.BusquedaEnCurso;
+
+        Assert.Equal("Sin conexión", vm.Aviso?.Titulo);
+        Assert.True(vm.Aviso?.PuedeReintentar);
+        Assert.False(vm.BuscandoEquipo);
     }
 }

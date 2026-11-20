@@ -300,9 +300,20 @@ public sealed record FilaMes(string Mes, int Preventivos, int Correctivos, int T
 /// UI-022 Exportación (HU-007, HU-027): el historial de órdenes del rango en PDF o Excel (CA-HU-007-01/02) para
 /// AC-01, AC-02 y AC-05, y la hoja de vida de un equipo en PDF (CA-HU-027-01), que también genera AC-07.
 /// </summary>
-public partial class ExportacionViewModel(IServicioReportes servicio, IServicioEquipos equipos, IDialogoArchivos dialogo, SesionActual sesion) : ObservableObject
+public partial class ExportacionViewModel(
+    IServicioReportes servicio, IServicioEquipos equipos, IDialogoArchivos dialogo, SesionActual sesion, TimeSpan? retardoBusqueda = null) : ObservableObject
 {
     public const string IdPantalla = "UI-022";
+
+    /// <summary>Caracteres desde los que se sugieren equipos (I-08).</summary>
+    public const int MinimoBusqueda = 2;
+
+    /// <summary>Equipos que se sugieren como máximo.</summary>
+    public const int MaximoSugerencias = 8;
+
+    private readonly TimeSpan _retardo = retardoBusqueda ?? TimeSpan.FromMilliseconds(300);
+    private int _consulta;
+    private bool _eligiendo;
 
     public static IReadOnlyList<OpcionFiltro> Formatos { get; } = [new("pdf", "PDF"), new("xlsx", "Excel (.xlsx)")];
 
@@ -325,17 +336,34 @@ public partial class ExportacionViewModel(IServicioReportes servicio, IServicioE
 
     // ---------- Hoja de vida ----------
 
+    /// <summary>Placa, serie o nombre del equipo; desde dos caracteres sugiere coincidencias (I-08).</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SinPlaca))]
     private string _placa = string.Empty;
 
+    public bool SinPlaca => string.IsNullOrEmpty(Placa);
+
+    /// <summary>Equipos sugeridos para lo escrito; null mientras no se ha consultado.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SinResultados))]
+    [NotifyPropertyChangedFor(nameof(SinResultados), nameof(HaySugerencias))]
     private IReadOnlyList<Equipo>? _resultados;
+
+    /// <summary>La sugerencia resaltada con las flechas; Enter la elige.</summary>
+    [ObservableProperty]
+    private Equipo? _sugerido;
+
+    [ObservableProperty]
+    private bool _buscandoEquipo;
 
     [ObservableProperty]
     private Equipo? _equipoElegido;
 
     public bool SinResultados => Resultados is { Count: 0 };
+
+    public bool HaySugerencias => Resultados is { Count: > 0 };
+
+    /// <summary>La última búsqueda lanzada al escribir (con su retardo); permite esperarla.</summary>
+    public Task BusquedaEnCurso { get; private set; } = Task.CompletedTask;
 
     // ---------- Estado ----------
 
@@ -379,36 +407,150 @@ public partial class ExportacionViewModel(IServicioReportes servicio, IServicioE
         await DescargarAsync(() => servicio.HistorialOrdenesAsync(desde.Value, hasta.Value, Formato.Valor, CancellationToken.None), "No pudimos exportar el historial");
     }
 
-    [RelayCommand]
-    private async Task BuscarEquipoAsync()
+    partial void OnPlacaChanged(string value)
     {
-        if (string.IsNullOrWhiteSpace(Placa))
+        if (_eligiendo)
         {
-            Resultados = null;
             return;
         }
 
+        // Escribir de nuevo descarta el equipo elegido y vuelve a sugerir.
+        EquipoElegido = null;
+        BusquedaEnCurso = SugerirAsync(value.Trim(), conRetardo: true);
+    }
+
+    /// <summary>Busca de inmediato lo escrito (Enter sin sugerencias o «Reintentar»).</summary>
+    [RelayCommand]
+    private Task BuscarEquipoAsync() => BusquedaEnCurso = SugerirAsync(Placa.Trim(), conRetardo: false);
+
+    /// <summary>
+    /// Sugerencias por placa, serie o nombre (tipo, marca o modelo) con la búsqueda parcial de GET /equipos; con
+    /// retardo para no consultar en cada tecla. Una consulta vieja que termina tarde no pisa a la nueva.
+    /// </summary>
+    private async Task SugerirAsync(string texto, bool conRetardo)
+    {
+        var consulta = ++_consulta;
+        if (texto.Length < MinimoBusqueda)
+        {
+            Resultados = null;
+            Sugerido = null;
+            BuscandoEquipo = false;
+            return;
+        }
+
+        BuscandoEquipo = true;
         try
         {
-            Resultados = (await equipos.ListarAsync(new FiltroEquipos(Placa: Placa, Tamano: 10), CancellationToken.None)).Items;
-            EquipoElegido = Resultados.Count == 1 ? Resultados[0] : null;
+            if (conRetardo && _retardo > TimeSpan.Zero)
+            {
+                await Task.Delay(_retardo);
+                if (consulta != _consulta)
+                {
+                    return;
+                }
+            }
+
+            var consultas = new[]
+            {
+                new FiltroEquipos(Placa: texto, Tamano: MaximoSugerencias),
+                new FiltroEquipos(Serie: texto, Tamano: MaximoSugerencias),
+                new FiltroEquipos(Texto: texto, Tamano: MaximoSugerencias),
+            }.Select(f => equipos.ListarAsync(f, CancellationToken.None));
+            var paginas = await Task.WhenAll(consultas);
+            if (consulta != _consulta)
+            {
+                return;
+            }
+
+            Resultados = paginas.SelectMany(p => p.Items).DistinctBy(e => e.Id).Take(MaximoSugerencias).ToList();
+            Sugerido = Resultados.FirstOrDefault();
             Aviso = null;
         }
         catch (ErrorApi error)
         {
-            Aviso = new Aviso(error.SinConexion ? "Sin conexión" : "No pudimos buscar el equipo", error.Message, error.SinConexion ? "MSG-011" : error.Codigo, PuedeReintentar: true);
+            if (consulta == _consulta)
+            {
+                Resultados = null;
+                Aviso = new Aviso(error.SinConexion ? "Sin conexión" : "No pudimos buscar el equipo", error.Message, error.SinConexion ? "MSG-011" : error.Codigo, PuedeReintentar: true);
+            }
+        }
+        finally
+        {
+            if (consulta == _consulta)
+            {
+                BuscandoEquipo = false;
+            }
         }
     }
 
     [RelayCommand]
-    private void ElegirEquipo(Equipo equipo) => EquipoElegido = equipo;
+    private void SugerenciaSiguiente() => MoverSugerencia(1);
+
+    [RelayCommand]
+    private void SugerenciaAnterior() => MoverSugerencia(-1);
+
+    private void MoverSugerencia(int paso)
+    {
+        if (Resultados is not { Count: > 0 } lista)
+        {
+            return;
+        }
+
+        var actual = Sugerido is null ? -1 : lista.ToList().IndexOf(Sugerido);
+        Sugerido = lista[((actual + paso) % lista.Count + lista.Count) % lista.Count];
+    }
+
+    /// <summary>Elige el equipo (clic o Enter sobre el resaltado): escribe su placa y cierra las sugerencias.</summary>
+    [RelayCommand]
+    private async Task ElegirEquipoAsync(Equipo? equipo)
+    {
+        if ((equipo ?? Sugerido) is not { } elegido)
+        {
+            // Enter antes de que lleguen las sugerencias: se busca ya y, si hay una sola, se elige.
+            await BuscarEquipoAsync();
+            if (Resultados is [var unico])
+            {
+                elegido = unico;
+            }
+            else
+            {
+                return;
+            }
+        }
+
+        _consulta++;
+        _eligiendo = true;
+        try
+        {
+            Placa = elegido.PlacaInventario;
+        }
+        finally
+        {
+            _eligiendo = false;
+        }
+
+        EquipoElegido = elegido;
+        Resultados = null;
+        Sugerido = null;
+        BuscandoEquipo = false;
+    }
+
+    /// <summary>Esc cierra las sugerencias sin elegir.</summary>
+    [RelayCommand]
+    private void CerrarSugerencias()
+    {
+        _consulta++;
+        Resultados = null;
+        Sugerido = null;
+        BuscandoEquipo = false;
+    }
 
     [RelayCommand]
     private async Task GenerarHojaVidaAsync()
     {
         if (EquipoElegido is not { } equipo)
         {
-            Aviso = new Aviso("Elige un equipo", "Busca el equipo por su placa y elígelo antes de generar la hoja de vida.", null);
+            Aviso = new Aviso("Elige un equipo", "Escribe la placa, la serie o el nombre del equipo y elígelo en la lista antes de generar la hoja de vida.", null);
             return;
         }
 

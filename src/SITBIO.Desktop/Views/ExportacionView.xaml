@@ -2,6 +2,7 @@
 <UserControl x:Class="Sitbio.Desktop.Views.ExportacionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Sitbio.Desktop.Controls"
              xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
              xmlns:views="clr-namespace:Sitbio.Desktop.Views">
   <UserControl.Resources>
@@ -62,13 +63,13 @@
             <StackPanel>
               <TextBlock Text="Desde (dd/mm/aaaa)" Style="{StaticResource FieldLabel}" />
               <Border Style="{StaticResource FieldBox}">
-                <TextBox Style="{StaticResource FieldInput}" Text="{Binding Desde, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Desde" />
+                <controls:CampoFecha Text="{Binding Desde, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Desde" />
               </Border>
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Text="Hasta (dd/mm/aaaa)" Style="{StaticResource FieldLabel}" />
               <Border Style="{StaticResource FieldBox}">
-                <TextBox Style="{StaticResource FieldInput}" Text="{Binding Hasta, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hasta" />
+                <controls:CampoFecha Text="{Binding Hasta, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hasta" />
               </Border>
             </StackPanel>
             <StackPanel Grid.Column="4">
@@ -91,47 +92,99 @@
           </DockPanel>
           <Grid>
             <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="260" />
-              <ColumnDefinition Width="12" />
-              <ColumnDefinition Width="Auto" />
+              <ColumnDefinition Width="560" />
               <ColumnDefinition Width="*" />
               <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <StackPanel>
-              <TextBlock Text="Placa de inventario" Style="{StaticResource FieldLabel}" />
+              <TextBlock Text="Equipo" Style="{StaticResource FieldLabel}" />
               <Border Style="{StaticResource FieldBox}">
-                <TextBox Style="{StaticResource FieldInput}" Text="{Binding Placa, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Placa del equipo">
-                  <TextBox.InputBindings>
-                    <KeyBinding Key="Enter" Command="{Binding BuscarEquipoCommand}" />
-                  </TextBox.InputBindings>
-                </TextBox>
+                <DockPanel>
+                  <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Buscar}" Width="16" Height="16" Margin="0,0,8,0"
+                                  Foreground="{DynamicResource Brush.Text3}" />
+                  <Grid>
+                    <TextBlock Text="Placa, serie o nombre del equipo" Foreground="{DynamicResource Brush.Text3}" FontSize="15" VerticalAlignment="Center"
+                               Margin="2,0,0,0" IsHitTestVisible="False" Visibility="{Binding SinPlaca, Converter={StaticResource Visible}}" />
+                    <TextBox Style="{StaticResource FieldInput}" Text="{Binding Placa, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.Name="Buscar el equipo por placa, serie o nombre">
+                      <TextBox.InputBindings>
+                        <KeyBinding Key="Down" Command="{Binding SugerenciaSiguienteCommand}" />
+                        <KeyBinding Key="Up" Command="{Binding SugerenciaAnteriorCommand}" />
+                        <KeyBinding Key="Enter" Command="{Binding ElegirEquipoCommand}" />
+                        <KeyBinding Key="Escape" Command="{Binding CerrarSugerenciasCommand}" />
+                      </TextBox.InputBindings>
+                    </TextBox>
+                  </Grid>
+                </DockPanel>
               </Border>
             </StackPanel>
-            <Button views:Boton.Icono="{StaticResource Icono.Buscar}" Grid.Column="2" Style="{StaticResource LinkButton}" Content="Buscar" Command="{Binding BuscarEquipoCommand}" VerticalAlignment="Bottom" Margin="0,0,0,10" />
-            <Button views:Boton.Icono="{StaticResource Icono.Reporte}" Grid.Column="4" Style="{StaticResource PrimaryButton}" Content="Generar PDF" Command="{Binding GenerarHojaVidaCommand}"
+            <Button views:Boton.Icono="{StaticResource Icono.Reporte}" Grid.Column="2" Style="{StaticResource PrimaryButton}" Content="Generar PDF" Command="{Binding GenerarHojaVidaCommand}"
                     IsEnabled="{Binding Libre}" VerticalAlignment="Bottom" />
           </Grid>
-          <TextBlock Text="No hay equipos con esa placa en tu institución." Style="{StaticResource Muted}" Margin="0,10,0,0"
-                     Visibility="{Binding SinResultados, Converter={StaticResource Visible}}" />
-          <ItemsControl ItemsSource="{Binding Resultados}" Margin="0,10,0,0" Focusable="False">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <RadioButton GroupName="EquipoHojaVida" Margin="0,4,0,0"
-                             Command="{Binding DataContext.ElegirEquipoCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}">
-                  <TextBlock>
-                    <Run Text="{Binding PlacaInventario, Mode=OneWay}" FontWeight="SemiBold" />
-                    <Run Text="·" />
-                    <Run Text="{Binding TipoEquipo, Mode=OneWay}" />
-                    <Run Text="·" />
-                    <Run Text="{Binding Ubicacion, Mode=OneWay}" />
-                  </TextBlock>
-                </RadioButton>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
+          <TextBlock Text="Escribe al menos dos caracteres; usa las flechas y Enter para elegir." Style="{StaticResource Muted}" FontSize="13" Margin="0,6,0,0" />
+
+          <!-- Sugerencias mientras se escribe (I-08) -->
+          <TextBlock Text="Buscando…" Style="{StaticResource Muted}" FontSize="13" Margin="0,10,0,0"
+                     Visibility="{Binding BuscandoEquipo, Converter={StaticResource Visible}}" />
+          <TextBlock Text="No hay equipos con esa placa, serie o nombre en tu institución." Style="{StaticResource Muted}" Margin="0,10,0,0"
+                     AutomationProperties.LiveSetting="Polite" Visibility="{Binding SinResultados, Converter={StaticResource Visible}}" />
+          <Border Width="560" HorizontalAlignment="Left" Margin="0,8,0,0" Padding="6" CornerRadius="10" BorderThickness="1"
+                  Background="{DynamicResource Brush.Elevated}" BorderBrush="{DynamicResource Brush.Border}"
+                  Visibility="{Binding HaySugerencias, Converter={StaticResource Visible}}">
+            <ListBox ItemsSource="{Binding Resultados}" SelectedItem="{Binding Sugerido, Mode=TwoWay}" BorderThickness="0" Background="Transparent"
+                     Focusable="False" MaxHeight="340" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Equipos sugeridos">
+              <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                  <Setter Property="Focusable" Value="False" />
+                  <Setter Property="AutomationProperties.Name" Value="{Binding PlacaInventario}" />
+                  <Setter Property="Template">
+                    <Setter.Value>
+                      <ControlTemplate TargetType="ListBoxItem">
+                        <ContentPresenter />
+                      </ControlTemplate>
+                    </Setter.Value>
+                  </Setter>
+                </Style>
+              </ListBox.ItemContainerStyle>
+              <ListBox.ItemTemplate>
+                <DataTemplate>
+                  <Border x:Name="Fila" CornerRadius="6" Padding="10,7" Background="Transparent" Cursor="Hand">
+                    <Border.InputBindings>
+                      <MouseBinding MouseAction="LeftClick" CommandParameter="{Binding}"
+                                    Command="{Binding DataContext.ElegirEquipoCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" />
+                    </Border.InputBindings>
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding NumeroSerie, StringFormat='Serie {0}'}" FontSize="12"
+                                 Foreground="{DynamicResource Brush.Text3}" VerticalAlignment="Center" Margin="10,0,0,0" />
+                      <TextBlock TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontSize="14">
+                        <Run Text="{Binding PlacaInventario, Mode=OneWay}" FontFamily="Consolas" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+                        <Run Text=" · " Foreground="{DynamicResource Brush.Text3}" />
+                        <Run Text="{Binding TipoEquipo, Mode=OneWay}" Foreground="{DynamicResource Brush.Text}" />
+                        <Run Text=" · " Foreground="{DynamicResource Brush.Text3}" />
+                        <Run Text="{Binding Ubicacion, Mode=OneWay}" Foreground="{DynamicResource Brush.Text3}" />
+                      </TextBlock>
+                    </DockPanel>
+                  </Border>
+                  <DataTemplate.Triggers>
+                    <Trigger SourceName="Fila" Property="IsMouseOver" Value="True">
+                      <Setter TargetName="Fila" Property="Background" Value="{DynamicResource Brush.Surface2}" />
+                    </Trigger>
+                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                      <Setter TargetName="Fila" Property="Background" Value="{DynamicResource Brush.PrimarySoft}" />
+                    </DataTrigger>
+                  </DataTemplate.Triggers>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+
           <TextBlock Style="{StaticResource Muted}" Margin="0,10,0,0" Visibility="{Binding EquipoElegido, Converter={StaticResource NuloVisible}}">
             <Run Text="Equipo elegido:" />
             <Run Text="{Binding EquipoElegido.PlacaInventario, Mode=OneWay}" FontWeight="SemiBold" />
+            <Run Text="·" />
+            <Run Text="{Binding EquipoElegido.TipoEquipo, Mode=OneWay}" />
+            <Run Text="·" />
+            <Run Text="{Binding EquipoElegido.Ubicacion, Mode=OneWay}" />
           </TextBlock>
         </StackPanel>
       </Border>

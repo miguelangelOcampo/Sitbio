@@ -70,13 +70,13 @@
         <StackPanel>
           <TextBlock Text="Desde (dd/mm/aaaa)" Style="{StaticResource FieldLabel}" />
           <Border Style="{StaticResource FieldBox}">
-            <TextBox Style="{StaticResource FieldInput}" Text="{Binding Desde, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Desde" />
+            <controls:CampoFecha Text="{Binding Desde, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Desde" />
           </Border>
         </StackPanel>
         <StackPanel Grid.Column="2">
           <TextBlock Text="Hasta (dd/mm/aaaa)" Style="{StaticResource FieldLabel}" />
           <Border Style="{StaticResource FieldBox}">
-            <TextBox Style="{StaticResource FieldInput}" Text="{Binding Hasta, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hasta" />
+            <controls:CampoFecha Text="{Binding Hasta, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hasta" />
           </Border>
         </StackPanel>
         <Button Grid.Column="4" Style="{StaticResource PrimaryButton}" Content="Consultar" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />

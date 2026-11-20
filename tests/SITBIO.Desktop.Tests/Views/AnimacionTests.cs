@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using Sitbio.Desktop.Views;
 
 namespace Sitbio.Desktop.Tests.Views;
@@ -99,4 +100,88 @@ public class AnimacionTests
         Assert.Equal("Consultando las órdenes…", AutomationProperties.GetName(esqueleto));
         Assert.False(esqueleto.Focusable);
     });
+
+    // ---------- I-14: KPI escalonados y gráficos que crecen ----------
+
+    [Fact]
+    public void ConRetraso_QuedaInvisibleHastaSuTurno() => EnSta(() =>
+    {
+        Animacion.Forzar = true;
+        var elemento = new Border();
+
+        Animacion.Aparecer(elemento, Animacion.Paso * 2);
+        var tramo = Assert.IsType<DoubleAnimationUsingKeyFrames>(Animacion.Tramo(0, 1, Animacion.Paso * 2, Animacion.Duracion, new CubicEase()));
+
+        Assert.True(elemento.HasAnimatedProperties);
+        Assert.Equal([0.0, 0.0, 1.0], tramo.KeyFrames.Cast<DoubleKeyFrame>().Select(k => k.Value));
+        Assert.Equal(Animacion.Paso * 2, tramo.KeyFrames[1].KeyTime.TimeSpan);
+    });
+
+    [Fact]
+    public void Crecer_EscalaDesdeLaBase_YSinAnimacionesNoHaceNada() => EnSta(() =>
+    {
+        Animacion.Forzar = false;
+        var quieto = new Border();
+        Animacion.Crecer(quieto);
+        Assert.False(quieto.HasAnimatedProperties);
+        Assert.Equal(Transform.Identity, quieto.RenderTransform);
+
+        Animacion.Forzar = true;
+        var elemento = new Border();
+        Animacion.Crecer(elemento);
+        Assert.True(Assert.IsType<ScaleTransform>(elemento.RenderTransform).HasAnimatedProperties);
+        Assert.Equal(new Point(0.5, 1), elemento.RenderTransformOrigin);
+    });
+
+    [Fact]
+    public void Crecer_RespetaUnaTransformacionPropia() => EnSta(() =>
+    {
+        Animacion.Forzar = true;
+        var giro = new RotateTransform(10);
+        var elemento = new Border { RenderTransform = giro };
+
+        Animacion.Crecer(elemento);
+
+        Assert.Same(giro, elemento.RenderTransform);
+    });
+
+    [Fact]
+    public void Escalonado_CadaElementoEntraDespuesDelAnterior() => EnSta(() =>
+    {
+        Animacion.Forzar = true;
+        var lista = new ItemsControl { ItemsSource = new[] { "A", "B", "C" } };
+        var ventana = new Window { Content = lista, Width = 300, Height = 200, Left = -5000, Top = -5000, ShowInTaskbar = false };
+        ventana.Show();
+        lista.UpdateLayout();
+
+        Animacion.AparecerEscalonado(lista);
+
+        var contenedores = Enumerable.Range(0, 3).Select(i => (UIElement)lista.ItemContainerGenerator.ContainerFromIndex(i)).ToList();
+        Assert.All(contenedores, c => Assert.True(c.HasAnimatedProperties));
+        ventana.Close();
+    });
+
+    [Fact]
+    public void LosKpiYLosGraficosUsanLaEntrada()
+    {
+        var raiz = new DirectoryInfo(AppContext.BaseDirectory);
+        while (raiz is not null && !File.Exists(Path.Combine(raiz.FullName, "SITBIO.sln")))
+        {
+            raiz = raiz.Parent;
+        }
+
+        var vistas = Path.Combine(raiz!.FullName, "src", "SITBIO.Desktop", "Views");
+        var panel = File.ReadAllText(Path.Combine(vistas, "PanelView.xaml"));
+        var tema = File.ReadAllText(Path.Combine(raiz.FullName, "src", "SITBIO.Desktop", "Themes", "Controls.xaml"));
+
+        Assert.Contains(@"ItemsSource=""{Binding Indicadores}"" ItemTemplate=""{StaticResource PlantillaIndicador}"" Focusable=""False"" views:Animacion.Escalonar=""True""", panel);
+        Assert.Contains(@"<Setter Property=""views:Animacion.Crecer"" Value=""True"" />", tema);
+        foreach (var archivo in Directory.GetFiles(vistas, "*.xaml"))
+        {
+            foreach (var grafico in System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(archivo), @"<controls:Grafico\b[^>]*>").Select(m => m.Value))
+            {
+                Assert.True(grafico.Contains("MiniGrafico") || grafico.Contains(@"views:Animacion.Crecer=""True"""), $"{Path.GetFileName(archivo)}: {grafico}");
+            }
+        }
+    }
 }

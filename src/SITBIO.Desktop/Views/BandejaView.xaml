@@ -219,8 +219,7 @@
         <views:Esqueleto Texto="Consultando la bandeja…" Margin="0,16,0,0"
                    Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
         <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinTiquetes, Converter={StaticResource Visible}}">
-          <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Bandeja}" Width="28" Height="28"
-                          Foreground="{DynamicResource Brush.Text3}" HorizontalAlignment="Center" Margin="0,0,0,10" />
+          <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Bandeja}" />
           <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="No hay tiquetes por asignar." FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
           <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Cuando se reporte una falla, aparecerá aquí para que la asignes a un técnico." Style="{StaticResource Muted}" Margin="0,4,0,0" />
         </StackPanel>

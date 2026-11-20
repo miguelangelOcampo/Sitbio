@@ -172,7 +172,7 @@
         <StackPanel>
           <!-- Cuatro indicadores -->
           <Border Style="{StaticResource KpiStrip}">
-            <ItemsControl ItemsSource="{Binding Indicadores}" ItemTemplate="{StaticResource PlantillaIndicador}" Focusable="False">
+            <ItemsControl ItemsSource="{Binding Indicadores}" ItemTemplate="{StaticResource PlantillaIndicador}" Focusable="False" views:Animacion.Escalonar="True">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                   <UniformGrid Rows="1" />
@@ -210,7 +210,7 @@
             </DockPanel>
 
             <!-- Gráfico de líneas con etiqueta al pasar el mouse (componente de gráficos, I-01) -->
-            <controls:Grafico Height="200" Margin="0,12,0,0" Tipo="Linea" MostrarLeyenda="False"
+            <controls:Grafico views:Animacion.Crecer="True" Height="200" Margin="0,12,0,0" Tipo="Linea" MostrarLeyenda="False"
                               Etiquetas="{Binding EtiquetasActividad}" Series="{Binding SeriesActividad}"
                               AutomationProperties.Name="Preventivos y correctivos cerrados por periodo" />
 
@@ -259,7 +259,7 @@
           <StackPanel Margin="0,28,0,0" Visibility="{Binding MuestraIndicadoresPeriodo, Converter={StaticResource Visible}}">
             <TextBlock Text="Indicadores de los últimos 30 días" Style="{StaticResource SectionTitle}" Margin="0,0,0,10" />
             <Border Style="{StaticResource KpiStrip}">
-              <ItemsControl ItemsSource="{Binding IndicadoresPeriodo}" ItemTemplate="{StaticResource PlantillaIndicador}" Focusable="False">
+              <ItemsControl ItemsSource="{Binding IndicadoresPeriodo}" ItemTemplate="{StaticResource PlantillaIndicador}" Focusable="False" views:Animacion.Escalonar="True">
                 <ItemsControl.ItemsPanel>
                   <ItemsPanelTemplate>
                     <UniformGrid Rows="2" Columns="2" />
@@ -289,10 +289,8 @@
           </StackPanel>
 
           <StackPanel Margin="0,32,0,0" HorizontalAlignment="Center" Visibility="{Binding SinAtencion, Converter={StaticResource Visible}}">
-            <Border Width="48" Height="48" CornerRadius="24" Background="{DynamicResource Brush.SuccessSoft}" HorizontalAlignment="Center">
-              <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Check}" Width="24" Height="24" Foreground="{DynamicResource Brush.SuccessText}" />
-            </Border>
-            <TextBlock Text="Todo al día" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" HorizontalAlignment="Center" Margin="0,8,0,0" />
+            <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Check}" Foreground="{DynamicResource Brush.SuccessText}" />
+            <TextBlock Text="Todo al día" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" HorizontalAlignment="Center" />
             <TextBlock Text="No hay pendientes que requieran tu atención." Style="{StaticResource Muted}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,4,0,0" />
           </StackPanel>
 

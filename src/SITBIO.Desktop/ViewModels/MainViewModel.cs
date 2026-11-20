@@ -16,6 +16,7 @@ public partial class MainViewModel : ObservableObject
     private readonly IFabricaPantallas? _pantallas;
     private readonly IServicioSesion? _servicioSesion;
     private readonly IServicioBusqueda? _servicioBusqueda;
+    private readonly IServicioTiquetes? _servicioTiquetes;
     private readonly SynchronizationContext? _interfaz = SynchronizationContext.Current;
 
     public MainViewModel(
@@ -24,7 +25,8 @@ public partial class MainViewModel : ObservableObject
         ControlSesion control,
         IFabricaPantallas? pantallas = null,
         IServicioSesion? servicioSesion = null,
-        IServicioBusqueda? servicioBusqueda = null)
+        IServicioBusqueda? servicioBusqueda = null,
+        IServicioTiquetes? servicioTiquetes = null)
     {
         _crearLogin = crearLogin;
         _sesionActual = sesionActual;
@@ -32,6 +34,7 @@ public partial class MainViewModel : ObservableObject
         _pantallas = pantallas;
         _servicioSesion = servicioSesion;
         _servicioBusqueda = servicioBusqueda;
+        _servicioTiquetes = servicioTiquetes;
         _control.SesionTerminada += (_, cierre) => EnLaInterfaz(() => Cierre = cierre);
         _vistaActual = NuevoLogin();
     }
@@ -97,6 +100,7 @@ public partial class MainViewModel : ObservableObject
         {
             Confirmacion = confirmacion,
             Usuario = _sesionActual.Sesion,
+            Tiquetes = _servicioTiquetes,
         };
         shell.CierreSolicitado += async (_, _) => await CerrarSesionAsync();
         return shell;

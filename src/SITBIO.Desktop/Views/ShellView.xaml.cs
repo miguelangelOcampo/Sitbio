@@ -13,6 +13,15 @@ public partial class ShellView : UserControl
         InitializeComponent();
         PreviewKeyDown += AlPresionarTecla;
 
+        // I-14: al entrar se consulta el punto de aviso de Solicitudes (tiquetes sin técnico).
+        Loaded += (_, _) =>
+        {
+            if (DataContext is ShellViewModel shell)
+            {
+                shell.CargarAvisosCommand.Execute(null);
+            }
+        };
+
         // Como en el prototipo, salir de la caja la limpia y cierra el popup (los resultados no toman el foco).
         BusquedaGlobalTexto.LostKeyboardFocus += (_, _) =>
         {

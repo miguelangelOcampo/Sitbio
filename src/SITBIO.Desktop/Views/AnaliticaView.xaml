@@ -124,7 +124,7 @@
               <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Dispersion}" Width="16" Height="16" Foreground="{DynamicResource Brush.Text2}" Margin="0,0,8,0" />
               <TextBlock Text="{Binding TituloGrafico}" Style="{StaticResource SectionTitle}" TextTrimming="CharacterEllipsis" />
             </DockPanel>
-            <controls:Grafico Tipo="Dispersion" Height="380" Margin="0,14,0,0" FormatoValor="0.##"
+            <controls:Grafico views:Animacion.Crecer="True" Tipo="Dispersion" Height="380" Margin="0,14,0,0" FormatoValor="0.##"
                               Series="{Binding SeriesGrupos}" Puntos="{Binding Puntos}"
                               TituloEjeX="{Binding TituloEjeX}" TituloEjeY="{Binding TituloEjeY}"
                               ComandoPunto="{Binding AbrirEquipoCommand}"

@@ -1,4 +1,5 @@
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Sitbio.Desktop.Services;
 using Sitbio.Desktop.ViewModels;
 
@@ -179,5 +180,69 @@ public class ShellViewModelTests
         Assert.Equal("SITBIO", ShellViewModel.TextoVersion(null));
         Assert.Equal(ShellViewModel.TextoVersion(typeof(ShellViewModel).Assembly.GetName().Version), ShellViewModel.VersionProducto);
         Assert.StartsWith("SITBIO v1.1.1", ShellViewModel.VersionProducto);
+    }
+
+    // ---------- I-14: punto de aviso del riel ----------
+
+    [Fact]
+    public async Task ElPuntoDeGestion_SigueALasAlertasSinRevisar()
+    {
+        var servicio = Substitute.For<IServicioMantenimiento>();
+        servicio.AlertasAsync(Arg.Any<CancellationToken>()).Returns(new ResumenAlertas(15,
+        [
+            new Alerta(TiposAlerta.Preventivo, TiposAlerta.Vencida, new DateOnly(2026, 11, 1), -5, Guid.NewGuid(), "PL-001", "Bomba", "UCI", "Preventivo", Guid.NewGuid(), null, null),
+        ], 0));
+        var alertas = new CentroAlertasViewModel(servicio);
+        var pantallas = Substitute.For<IFabricaPantallas>();
+        pantallas.Crear(CentroAlertasViewModel.IdPantalla).Returns(alertas);
+        var shell = new ShellViewModel("AC-02", pantallas);
+        var gestion = shell.Modulos.Single(m => m.Corto == "Gestión");
+        Assert.False(gestion.TienePendientes);
+
+        await alertas.CargarCommand.ExecuteAsync(null);
+        Assert.True(gestion.TienePendientes);
+        Assert.Single(shell.Modulos, m => m.TienePendientes);
+
+        alertas.MarcarRevisadaCommand.Execute(alertas.Filas[0]);
+        Assert.False(gestion.TienePendientes);
+    }
+
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(0, false)]
+    public async Task ElPuntoDeSolicitudes_AvisaDeTiquetesSinTecnico(int recibidos, bool punto)
+    {
+        var tiquetes = Substitute.For<IServicioTiquetes>();
+        tiquetes.ListarAsync(Arg.Is<FiltroTiquetes>(f => f.Estado == EstadosTiquete.Recibido), Arg.Any<CancellationToken>())
+            .Returns(new PaginaTiquetes([], 1, 1, recibidos));
+        var shell = new ShellViewModel("AC-02") { Tiquetes = tiquetes };
+
+        await shell.CargarAvisosCommand.ExecuteAsync(null);
+
+        Assert.Equal(punto, shell.Modulos.Single(m => m.Corto == "Solicitudes").TienePendientes);
+    }
+
+    [Fact]
+    public async Task SinBandeja_NoSeConsultanLosTiquetes()
+    {
+        var tiquetes = Substitute.For<IServicioTiquetes>();
+        var shell = new ShellViewModel("AC-07") { Tiquetes = tiquetes };
+
+        await shell.CargarAvisosCommand.ExecuteAsync(null);
+
+        await tiquetes.DidNotReceiveWithAnyArgs().ListarAsync(default!, default);
+        Assert.DoesNotContain(shell.Modulos, m => m.TienePendientes);
+    }
+
+    [Fact]
+    public async Task SiLaConsultaFalla_ElRielQuedaSinPunto()
+    {
+        var tiquetes = Substitute.For<IServicioTiquetes>();
+        tiquetes.ListarAsync(default!, default).ThrowsAsyncForAnyArgs(new ErrorApi(null, "Sin red", new Dictionary<string, string>(), true));
+        var shell = new ShellViewModel("AC-02") { Tiquetes = tiquetes };
+
+        await shell.CargarAvisosCommand.ExecuteAsync(null);
+
+        Assert.DoesNotContain(shell.Modulos, m => m.TienePendientes);
     }
 }

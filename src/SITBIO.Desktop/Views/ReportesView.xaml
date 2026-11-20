@@ -12,16 +12,6 @@
     <views:TextoVisibleConverter x:Key="TextoVisible" />
     <views:RecursoConverter x:Key="Recurso" />
 
-    <!-- Mini gráfico de un indicador (barras, línea o arco) con etiqueta al pasar el mouse -->
-    <Style x:Key="MiniGrafico" TargetType="controls:Grafico">
-      <Setter Property="Compacto" Value="True" />
-      <Setter Property="Width" Value="68" />
-      <Setter Property="Height" Value="36" />
-      <Setter Property="DockPanel.Dock" Value="Right" />
-      <Setter Property="VerticalAlignment" Value="Bottom" />
-      <Setter Property="Margin" Value="10,0,0,6" />
-    </Style>
-
     <!-- Equipo fuera de servicio: fila que abre la hoja de vida -->
     <Style x:Key="FilaFuera" TargetType="Button">
       <Setter Property="Cursor" Value="Hand" />

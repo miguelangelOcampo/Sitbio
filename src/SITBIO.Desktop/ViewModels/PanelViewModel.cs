@@ -224,39 +224,86 @@ public partial class PanelViewModel(
             var operativos = activos.Count(e => e.Estado == EstadosEquipo.Operativo);
             var tipos = activos.Select(e => e.TipoEquipo).Distinct().Count();
             var areas = activos.Select(e => e.Ubicacion).Distinct().Count();
-            Indicadores.Add(new("Equipos registrados", Numero(activos.Count), $"{tipos} tipos · {areas} áreas", TonoTarjeta.Neutro, EquiposViewModel.IdPantalla));
+            var porTipo = activos.GroupBy(e => e.TipoEquipo).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.CurrentCulture).Take(MaximoBarras).ToList();
+            Indicadores.Add(new("Equipos registrados", Numero(activos.Count), $"{tipos} tipos · {areas} áreas", TonoTarjeta.Neutro, EquiposViewModel.IdPantalla)
+            {
+                Icono = "Icono.Equipo",
+                Grafico = TipoGrafico.Barras,
+                Etiquetas = porTipo.Select(g => g.Key).ToList(),
+                Series = [new SerieGrafico("Equipos", "Brush.Primary", porTipo.Select(g => (double)g.Count()).ToList())],
+                DescripcionGrafico = "Equipos por tipo",
+            });
             Indicadores.Add(new(
                 "Equipos operativos",
                 Numero(operativos),
                 activos.Count == 0 ? "Sin equipos activos" : $"{Math.Round(operativos * 100.0 / activos.Count)} % disponibles",
                 TonoTarjeta.Exito,
-                null));
+                null)
+            {
+                Icono = "Icono.CheckCirculo",
+                Grafico = TipoGrafico.Arco,
+                Series = Arco(("Operativos", "Brush.Success", operativos), ("Otros estados", "Brush.Border", activos.Count - operativos)),
+                DescripcionGrafico = "Equipos operativos frente al total activo",
+            });
 
             var conPlan = activos.Where(e => e.Preventivo is not null).Select(e => e.Preventivo!).ToList();
             var vencidos = conPlan.Count(p => p.Vencido || p.ProximaFecha < hoy);
             var semana = conPlan.Count(p => p.ProximaFecha >= hoy && p.ProximaFecha <= hoy.AddDays(7));
             var pendientes = conPlan.Count(p => p.ProximaFecha <= hoy.AddDays(30));
             var detalle = vencidos > 0 ? $"{vencidos} vencidos · {semana} esta semana" : $"{semana} vencen esta semana";
-            Indicadores.Add(new("Mantenimientos pendientes", Numero(pendientes), detalle, vencidos + semana > 0 ? TonoTarjeta.Advertencia : TonoTarjeta.Neutro, MantenimientosViewModel.IdPantalla));
+            // Cuatro semanas desde hoy; los vencidos cuentan en la primera y la cuarta llega hasta el día 30.
+            var semanas = Enumerable.Range(0, 4)
+                .Select(i => (double)conPlan.Count(p =>
+                {
+                    var dias = p.Vencido ? 0 : p.ProximaFecha.DayNumber - hoy.DayNumber;
+                    return dias <= 30 && Math.Clamp(dias / 7, 0, 3) == i;
+                }))
+                .ToList();
+            Indicadores.Add(new("Mantenimientos pendientes", Numero(pendientes), detalle, vencidos + semana > 0 ? TonoTarjeta.Advertencia : TonoTarjeta.Neutro, MantenimientosViewModel.IdPantalla)
+            {
+                Icono = "Icono.Calendario",
+                Grafico = TipoGrafico.Barras,
+                Etiquetas = ["Esta semana", "Semana 2", "Semana 3", "Semana 4"],
+                Series = [new SerieGrafico("Pendientes", "Brush.Warning", semanas)],
+                DescripcionGrafico = "Mantenimientos pendientes por semana",
+            });
         }
         else if (kpi is not null)
         {
             // La Directiva (AC-06) no consulta el inventario: el panel resume los indicadores de HU-026.
             var f = kpi.FueraDeServicio;
-            Indicadores.Add(new("Equipos activos", Numero(f.EquiposActivos), "Inventario de la institución", TonoTarjeta.Neutro, null));
+            Indicadores.Add(new("Equipos activos", Numero(f.EquiposActivos), "Inventario de la institución", TonoTarjeta.Neutro, null) { Icono = "Icono.Equipo" });
             Indicadores.Add(new(
                 "Equipos operativos",
                 Numero(f.EquiposActivos - f.Equipos),
                 f.EquiposActivos == 0 ? "Sin equipos activos" : $"{Math.Round((f.EquiposActivos - f.Equipos) * 100.0 / f.EquiposActivos)} % disponibles",
                 TonoTarjeta.Exito,
-                null));
-            Indicadores.Add(new("Tiempo medio de reparación", Horas(kpi.MttrHoras), "MTTR del periodo", TonoTarjeta.Neutro, ReportesViewModel.IdPantalla));
+                null)
+            {
+                Icono = "Icono.CheckCirculo",
+                Grafico = TipoGrafico.Arco,
+                Series = Arco(("Operativos", "Brush.Success", f.EquiposActivos - f.Equipos), ("Fuera de servicio", "Brush.Danger", f.Equipos)),
+                DescripcionGrafico = "Equipos operativos frente a fuera de servicio",
+            });
+            Indicadores.Add(new("Tiempo medio de reparación", Horas(kpi.MttrHoras), "MTTR del periodo", TonoTarjeta.Neutro, ReportesViewModel.IdPantalla) { Icono = "Icono.Reloj" });
         }
 
         if (abiertas is not null)
         {
             var porAprobar = abiertas.Count(o => o.Estado == EstadosOrden.Cerrada);
-            Indicadores.Add(new("Órdenes abiertas", Numero(abiertas.Count), $"{porAprobar} por aprobar", porAprobar > 0 ? TonoTarjeta.Info : TonoTarjeta.Neutro, OrdenesViewModel.IdPantalla));
+            // Línea de las órdenes abiertas según la semana en que se crearon (las seis últimas, la actual al final).
+            var inicio = hoy.AddDays(-7 * (SemanasOrdenes - 1) - 6);
+            var porSemana = Enumerable.Range(0, SemanasOrdenes)
+                .Select(i => (double)abiertas.Count(o => Creada(o) is { } d && d >= inicio && (d.DayNumber - inicio.DayNumber) / 7 == i))
+                .ToList();
+            Indicadores.Add(new("Órdenes abiertas", Numero(abiertas.Count), $"{porAprobar} por aprobar", porAprobar > 0 ? TonoTarjeta.Info : TonoTarjeta.Neutro, OrdenesViewModel.IdPantalla)
+            {
+                Icono = "Icono.Portapapeles",
+                Grafico = TipoGrafico.Linea,
+                Etiquetas = Enumerable.Range(0, SemanasOrdenes).Select(i => inicio.AddDays(7 * i).ToString("dd/MM", Cultura)).ToList(),
+                Series = [new SerieGrafico("Órdenes abiertas creadas", "Brush.Primary", porSemana)],
+                DescripcionGrafico = "Órdenes abiertas creadas por semana",
+            });
         }
         else if (kpi is not null)
         {
@@ -266,9 +313,28 @@ public partial class PanelViewModel(
                 c.Porcentaje is { } p ? $"{Math.Round(p)} %" : "—",
                 c.Programadas == 0 ? "Sin preventivas programadas" : $"{c.Cumplidas} de {c.Programadas} preventivas",
                 TonoTarjeta.Neutro,
-                ReportesViewModel.IdPantalla));
+                ReportesViewModel.IdPantalla)
+            {
+                Icono = "Icono.ListaCheck",
+                Grafico = TipoGrafico.Arco,
+                Series = Arco(("Cumplidas", "Brush.Primary", c.Cumplidas), ("Sin cumplir", "Brush.Border", c.Programadas - c.Cumplidas)),
+                DescripcionGrafico = "Preventivas cumplidas frente a programadas",
+            });
         }
     }
+
+    /// <summary>Barras como máximo en el mini gráfico de equipos por tipo.</summary>
+    public const int MaximoBarras = 6;
+
+    /// <summary>Semanas de la mini línea de órdenes abiertas.</summary>
+    public const int SemanasOrdenes = 6;
+
+    private static DateOnly? Creada(Orden o) =>
+        (o.FechaCreacion ?? o.FechaAsignacion) is { } f ? DateOnly.FromDateTime(f.LocalDateTime) : null;
+
+    /// <summary>Segmentos de un mini arco; sin total no hay arco.</summary>
+    private static IReadOnlyList<SerieGrafico> Arco(params (string Nombre, string Color, int Valor)[] partes) =>
+        partes.Sum(p => Math.Max(p.Valor, 0)) == 0 ? [] : partes.Select(p => new SerieGrafico(p.Nombre, p.Color, [Math.Max(p.Valor, 0)])).ToList();
 
     private void ArmarIndicadoresPeriodo(Indicadores? kpi)
     {
@@ -613,6 +679,26 @@ public enum TonoTarjeta
 public sealed record TarjetaIndicador(string Titulo, string Valor, string Detalle, TonoTarjeta Tono, string? Destino)
 {
     public bool TieneDestino => Destino is not null;
+
+    // ---------- I-12: ícono y mini gráfico del prototipo ----------
+
+    /// <summary>Clave del ícono del indicador (Icons.xaml); sin ícono, la ficha no se muestra.</summary>
+    public string? Icono { get; init; }
+
+    public TipoGrafico Grafico { get; init; } = TipoGrafico.Barras;
+
+    public IReadOnlyList<string> Etiquetas { get; init; } = [];
+
+    public IReadOnlyList<SerieGrafico> Series { get; init; } = [];
+
+    /// <summary>Nombre accesible del mini gráfico.</summary>
+    public string DescripcionGrafico { get; init; } = string.Empty;
+
+    public bool TieneIcono => Icono is not null;
+
+    public bool HayGrafico => Series.Any(s => s.Valores.Any(v => v > 0));
+
+    public bool EsArco => Grafico == TipoGrafico.Arco;
 }
 
 /// <summary>Tarjeta de «Atención requerida»: «Ver detalle» abre Destino con Parametro; «Descartar» la oculta en la sesión.</summary>

@@ -28,6 +28,7 @@ public class MantenimientosViewModelTests
         });
         _servicio.ListarCalibracionesAsync(Arg.Any<FiltroCalibraciones>(), Arg.Any<CancellationToken>())
             .Returns(new PaginaCalibraciones([], 1, CalibracionesViewModel.TamanoPagina, 0));
+        _servicio.AlertasAsync(Arg.Any<CancellationToken>()).Returns(new ResumenAlertas(20, [], 0));
     }
 
     private static PlanMantenimiento Plan(
@@ -269,5 +270,96 @@ public class MantenimientosViewModelTests
         await vm.CargarCommand.ExecuteAsync(null);
 
         Assert.Equal(("MSG-011", true, false), (vm.Aviso!.Codigo, vm.Aviso.PuedeReintentar, vm.SinPlanes));
+    }
+
+    // ---------- I-11: «Atención requerida» con tarjetas ----------
+
+    private static Alerta AlertaPlan(Guid plan, int dias = -3) =>
+        new(TiposAlerta.Preventivo, dias < 0 ? TiposAlerta.Vencida : TiposAlerta.Proxima, Hoy.AddDays(dias), dias, Guid.NewGuid(), "HSV-EQ-0412",
+            "Monitor de signos vitales", "UCI adultos", "Preventivo mensual", plan, null, null);
+
+    private static Alerta AlertaCalibracion(Guid equipo) =>
+        new(TiposAlerta.Calibracion, TiposAlerta.Proxima, Hoy.AddDays(12), 12, equipo, "HSV-EQ-0900", "Desfibrilador", "Urgencias", "Calibración", null, null, null);
+
+    [Theory]
+    [InlineData("AC-02", true)]
+    [InlineData("AC-03", true)]
+    [InlineData("AC-01", false)]
+    [InlineData("AC-05", false)]
+    public async Task AtencionRequerida_SoloParaQuienRecibeAlertas(string rol, bool ve)
+    {
+        _servicio.AlertasAsync(Arg.Any<CancellationToken>()).Returns(new ResumenAlertas(20, [AlertaPlan(Guid.NewGuid())], 0));
+
+        var vm = await AbrirAsync(rol);
+
+        Assert.Equal(ve, vm.VeAtencion);
+        Assert.Equal(ve, vm.HayAtencion);
+        await _servicio.Received(ve ? 1 : 0).AlertasAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AtencionRequerida_SeConsultaUnaVez_YDescartarLaQuita()
+    {
+        var calibracion = AlertaCalibracion(Guid.NewGuid());
+        _servicio.AlertasAsync(Arg.Any<CancellationToken>()).Returns(new ResumenAlertas(20, [AlertaPlan(Guid.NewGuid()), calibracion], 0));
+        var vm = await AbrirAsync();
+        Assert.Equal("2 pendientes", vm.TextoAtencion);
+
+        vm.MarcarRevisadaCommand.Execute(vm.Atencion[0]);
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal([calibracion], vm.Atencion.Select(f => f.Alerta));
+        Assert.Equal("1 pendiente", vm.TextoAtencion);
+        await _servicio.Received(1).AlertasAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task AtencionRequerida_VerDetalle_AbreLaCalibracionEnLaMismaPantalla()
+    {
+        var equipo = Guid.NewGuid();
+        _servicio.AlertasAsync(Arg.Any<CancellationToken>()).Returns(new ResumenAlertas(20, [AlertaCalibracion(equipo)], 0));
+        var vm = await AbrirAsync();
+
+        vm.AbrirAlertaCommand.Execute(vm.Atencion[0]);
+
+        Assert.True(vm.EnCalibraciones);
+    }
+
+    [Fact]
+    public async Task AtencionRequerida_SiLasAlertasFallan_LaListaDePlanesSigue()
+    {
+        _servicio.AlertasAsync(Arg.Any<CancellationToken>()).ThrowsAsync(new ErrorApi(null, "Sin red", new Dictionary<string, string>(), true));
+
+        var vm = await AbrirAsync("AC-02", Plan());
+
+        Assert.False(vm.HayAtencion);
+        Assert.Single(vm.Filas);
+        Assert.Null(vm.Aviso);
+    }
+
+    [Fact]
+    public void LaPantallaMuestraLasAlertasConLaTarjetaDelTema_NoComoTabla()
+    {
+        var vista = File.ReadAllText(Path.Combine(Raiz(), "src", "SITBIO.Desktop", "Views", "MantenimientosView.xaml"));
+        var shell = File.ReadAllText(Path.Combine(Raiz(), "src", "SITBIO.Desktop", "Views", "ShellView.xaml"));
+        var tema = File.ReadAllText(Path.Combine(Raiz(), "src", "SITBIO.Desktop", "Themes", "Controls.xaml"));
+
+        Assert.Contains(@"<ItemsControl ItemsSource=""{Binding Atencion}"" ItemTemplate=""{StaticResource TarjetaAlerta}""", vista);
+        Assert.Contains(@"ItemTemplate=""{StaticResource TarjetaAlerta}""", shell);
+        Assert.DoesNotContain(@"x:Key=""TarjetaAlerta""", shell);
+        Assert.Contains(@"<DataTemplate x:Key=""TarjetaAlerta"" DataType=""{x:Type vm:FilaAlerta}"">", tema);
+        Assert.Contains(@"<TextBlock Text=""Ver detalle"" VerticalAlignment=""Center"" />", tema);
+        Assert.Contains(@"Content=""Descartar""", tema);
+    }
+
+    private static string Raiz()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "SITBIO.sln")))
+        {
+            dir = dir.Parent;
+        }
+
+        return dir!.FullName;
     }
 }

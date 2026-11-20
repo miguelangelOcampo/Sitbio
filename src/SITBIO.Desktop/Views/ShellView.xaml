@@ -76,64 +76,7 @@
       </StackPanel>
     </DataTemplate>
 
-    <!-- Tarjeta de alerta de UI-016: estado con punto y texto (ACC-001); la revisada se atenúa. -->
-    <Style x:Key="PuntoAlerta" TargetType="Ellipse" BasedOn="{StaticResource StatusDot}">
-      <Setter Property="Fill" Value="{DynamicResource Brush.Text3}" />
-      <Style.Triggers>
-        <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoEstado.Advertencia}">
-          <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
-        </DataTrigger>
-        <DataTrigger Binding="{Binding Tono}" Value="{x:Static vm:TonoEstado.Critico}">
-          <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
-        </DataTrigger>
-      </Style.Triggers>
-    </Style>
-    <DataTemplate x:Key="TarjetaAlerta" DataType="{x:Type vm:FilaAlerta}">
-      <Border x:Name="Tarjeta" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1" CornerRadius="{StaticResource Radius.Field}"
-              Padding="14,12" Margin="0,0,0,10" Background="{DynamicResource Brush.Surface}">
-        <StackPanel>
-          <DockPanel>
-            <TextBlock DockPanel.Dock="Right" Text="{Binding Fecha}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" Margin="8,0,0,0" />
-            <TextBlock Text="{Binding Tipo}" Style="{StaticResource Overline}" />
-          </DockPanel>
-          <TextBlock Text="{Binding Equipo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis"
-                     ToolTip="{Binding Equipo}" Margin="0,4,0,0" />
-          <TextBlock Text="{Binding Ubicacion}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
-          <TextBlock Text="{Binding Descripcion}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,6,0,0" />
-          <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
-            <Ellipse Style="{StaticResource PuntoAlerta}" />
-            <TextBlock Text="{Binding Estado}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
-            <TextBlock Text="· Revisada" Foreground="{DynamicResource Brush.Text2}" Margin="6,0,0,0"
-                       Visibility="{Binding Revisada, Converter={StaticResource Visible}}" />
-          </StackPanel>
-          <TextBlock Text="{Binding Orden}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" Margin="0,4,0,0"
-                     Visibility="{Binding Orden, Converter={StaticResource TextoVisible}}" />
-          <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-            <Button Content="Abrir" Style="{StaticResource LinkButton}" Margin="0,0,18,0"
-                    Command="{Binding DataContext.AbrirAlertaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
-                    AutomationProperties.Name="{Binding Equipo, StringFormat='Abrir la alerta de {0}'}" />
-            <Button Content="Marcar como revisada"
-                    Command="{Binding DataContext.MarcarRevisadaCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" CommandParameter="{Binding}"
-                    AutomationProperties.Name="{Binding Equipo, StringFormat='Marcar como revisada la alerta de {0}'}">
-              <Button.Style>
-                <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
-                  <Style.Triggers>
-                    <DataTrigger Binding="{Binding Revisada}" Value="True">
-                      <Setter Property="Visibility" Value="Collapsed" />
-                    </DataTrigger>
-                  </Style.Triggers>
-                </Style>
-              </Button.Style>
-            </Button>
-          </StackPanel>
-        </StackPanel>
-      </Border>
-      <DataTemplate.Triggers>
-        <DataTrigger Binding="{Binding Revisada}" Value="True">
-          <Setter TargetName="Tarjeta" Property="Opacity" Value="0.62" />
-        </DataTrigger>
-      </DataTemplate.Triggers>
-    </DataTemplate>
+    <!-- La tarjeta de alerta (TarjetaAlerta) está en el tema: la comparten UI-016 y Mantenimientos (I-11). -->
     <Style x:Key="RailButton" TargetType="Button">
       <Setter Property="Foreground" Value="{DynamicResource Brush.OnBrandPanelMuted}" />
       <Setter Property="Height" Value="40" />

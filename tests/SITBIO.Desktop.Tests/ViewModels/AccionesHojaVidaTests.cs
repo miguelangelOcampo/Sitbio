@@ -16,15 +16,16 @@ public class AccionesHojaVidaTests
     private readonly IServicioEquipos _servicio = Substitute.For<IServicioEquipos>();
     private readonly IServicioReportes _reportes = Substitute.For<IServicioReportes>();
     private readonly IDialogoArchivos _dialogo = Substitute.For<IDialogoArchivos>();
+    private readonly IServicioFotoEquipo _fotos = Substitute.For<IServicioFotoEquipo>();
     private readonly List<(Guid Id, string Placa)> _reportadas = [];
 
-    private async Task<DetalleEquipoViewModel> AbrirAsync(string rol, Equipo? equipo = null, bool puedeEditar = false)
+    private async Task<DetalleEquipoViewModel> AbrirAsync(string rol, Equipo? equipo = null, bool puedeEditar = false, bool verFotos = true)
     {
         equipo ??= Equipo();
         _servicio.ObtenerAsync(equipo.Id, Arg.Any<CancellationToken>()).Returns(equipo);
         var detalle = new DetalleEquipoViewModel(
             _servicio, new Reloj(), equipo.Id, equipo.PlacaInventario, () => { }, puedeEditar, rol: rol, dialogo: _dialogo,
-            reportes: _reportes, reportarFalla: (id, placa) => _reportadas.Add((id, placa)));
+            reportes: _reportes, reportarFalla: (id, placa) => _reportadas.Add((id, placa)), fotos: _fotos, verFotos: verFotos);
         await detalle.CargarCommand.ExecuteAsync(null);
         return detalle;
     }
@@ -173,5 +174,49 @@ public class AccionesHojaVidaTests
         pantalla.Detalle!.ReportarFallaCommand.Execute(null);
 
         Assert.Equal([new SolicitudNavegacion("UI-009", equipo.Id.ToString())], pedidos);
+    }
+
+    // ---------- I-10: foto en la vista previa de la hoja de vida ----------
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task HojaVidaPdf_LaVistaPreviaMuestraLaFotoDe512_AunqueSePrefieraElIcono(bool verFotos)
+    {
+        var equipo = Equipo() with { TieneFoto = true };
+        _fotos.DescargarAsync(equipo.Id, 512, Arg.Any<CancellationToken>()).Returns([1, 2, 3]);
+        var detalle = await AbrirAsync("AC-02", equipo, verFotos: verFotos);
+
+        await detalle.AbrirHojaVidaPdfCommand.ExecuteAsync(null);
+
+        Assert.Equal([1, 2, 3], detalle.FotoPdf);
+        Assert.False(detalle.SinFotoPdf);
+    }
+
+    [Fact]
+    public async Task HojaVidaPdf_SinFoto_MuestraElIconoDelTipo()
+    {
+        var detalle = await AbrirAsync("AC-02");
+
+        await detalle.AbrirHojaVidaPdfCommand.ExecuteAsync(null);
+
+        Assert.True(detalle.VistaPreviaPdf);
+        Assert.True(detalle.SinFotoPdf);
+        Assert.Equal("Icono.Tipo.Monitor", detalle.IconoTipo);
+        await _fotos.DidNotReceiveWithAnyArgs().DescargarAsync(default, default, default);
+    }
+
+    [Fact]
+    public async Task HojaVidaPdf_SiLaFotoNoLlega_LaVistaPreviaSigueConElIcono()
+    {
+        var equipo = Equipo() with { TieneFoto = true };
+        _fotos.DescargarAsync(equipo.Id, 512, Arg.Any<CancellationToken>()).ThrowsAsync(new ErrorApi(null, "Sin red", new Dictionary<string, string>(), true));
+        var detalle = await AbrirAsync("AC-02", equipo, verFotos: false);
+
+        await detalle.AbrirHojaVidaPdfCommand.ExecuteAsync(null);
+
+        Assert.True(detalle.VistaPreviaPdf);
+        Assert.True(detalle.SinFotoPdf);
+        Assert.Null(detalle.AvisoPdf);
     }
 }

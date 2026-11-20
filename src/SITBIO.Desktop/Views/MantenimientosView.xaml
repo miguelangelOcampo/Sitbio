@@ -126,6 +126,29 @@
           </StackPanel>
         </DockPanel>
 
+        <!-- I-11: alertas de vencimiento como tarjetas (diseño del prototipo), no como filas de tabla -->
+        <StackPanel Margin="0,20,0,0" Visibility="{Binding HayAtencion, Converter={StaticResource Visible}}">
+          <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBlock Text="Atención requerida" Style="{StaticResource SectionTitle}" />
+            <Border CornerRadius="10" Padding="8,1" Margin="10,0,0,0" Background="{DynamicResource Brush.DangerSoft}" VerticalAlignment="Center">
+              <TextBlock Text="{Binding TextoAtencion}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" />
+            </Border>
+          </StackPanel>
+          <ItemsControl ItemsSource="{Binding Atencion}" ItemTemplate="{StaticResource TarjetaAlerta}" Focusable="False"
+                        AutomationProperties.Name="Alertas de vencimiento">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="2" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemContainerStyle>
+              <Style TargetType="ContentPresenter">
+                <Setter Property="Margin" Value="0,0,12,0" />
+              </Style>
+            </ItemsControl.ItemContainerStyle>
+          </ItemsControl>
+        </StackPanel>
+
         <!-- Pestañas -->
         <Border BorderBrush="{DynamicResource Brush.BorderStrong}" BorderThickness="0,0,0,1" Margin="0,20,0,20">
           <StackPanel Orientation="Horizontal">

@@ -201,6 +201,28 @@ public sealed record FilaAlerta(Alerta Alerta, bool Revisada)
 
     public TonoEstado Tono => Revisada ? TonoEstado.Neutro : Vencida ? TonoEstado.Critico : TonoEstado.Advertencia;
 
+    /// <summary>Días desde los que una alerta próxima es de prioridad media.</summary>
+    public const int DiasPrioridadMedia = 7;
+
+    // ---------- I-11: tarjeta con el diseño del prototipo (Panel, «Atención requerida») ----------
+
+    /// <summary>Ícono del tipo de alerta en la ficha.</summary>
+    public string Icono => Alerta.Tipo == TiposAlerta.Calibracion ? "Icono.Regla" : "Icono.Calendario";
+
+    /// <summary>Vencida: alta; vence dentro de una semana: media; más adelante: baja.</summary>
+    public string Prioridad => Vencida ? "Prioridad alta" : Alerta.DiasRestantes <= DiasPrioridadMedia ? "Prioridad media" : "Prioridad baja";
+
+    /// <summary>Color del punto de la prioridad (no cambia al descartarla).</summary>
+    public TonoEstado TonoPrioridad => Vencida ? TonoEstado.Critico : Alerta.DiasRestantes <= DiasPrioridadMedia ? TonoEstado.Advertencia : TonoEstado.Neutro;
+
+    /// <summary>Tiempo relativo: «Vence en 3 días», «Vencida ayer».</summary>
+    public string Cuando => Estado;
+
+    public string Titulo => Equipo;
+
+    /// <summary>Qué vence, dónde está el equipo y la fecha.</summary>
+    public string Detalle => $"{Descripcion} · {Ubicacion} · {Fecha}";
+
     /// <summary>La orden preventiva que generó el plan, si ya existe.</summary>
     public string? Orden => Alerta.OrdenId is null ? null : $"Orden preventiva {EstadoOrden(Alerta.EstadoOrden)}";
 

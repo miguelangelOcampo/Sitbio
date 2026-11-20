@@ -127,7 +127,7 @@
 
         <TextBlock Text="SOLICITUDES" Style="{StaticResource Overline}" />
         <TextBlock Text="Bandeja de tiquetes" Style="{StaticResource PageTitle}" Margin="0,4,0,6" />
-        <TextBlock Text="Los tiquetes que esperan técnico, de lo más crítico a lo menos crítico. Elige uno para asignar su orden de trabajo."
+        <TextBlock Text="Los tiquetes que esperan técnico, de lo más crítico a lo menos crítico. Haz clic en un tiquete para asignar su orden de trabajo."
                    Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,20" />
 
         <!-- RN-003: sin técnicos activos no hay a quién asignar -->
@@ -142,7 +142,7 @@
 
         <DataGrid x:Name="TablaBandeja" Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filas}" RowHeight="58"
                   AutomationProperties.Name="Tiquetes por asignar" ScrollViewer.CanContentScroll="False"
-                  MouseDoubleClick="TablaBandeja_MouseDoubleClick" PreviewKeyDown="TablaBandeja_PreviewKeyDown">
+                  controls:FilaClicable.Comando="{Binding AbrirAsignacionCommand}">
           <DataGrid.Columns>
             <DataGridTemplateColumn Header="CRITICIDAD" Width="0.9*">
               <DataGridTemplateColumn.CellTemplate>

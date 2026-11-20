@@ -234,7 +234,68 @@ public partial class MantenimientosViewModel(IServicioMantenimiento servicio, IS
     // ---------- Comandos de la lista ----------
 
     [RelayCommand]
-    private Task CargarAsync() => ConsultarAsync(1);
+    private Task CargarAsync() => Task.WhenAll(ConsultarAsync(1), CargarAtencionAsync());
+
+    // ---------- I-11: «Atención requerida» (alertas de vencimiento como tarjetas) ----------
+
+    private readonly HashSet<string> _descartadas = [];
+    private bool _atencionCargada;
+
+    /// <summary>Quien recibe alertas (AC-02 y AC-03) ve aquí las de vencimiento, con el diseño del centro de alertas.</summary>
+    public bool VeAtencion => CentroAlertasViewModel.Roles.Contains(sesion.Sesion?.Rol ?? string.Empty);
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HayAtencion), nameof(TextoAtencion))]
+    private IReadOnlyList<FilaAlerta> _atencion = [];
+
+    public bool HayAtencion => Atencion.Count > 0;
+
+    public string TextoAtencion => Atencion.Count == 1 ? "1 pendiente" : $"{Atencion.Count} pendientes";
+
+    /// <summary>Consulta las alertas una vez al abrir la pantalla; si fallan, la lista de planes sigue sirviendo.</summary>
+    private async Task CargarAtencionAsync()
+    {
+        if (!VeAtencion || _atencionCargada)
+        {
+            return;
+        }
+
+        try
+        {
+            var resumen = await servicio.AlertasAsync(CancellationToken.None);
+            _atencionCargada = true;
+            Atencion = resumen.Alertas.Where(a => !_descartadas.Contains(a.Clave)).Select(a => new FilaAlerta(a, false)).ToList();
+        }
+        catch (ErrorApi)
+        {
+            Atencion = [];
+        }
+    }
+
+    /// <summary>«Ver detalle»: abre el plan o la calibración de la alerta en esta misma pantalla.</summary>
+    [RelayCommand]
+    private void AbrirAlerta(FilaAlerta? fila)
+    {
+        if (fila is null)
+        {
+            return;
+        }
+
+        Recibir(fila.Alerta.PlanId is { } plan ? $"{PrefijoPlan}{plan}" : $"{PrefijoCalibracion}{fila.Alerta.EquipoId}");
+    }
+
+    /// <summary>«Descartar»: la quita de «Atención requerida» durante la sesión.</summary>
+    [RelayCommand]
+    private void MarcarRevisada(FilaAlerta? fila)
+    {
+        if (fila is null)
+        {
+            return;
+        }
+
+        _descartadas.Add(fila.Alerta.Clave);
+        Atencion = Atencion.Where(f => f != fila).ToList();
+    }
 
     [RelayCommand(CanExecute = nameof(HayAnterior))]
     private Task PaginaAnteriorAsync() => ConsultarAsync(Pagina - 1);

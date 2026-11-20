@@ -34,31 +34,6 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Botón secundario pequeño («Descartar», «Ver reportes») -->
-    <Style x:Key="BotonSecundario" TargetType="Button">
-      <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
-      <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
-      <Setter Property="BorderBrush" Value="{DynamicResource Brush.BorderControl}" />
-      <Setter Property="Padding" Value="14,7" />
-      <Setter Property="Cursor" Value="Hand" />
-      <Setter Property="FocusVisualStyle" Value="{StaticResource FocoTeclado}" />
-      <Setter Property="Template">
-        <Setter.Value>
-          <ControlTemplate TargetType="Button">
-            <Border x:Name="Caja" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
-                    CornerRadius="{StaticResource Radius.Button}" Padding="{TemplateBinding Padding}">
-              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" TextElement.FontWeight="SemiBold" />
-            </Border>
-            <ControlTemplate.Triggers>
-              <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="Caja" Property="Background" Value="{DynamicResource Brush.Surface2}" />
-              </Trigger>
-            </ControlTemplate.Triggers>
-          </ControlTemplate>
-        </Setter.Value>
-      </Setter>
-    </Style>
-
     <!-- Pastilla de prioridad según el tono -->
     <Style x:Key="Pastilla" TargetType="Border">
       <Setter Property="CornerRadius" Value="10" />

@@ -114,4 +114,38 @@ public class CentroAlertasViewModelTests
         await vm.CargarCommand.ExecuteAsync(null);
         Assert.Equal(("No se pudieron consultar las alertas", true, false), (vm.Aviso!.Titulo, vm.Aviso.PuedeReintentar, vm.SinAlertas));
     }
+
+    // ---------- I-11: datos de la tarjeta con el diseño del prototipo ----------
+
+    [Fact]
+    public async Task Tarjeta_IconoPrioridadTiempoRelativoTituloYDetalle()
+    {
+        var vm = await AbrirAsync();
+        var vencida = vm.Filas[0];
+        var calibracion = vm.Filas[1];
+
+        Assert.Equal(("Icono.Calendario", "Prioridad alta", TonoEstado.Critico, "Vencida hace 4 días"), (vencida.Icono, vencida.Prioridad, vencida.TonoPrioridad, vencida.Cuando));
+        Assert.Equal(("PL-001 · Bomba de infusión", "Preventivo trimestral · UCI · 02/11/2026"), (vencida.Titulo, vencida.Detalle));
+        Assert.Equal(("Icono.Regla", "Prioridad media", TonoEstado.Advertencia), (calibracion.Icono, calibracion.Prioridad, calibracion.TonoPrioridad));
+    }
+
+    [Theory]
+    [InlineData(7, "Prioridad media")]
+    [InlineData(8, "Prioridad baja")]
+    public void Tarjeta_LaPrioridadBajaDesdeLaSegundaSemana(int dias, string prioridad)
+    {
+        var alerta = new Alerta(TiposAlerta.Preventivo, TiposAlerta.Proxima, Hoy.AddDays(dias), dias, Guid.NewGuid(), "PL-002", "Bomba", "UCI", "Preventivo", _plan, null, null);
+
+        Assert.Equal(prioridad, new FilaAlerta(alerta, false).Prioridad);
+    }
+
+    [Fact]
+    public async Task Tarjeta_DescartarLaAtenua_PeroConservaLaPrioridad()
+    {
+        var vm = await AbrirAsync();
+
+        vm.MarcarRevisadaCommand.Execute(vm.Filas[0]);
+
+        Assert.Equal((TonoEstado.Neutro, TonoEstado.Critico), (vm.Filas[0].Tono, vm.Filas[0].TonoPrioridad));
+    }
 }

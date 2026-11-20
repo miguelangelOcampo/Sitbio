@@ -809,14 +809,15 @@
         <DockPanel Margin="0,18,0,0">
           <Button DockPanel.Dock="Right" Content="Limpiar filtros" Style="{StaticResource LinkButton}" Command="{Binding LimpiarCommand}"
                   Visibility="{Binding HayFiltros, Converter={StaticResource Visible}}" />
-          <TextBlock Text="{Binding ResumenTotal}" Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center"
-                     AutomationProperties.LiveSetting="Polite" />
+          <TextBlock Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center" AutomationProperties.LiveSetting="Polite">
+            <Run Text="{Binding ResumenTotal, Mode=OneWay}" /><Run Text=" · Haz clic en un equipo para ver su hoja de vida." />
+          </TextBlock>
         </DockPanel>
 
-        <!-- Tabla abierta: doble clic o Enter abre la hoja de vida (NAV-006) -->
+        <!-- Tabla abierta: un clic o Enter abre la hoja de vida (NAV-006, I-09) -->
         <DataGrid x:Name="TablaEquipos" Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filas}" RowHeight="60" Margin="0,8,0,0"
                   AutomationProperties.Name="Equipos biomédicos" ScrollViewer.CanContentScroll="False"
-                  MouseDoubleClick="TablaEquipos_MouseDoubleClick" PreviewKeyDown="TablaEquipos_PreviewKeyDown">
+                  controls:FilaClicable.Comando="{Binding AbrirCommand}">
           <DataGrid.Columns>
             <DataGridTemplateColumn Header="CÓDIGO DE ACTIVO" Width="1.1*">
               <DataGridTemplateColumn.CellTemplate>

@@ -938,6 +938,17 @@
       <Trigger Property="IsSelected" Value="True">
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
       </Trigger>
+      <!-- I-09: las filas que abren un detalle se ven clicables -->
+      <Trigger Property="controls:FilaClicable.Activa" Value="True">
+        <Setter Property="Cursor" Value="Hand" />
+      </Trigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="controls:FilaClicable.Activa" Value="True" />
+          <Condition Property="IsMouseOver" Value="True" />
+        </MultiTrigger.Conditions>
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface2}" />
+      </MultiTrigger>
     </Style.Triggers>
   </Style>
   <Style x:Key="OpenGridCell" TargetType="DataGridCell">

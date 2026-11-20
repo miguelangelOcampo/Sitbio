@@ -213,10 +213,11 @@
                     Style="{StaticResource Casilla}" Visibility="{Binding PuedeVerSoloMios, Converter={StaticResource Visible}}" />
         </StackPanel>
 
-        <!-- Tabla abierta, solo lectura -->
-        <DataGrid x:Name="TablaTiquetes" Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filas}" RowHeight="58" Margin="0,12,0,0"
+        <!-- Tabla abierta, solo lectura: un clic o Enter abre el seguimiento (I-09) -->
+        <TextBlock Text="Haz clic en un tiquete para ver su seguimiento." Style="{StaticResource Muted}" FontSize="13" Margin="0,16,0,0" />
+        <DataGrid x:Name="TablaTiquetes" Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filas}" RowHeight="58" Margin="0,8,0,0"
                   AutomationProperties.Name="Tiquetes" ScrollViewer.CanContentScroll="False"
-                  MouseDoubleClick="TablaTiquetes_MouseDoubleClick" PreviewKeyDown="TablaTiquetes_PreviewKeyDown">
+                  controls:FilaClicable.Comando="{Binding AbrirCommand}">
           <DataGrid.Columns>
             <DataGridTemplateColumn Header="CÓDIGO" Width="1.1*">
               <DataGridTemplateColumn.CellTemplate>

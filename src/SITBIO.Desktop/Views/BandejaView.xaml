@@ -315,7 +315,7 @@
             <!-- Fecha programada (opcional) -->
             <TextBlock Text="Fecha programada (opcional)" Style="{StaticResource FieldLabel}" Margin="0,18,0,6" />
             <Border Style="{StaticResource CampoFecha}" Width="180" HorizontalAlignment="Left">
-              <TextBox Style="{StaticResource FieldInput}" Text="{Binding FechaProgramada, UpdateSourceTrigger=PropertyChanged}"
+              <controls:CampoFecha Text="{Binding FechaProgramada, UpdateSourceTrigger=PropertyChanged}"
                        AutomationProperties.Name="Fecha programada, dd/mm/aaaa" />
             </Border>
             <TextBlock Text="dd/mm/aaaa" Style="{StaticResource Muted}" FontSize="13" Margin="0,4,0,0" />

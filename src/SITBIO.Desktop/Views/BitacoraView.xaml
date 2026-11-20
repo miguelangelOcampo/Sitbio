@@ -4,6 +4,7 @@
 <UserControl x:Class="Sitbio.Desktop.Views.BitacoraView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Sitbio.Desktop.Controls"
              xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
              xmlns:views="clr-namespace:Sitbio.Desktop.Views">
   <UserControl.Resources>
@@ -120,7 +121,7 @@
                   SelectedItem="{Binding FiltroAccion}" DisplayMemberPath="Texto" AutomationProperties.Name="Filtrar por acción" />
 
         <Border Grid.Column="4" Style="{StaticResource CampoFecha}">
-          <TextBox Style="{StaticResource FieldInput}" FontSize="14" Text="{Binding Desde}" AutomationProperties.Name="Desde (dd/mm/aaaa)" />
+          <controls:CampoFecha FontSize="14" Text="{Binding Desde}" AutomationProperties.Name="Desde (dd/mm/aaaa)" />
         </Border>
         <TextBlock Grid.Column="4" Text="Desde dd/mm/aaaa">
           <TextBlock.Style>
@@ -135,7 +136,7 @@
         </TextBlock>
 
         <Border Grid.Column="6" Style="{StaticResource CampoFecha}">
-          <TextBox Style="{StaticResource FieldInput}" FontSize="14" Text="{Binding Hasta}" AutomationProperties.Name="Hasta (dd/mm/aaaa)" />
+          <controls:CampoFecha FontSize="14" Text="{Binding Hasta}" AutomationProperties.Name="Hasta (dd/mm/aaaa)" />
         </Border>
         <TextBlock Grid.Column="6" Text="Hasta dd/mm/aaaa">
           <TextBlock.Style>

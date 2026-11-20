@@ -5,6 +5,7 @@
 <UserControl x:Class="Sitbio.Desktop.Views.HistorialIntervencionesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Sitbio.Desktop.Controls"
              xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
              xmlns:views="clr-namespace:Sitbio.Desktop.Views">
   <UserControl.Resources>
@@ -168,7 +169,7 @@
                     SelectedItem="{Binding FiltroMantenimiento}" DisplayMemberPath="Texto" AutomationProperties.Name="Filtrar por tipo de mantenimiento" />
 
           <Border Grid.Column="6" Style="{StaticResource CampoFecha}">
-            <TextBox Style="{StaticResource FieldInput}" FontSize="14" Text="{Binding Desde}" AutomationProperties.Name="Desde (dd/mm/aaaa)" />
+            <controls:CampoFecha FontSize="14" Text="{Binding Desde}" AutomationProperties.Name="Desde (dd/mm/aaaa)" />
           </Border>
           <TextBlock Grid.Column="6" Text="Desde dd/mm/aaaa">
             <TextBlock.Style>
@@ -183,7 +184,7 @@
           </TextBlock>
 
           <Border Grid.Column="8" Style="{StaticResource CampoFecha}">
-            <TextBox Style="{StaticResource FieldInput}" FontSize="14" Text="{Binding Hasta}" AutomationProperties.Name="Hasta (dd/mm/aaaa)" />
+            <controls:CampoFecha FontSize="14" Text="{Binding Hasta}" AutomationProperties.Name="Hasta (dd/mm/aaaa)" />
           </Border>
           <TextBlock Grid.Column="8" Text="Hasta dd/mm/aaaa">
             <TextBlock.Style>

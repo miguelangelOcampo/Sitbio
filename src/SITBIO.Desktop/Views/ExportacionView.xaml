@@ -2,6 +2,7 @@
 <UserControl x:Class="Sitbio.Desktop.Views.ExportacionView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Sitbio.Desktop.Controls"
              xmlns:vm="clr-namespace:Sitbio.Desktop.ViewModels"
              xmlns:views="clr-namespace:Sitbio.Desktop.Views">
   <UserControl.Resources>
@@ -62,13 +63,13 @@
             <StackPanel>
               <TextBlock Text="Desde (dd/mm/aaaa)" Style="{StaticResource FieldLabel}" />
               <Border Style="{StaticResource FieldBox}">
-                <TextBox Style="{StaticResource FieldInput}" Text="{Binding Desde, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Desde" />
+                <controls:CampoFecha Text="{Binding Desde, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Desde" />
               </Border>
             </StackPanel>
             <StackPanel Grid.Column="2">
               <TextBlock Text="Hasta (dd/mm/aaaa)" Style="{StaticResource FieldLabel}" />
               <Border Style="{StaticResource FieldBox}">
-                <TextBox Style="{StaticResource FieldInput}" Text="{Binding Hasta, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hasta" />
+                <controls:CampoFecha Text="{Binding Hasta, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Hasta" />
               </Border>
             </StackPanel>
             <StackPanel Grid.Column="4">

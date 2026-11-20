@@ -1051,7 +1051,7 @@
                     <StackPanel>
                       <TextBlock Text="Vigente hasta" Style="{StaticResource FieldLabel}" />
                       <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorVence}">
-                        <TextBox Style="{StaticResource FieldInput}" Text="{Binding VenceRegistro, UpdateSourceTrigger=PropertyChanged}"
+                        <controls:CampoFecha Text="{Binding VenceRegistro, UpdateSourceTrigger=PropertyChanged}"
                                  AutomationProperties.Name="Vigente hasta (dd/mm/aaaa)" />
                       </Border>
                       <TextBlock Text="{Binding ErrorVence}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorVence, Converter={StaticResource TextoVisible}}" />
@@ -1131,7 +1131,7 @@
                     <Run Text="Fecha de adquisición" /><Run Text=" (opcional)" FontWeight="Normal" Foreground="{DynamicResource Brush.Text3}" />
                   </TextBlock>
                   <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorAdquisicion}" Width="284" HorizontalAlignment="Left">
-                    <TextBox Style="{StaticResource FieldInput}" Text="{Binding FechaAdquisicion, UpdateSourceTrigger=PropertyChanged}"
+                    <controls:CampoFecha Text="{Binding FechaAdquisicion, UpdateSourceTrigger=PropertyChanged}"
                              AutomationProperties.Name="Fecha de adquisición (dd/mm/aaaa)" />
                   </Border>
                   <TextBlock Text="{Binding ErrorAdquisicion}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorAdquisicion, Converter={StaticResource TextoVisible}}" />
@@ -1158,7 +1158,7 @@
                     <StackPanel>
                       <TextBlock Text="Último mantenimiento preventivo" Style="{StaticResource FieldLabel}" />
                       <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorUltimo}" IsEnabled="{Binding PideUltimo}">
-                        <TextBox Style="{StaticResource FieldInput}" Text="{Binding UltimoPreventivo, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                        <controls:CampoFecha Text="{Binding UltimoPreventivo, UpdateSourceTrigger=PropertyChanged, Delay=400}"
                                  AutomationProperties.Name="Último mantenimiento preventivo (dd/mm/aaaa)" />
                       </Border>
                       <TextBlock Text="{Binding ErrorUltimo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorUltimo, Converter={StaticResource TextoVisible}}" />
@@ -1167,7 +1167,7 @@
                     <StackPanel Grid.Column="2">
                       <TextBlock Text="Próximo preventivo" Style="{StaticResource FieldLabel}" />
                       <Border Style="{StaticResource CampoValidado}" Tag="{Binding ErrorProximo}">
-                        <TextBox Style="{StaticResource FieldInput}" Text="{Binding ProximoPreventivo, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                        <controls:CampoFecha Text="{Binding ProximoPreventivo, UpdateSourceTrigger=PropertyChanged, Delay=400}"
                                  AutomationProperties.Name="Próximo preventivo (dd/mm/aaaa)" />
                       </Border>
                       <TextBlock Text="{Binding ErrorProximo}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorProximo, Converter={StaticResource TextoVisible}}" />

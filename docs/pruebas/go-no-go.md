@@ -1,6 +1,6 @@
 # Matriz de trazabilidad y evaluación Go / No-Go (DOC-07, Tablas 6 y 10)
 
-Valores medidos el 18/11/2026 para la v1.1.0 sobre `main` (`f0d4d8a`, PR #44, después de D-01 a D-07, E-01 a E-11 y F-01), con PostgreSQL y MongoDB en Docker y la semilla de demostración cargada. La regresión y la prueba de restauración están en [regresion.md](regresion.md); los criterios de aceptación por historia, en [trazabilidad.md](trazabilidad.md). La evaluación de la v1.0.0 (16/11/2026) se conserva al final. Nada se marca como hecho sin una prueba aprobada.
+Evaluación vigente: v1.2.0 (20/11/2026, sección «Evaluación Go / No-Go de la v1.2.0»). Valores medidos el 18/11/2026 para la v1.1.0 sobre `main` (`f0d4d8a`, PR #44, después de D-01 a D-07, E-01 a E-11 y F-01), con PostgreSQL y MongoDB en Docker y la semilla de demostración cargada. La regresión y la prueba de restauración están en [regresion.md](regresion.md); los criterios de aceptación por historia, en [trazabilidad.md](trazabilidad.md). La evaluación de la v1.0.0 (16/11/2026) se conserva al final. Nada se marca como hecho sin una prueba aprobada.
 
 ## Matriz de trazabilidad (Tabla 6 del DOC-07)
 
@@ -89,6 +89,24 @@ Valores medidos el 18/11/2026 para la v1.1.0 sobre `main` (`f0d4d8a`, PR #44, de
 | Should (13) | RF-007, 008, 009, 012, 014, 018, 020, 022, 023, 024, 025, 026, 027 | 13 de 13 |
 | Could (3) | RF-015, 016, 031 | 3 de 3 |
 | **Total Must y Should** | | **25 de 25 (100 %)** |
+
+## Evaluación Go / No-Go de la v1.2.0 (20/11/2026)
+
+Regresión sobre `main` (`20fa169`, PR #57) con las filas G-01 a G-09 de la v1.1.1 y I-00 a I-14 de la v1.2.0 integradas ([regresion.md](regresion.md)). La matriz de CP y de historias de arriba no cambia: los arreglos y mejoras se verificaron con pruebas nuevas asociadas a CP-004, CP-007, CP-008, CP-011, CP-024, CP-030, CP-031 y CP-035, todas aprobadas.
+
+| Métrica de calidad | Criterio mínimo | Valor medido | Estado |
+|---|---|---|---|
+| Cobertura de pruebas unitarias del backend | ≥ 70 % (RNF-012) | 94,7 % de líneas medido en la v1.1.0; la v1.2.0 suma 176 pruebas y no se volvió a medir | Cumple |
+| Defectos abiertos S1 / S2 | 0 | 0: regresión 2 042 de 2 042 a la primera (v1.1.1: 1 866 de 1 866) | Cumple |
+| Casos de prueba ejecutados | 100 % de CP-001 a CP-037 | 36 de 37 (97,3 %); falta CP-037 | **No cumple** |
+| Cobertura de RF Must y Should | > 80 % con pruebas aprobadas (RNF-013) | 25 de 25 (100 %); además RF-015, RF-016 y RF-031 | Cumple |
+| Persistencia NoSQL MongoDB | 100 % correcto en camposDinamicos, intervenciones y bitácora | Mismas pruebas aprobadas; resultados_analitica con 2 a 6 grupos probada en `ConsultaAnaliticaTests` y `RecalculoAnaliticaTests` | Cumple |
+| Pipeline analítico Python | K-Means sobre datos sintéticos sin errores | Job «Analytics» en la CI con las pruebas del lote de 2 a 6 grupos (`tests/analytics/test_lote.py`) | Cumple |
+| Estabilidad de la app de escritorio | Instalación y operación estable en Windows 10 y 11 (RNF-011) | Operada en Windows 11 hasta la v1.2.0; falta instalarla y recorrerla en Windows 10 | **Pendiente** |
+
+### Decisión de la v1.2.0
+
+**No-Go por ahora**, por los mismos dos puntos: CP-037 (prueba de carga con k6) y la instalación en Windows 10. El plan de corrección es el de la v1.1.0, con el instalador `SITBIO-Setup-1.2.0.exe`. La decisión final la toman el equipo y el instructor asesor del SENA CTMA en la reunión de cierre.
 
 ## Evaluación Go / No-Go de la v1.1.0 (Tabla 10)
 

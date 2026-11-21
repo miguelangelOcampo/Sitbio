@@ -1,7 +1,7 @@
 // Líneas en ángulo recto (splines=ortho); las etiquetas de las relaciones son nodos intermedios.
 // DIA-005 v1.0 (09/11/2026): diagrama de despliegue por ambiente de SITBIO. Fuente: DOC-06 secciones 12.1 a 12.4 (Tablas 43 a 45), ADR-007 y ADR-010.
 digraph DIA005 {
-  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-005 · Diagrama de despliegue por ambiente de SITBIO</b><br/><font point-size="10" color="#555555">Versión 1.0 · 09/11/2026 · Fuente: DOC-06, Tablas 43 a 45, ADR-007 y ADR-010</font><br/> >, rankdir=TB, splines=ortho, nodesep=0.45, ranksep=0.45, fontname="Liberation Sans", bgcolor="white", pad=0.2, forcelabels=true, newrank=true, compound=true];
+  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-005 · Diagrama de despliegue por ambiente de SITBIO</b><br/><font point-size="10" color="#555555">Versión 1.1 · 20/11/2026 · Fuente: DOC-06, Tablas 43 a 45, ADR-007 y ADR-010</font><br/> >, rankdir=TB, splines=ortho, nodesep=0.45, ranksep=0.45, fontname="Liberation Sans", bgcolor="white", pad=0.2, forcelabels=true, newrank=true, compound=true];
   node  [shape=box, style="rounded,filled", fontname="Liberation Sans", fontsize=10, color="#2F5D8A", fillcolor="#FFFFFF", fontcolor="#222222", margin="0.14,0.08"];
   edge  [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
 
@@ -24,7 +24,7 @@ digraph DIA005 {
       label=<<b>«servidor» Servidor de aplicación</b>  <font point-size="9">puerto público 443 (HTTPS)</font>>; fontsize=10; fontcolor="#24496D"; style="filled"; fillcolor="#F4F6F9"; color="#2F5D8A"; penwidth=1.4; margin=10;
       api  [label=<<b>API REST ASP.NET Core (.NET 10)</b><br/><font point-size="9">servicio de Windows o contenedor · GET /health</font>>, fillcolor="#2F5D8A", fontcolor="#FFFFFF", color="#24496D"];
       adj  [label=<<b>Carpeta de adjuntos</b><br/><font point-size="9">Storage:AttachmentsPath · documentos y fotografías</font>>, shape=folder, style=filled, fillcolor="#F1F1F1", color="#8C8C8C"];
-      py   [label=<<b>Módulo analítico (Python 3.12)</b><br/><font point-size="9">tarea programada por lotes (ADR-006)</font>>];
+      py   [label=<<b>Módulo analítico (Python 3.12)</b><br/><font point-size="9">por lotes: tarea programada o recálculo<br/>que lanza la API (ADR-006)</font>>];
         lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="lee y escribe", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
   }
     subgraph cluster_dat {

@@ -41,23 +41,24 @@ public partial class ShellViewModel : ObservableObject
             BusquedaGlobal.AperturaSolicitada += AlSolicitarNavegacion;
         }
 
-        // UI-016: el centro de alertas se consulta al abrir la aplicación (CA-HU-020-01), solo para AC-02 y AC-03.
+        // UI-016: el centro de alertas se consulta al abrir la aplicación (CA-HU-020-01): vencimientos para AC-02 y AC-03
+        // y, desde J-07, los cambios de los tiquetes propios para quien reporta (AC-02 y AC-04).
         if (CentroAlertasViewModel.Roles.Contains(codigoRol) && pantallas?.Crear(CentroAlertasViewModel.IdPantalla) is CentroAlertasViewModel alertas)
         {
             Alertas = alertas;
             alertas.NavegacionSolicitada += AlSolicitarNavegacion;
             alertas.PropertyChanged += (_, e) =>
             {
-                if (e.PropertyName == nameof(CentroAlertasViewModel.HayPendientes))
+                if (e.PropertyName == nameof(CentroAlertasViewModel.HayVencimientosPendientes))
                 {
-                    MarcarAviso(OpcionAlertas, alertas.HayPendientes);
+                    MarcarAviso(OpcionAlertas, alertas.HayVencimientosPendientes);
                 }
             };
         }
 
         if (Alertas is not null)
         {
-            MarcarAviso(OpcionAlertas, Alertas.HayPendientes);
+            MarcarAviso(OpcionAlertas, Alertas.HayVencimientosPendientes);
         }
 
         var inicio = MenuPorRol.Inicio(codigoRol);

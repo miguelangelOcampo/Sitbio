@@ -79,6 +79,20 @@ public sealed record HistorialTiqueteDto(
     }
 }
 
+/// <summary>
+/// J-07: un cambio de estado de un tiquete que reportó quien consulta, hecho por otra persona (GET
+/// /tiquetes/mis-cambios). Lleva el equipo para que la notificación se entienda sin abrir el tiquete.
+/// </summary>
+public sealed record CambioMiTiqueteDto(
+    string Codigo,
+    string PlacaInventario,
+    string TipoEquipo,
+    string? EstadoAnterior,
+    string NuevoEstado,
+    string? Comentario,
+    DateTimeOffset FechaCambio,
+    string Usuario);
+
 /// <summary>Cambio del historial con el nombre de quien lo hizo.</summary>
 public sealed record HistorialTiqueteLeido(HistorialTiquete Cambio, string Usuario);
 

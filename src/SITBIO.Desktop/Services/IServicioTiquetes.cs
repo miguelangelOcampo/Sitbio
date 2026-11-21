@@ -22,7 +22,24 @@ public interface IServicioTiquetes
 
     /// <summary>GET /tiquetes/{codigo}/historial: cambios de estado, del más antiguo al más reciente.</summary>
     Task<IReadOnlyList<CambioTiquete>> HistorialAsync(string codigo, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// J-07 GET /tiquetes/mis-cambios: cambios de estado de los tiquetes que reportó el usuario de la sesión, hechos por
+    /// otras personas desde <paramref name="desde"/>, del más reciente al más antiguo (la API cubre hasta 30 días).
+    /// </summary>
+    Task<IReadOnlyList<CambioMiTiquete>> MisCambiosAsync(DateTimeOffset desde, CancellationToken cancellationToken);
 }
+
+/// <summary>Un cambio de un tiquete propio (CambioMiTiqueteDto), para la campana.</summary>
+public sealed record CambioMiTiquete(
+    string Codigo,
+    string PlacaInventario,
+    string TipoEquipo,
+    string? EstadoAnterior,
+    string NuevoEstado,
+    string? Comentario,
+    DateTimeOffset FechaCambio,
+    string Usuario);
 
 /// <summary>Estados del tiquete (script 01) con su nombre para mostrar.</summary>
 public static class EstadosTiquete
@@ -124,6 +141,15 @@ public sealed class ServicioTiquetesHttp(ClienteApi cliente) : IServicioTiquetes
     public Task<IReadOnlyList<CambioTiquete>> HistorialAsync(string codigo, CancellationToken cancellationToken) =>
         PeticionApi.EnviarAsync<IReadOnlyList<CambioTiquete>>(
             cliente, HttpMethod.Get, $"tiquetes/{Uri.EscapeDataString(codigo)}/historial", null, MensajeConsulta, cancellationToken);
+
+    public Task<IReadOnlyList<CambioMiTiquete>> MisCambiosAsync(DateTimeOffset desde, CancellationToken cancellationToken) =>
+        PeticionApi.EnviarAsync<IReadOnlyList<CambioMiTiquete>>(
+            cliente,
+            HttpMethod.Get,
+            $"tiquetes/mis-cambios?desde={Uri.EscapeDataString(desde.UtcDateTime.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}",
+            null,
+            MensajeConsulta,
+            cancellationToken);
 
     private static string? Mensaje(int estado) => estado switch
     {

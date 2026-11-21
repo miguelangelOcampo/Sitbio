@@ -62,6 +62,12 @@ public static class TiquetesEndpoints
             .WithName("TiposFallaParaReportar")
             .RequireAuthorization(PoliticaReporte);
 
+        // J-07: notificaciones de la campana para quien reporta (AC-02 y AC-04): cambios de sus propios tiquetes.
+        grupo.MapGet("/mis-cambios", async (GestionTiquetes caso, CancellationToken cancellationToken, DateTimeOffset? desde = null) =>
+                Results.Ok(await caso.MisCambiosAsync(desde, cancellationToken)))
+            .WithName("MisCambiosTiquetes")
+            .RequireAuthorization(PoliticaReporte);
+
         grupo.MapGet("/{codigo}", async (string codigo, GestionTiquetes caso, CancellationToken cancellationToken) =>
                 Results.Ok(await caso.ObtenerAsync(codigo, cancellationToken)))
             .WithName("ObtenerTiquete")

@@ -15,7 +15,24 @@ public static class Temas
 
 /// <summary>Preferencias de la estación (DOC-06, Tabla 44). No son datos de la cuenta: no viajan a la API.</summary>
 /// <param name="VerFotosEquipo">RF-031: true muestra la foto del equipo cuando tiene una; false, siempre el ícono del tipo.</param>
-public sealed record Preferencias(string Tema = Temas.Claro, bool VerFotosEquipo = true);
+/// <param name="RevisionTiquetes">
+/// J-07: por usuario (id de la sesión), fecha del último cambio de sus tiquetes que ya vio en la campana. Es por
+/// usuario porque la estación puede ser compartida.
+/// </param>
+public sealed record Preferencias(string Tema = Temas.Claro, bool VerFotosEquipo = true, IReadOnlyDictionary<string, DateTimeOffset>? RevisionTiquetes = null)
+{
+    /// <summary>Último cambio visto por el usuario; null si nunca abrió la campana en esta estación.</summary>
+    public DateTimeOffset? RevisionDe(Guid usuarioId) =>
+        RevisionTiquetes?.TryGetValue(usuarioId.ToString(), out var fecha) == true ? fecha : null;
+
+    /// <summary>Las mismas preferencias con la fecha vista de ese usuario.</summary>
+    public Preferencias ConRevision(Guid usuarioId, DateTimeOffset fecha)
+    {
+        var revision = RevisionTiquetes is null ? new Dictionary<string, DateTimeOffset>() : new Dictionary<string, DateTimeOffset>(RevisionTiquetes);
+        revision[usuarioId.ToString()] = fecha;
+        return this with { RevisionTiquetes = revision };
+    }
+}
 
 /// <summary>Lee y guarda las preferencias locales del cliente.</summary>
 public interface IServicioPreferencias

@@ -17,6 +17,8 @@ public partial class MainViewModel : ObservableObject
     private readonly IServicioSesion? _servicioSesion;
     private readonly IServicioBusqueda? _servicioBusqueda;
     private readonly IServicioTiquetes? _servicioTiquetes;
+    private readonly FotoPerfilActual? _foto;
+    private readonly IServicioFotoPerfil? _fotos;
     private readonly SynchronizationContext? _interfaz = SynchronizationContext.Current;
 
     public MainViewModel(
@@ -26,7 +28,9 @@ public partial class MainViewModel : ObservableObject
         IFabricaPantallas? pantallas = null,
         IServicioSesion? servicioSesion = null,
         IServicioBusqueda? servicioBusqueda = null,
-        IServicioTiquetes? servicioTiquetes = null)
+        IServicioTiquetes? servicioTiquetes = null,
+        FotoPerfilActual? foto = null,
+        IServicioFotoPerfil? fotos = null)
     {
         _crearLogin = crearLogin;
         _sesionActual = sesionActual;
@@ -35,6 +39,8 @@ public partial class MainViewModel : ObservableObject
         _servicioSesion = servicioSesion;
         _servicioBusqueda = servicioBusqueda;
         _servicioTiquetes = servicioTiquetes;
+        _foto = foto;
+        _fotos = fotos;
         _control.SesionTerminada += (_, cierre) => EnLaInterfaz(() => Cierre = cierre);
         _vistaActual = NuevoLogin();
     }
@@ -96,11 +102,15 @@ public partial class MainViewModel : ObservableObject
         Func<CambioClaveViewModel>? cambioVoluntario = _servicioSesion is { } servicio
             ? () => new CambioClaveViewModel(servicio, obligatorio: false)
             : null;
+        // J-12: la foto del usuario anterior no se ve mientras llega la de quien entra.
+        _foto?.Limpiar();
         var shell = new ShellViewModel(rol, _pantallas, cambioVoluntario, _servicioBusqueda)
         {
             Confirmacion = confirmacion,
             Usuario = _sesionActual.Sesion,
             Tiquetes = _servicioTiquetes,
+            Foto = _foto ?? new FotoPerfilActual(),
+            Fotos = _fotos,
         };
         shell.CierreSolicitado += async (_, _) => await CerrarSesionAsync();
         return shell;

@@ -1,0 +1,12 @@
+<!-- J-12: avatar del usuario. Muestra la foto de perfil recortada en círculo o, sin foto, las iniciales. -->
+<UserControl x:Class="Sitbio.Desktop.Views.Avatar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Raiz" Focusable="False" IsTabStop="False">
+  <Grid>
+    <Ellipse Fill="{Binding Relleno, ElementName=Raiz}" />
+    <TextBlock x:Name="TextoIniciales" Text="{Binding Iniciales, ElementName=Raiz}" FontWeight="SemiBold"
+               Foreground="{Binding Foreground, ElementName=Raiz}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <Ellipse x:Name="Imagen" Visibility="Collapsed" />
+  </Grid>
+</UserControl>

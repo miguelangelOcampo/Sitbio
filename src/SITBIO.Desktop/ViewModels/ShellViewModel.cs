@@ -101,6 +101,11 @@ public partial class ShellViewModel : ObservableObject
     [RelayCommand]
     private async Task CargarAvisosAsync()
     {
+        if (Fotos is not null)
+        {
+            await Foto.CargarAsync(Fotos);
+        }
+
         if (Tiquetes is null || !TieneOpcion(OpcionBandeja))
         {
             return;
@@ -126,6 +131,12 @@ public partial class ShellViewModel : ObservableObject
 
     /// <summary>Persona de la sesión, para el avatar de la barra superior y el pie del panel (H-03).</summary>
     public SesionUsuario? Usuario { get; init; }
+
+    /// <summary>J-12: foto de perfil del avatar, del pie del menú y del menú de la cuenta; sin foto, las iniciales.</summary>
+    public FotoPerfilActual Foto { get; init; } = new();
+
+    /// <summary>J-12: de dónde se trae la foto al entrar; null en las pruebas que no la usan.</summary>
+    public IServicioFotoPerfil? Fotos { get; init; }
 
     /// <summary>Nombre y apellidos; si la sesión no los trae, el nombre del rol.</summary>
     public string NombreUsuario =>

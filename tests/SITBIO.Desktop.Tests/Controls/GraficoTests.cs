@@ -161,6 +161,66 @@ public class GraficoTests
     [Fact]
     public void SinDatos_SeDibujaVacio() => EnSta(() => Dibujar(new Grafico()));
 
+    // J-02: la etiqueta va en la capa superior y busca dónde cabe dentro de la ventana.
+    private static readonly Rect Ventana = new(0, 0, 400, 300);
+    private static readonly Size Globo = new(120, 40);
+
+    [Theory]
+    [InlineData(100, 100, 110, 50)] // cabe a la derecha y arriba
+    [InlineData(350, 100, 220, 50)] // no cabe a la derecha: a la izquierda
+    [InlineData(100, 30, 110, 40)] // no cabe arriba: abajo
+    [InlineData(395, 10, 265, 20)] // esquina superior derecha: a la izquierda y abajo
+    [InlineData(5, 295, 15, 245)] // esquina inferior izquierda: a la derecha y arriba
+    public void LaEtiqueta_SeUbicaDondeCabe(double x, double y, double esperadoX, double esperadoY) =>
+        Assert.Equal(new Point(esperadoX, esperadoY), Grafico.UbicarEtiqueta(new Point(x, y), Globo, Ventana));
+
+    [Fact]
+    public void UnaEtiquetaMasGrandeQueLaVentana_SePegaAlBordeSuperiorIzquierdo() =>
+        Assert.Equal(new Point(0, 0), Grafico.UbicarEtiqueta(new Point(50, 50), new Size(500, 400), Ventana));
+
+    [Fact]
+    public void EnUnaVentana_LaEtiquetaSeAbreEnLaCapaSuperior_YSeCierraAlSalir() => EnSta(() =>
+    {
+        var grafico = Dispersion();
+        var ventana = new Window { Width = 420, Height = 320, Content = grafico, ShowInTaskbar = false, ShowActivated = false, Left = -2000, Top = -2000 };
+        try
+        {
+            ventana.Show();
+            ventana.UpdateLayout();
+            Assert.False(grafico.EtiquetaAbierta);
+
+            // El punto de más costo está arriba a la derecha: la etiqueta va a su izquierda y abajo, sin salirse.
+            grafico.Resaltar(1);
+            Assert.True(grafico.EtiquetaAbierta);
+            var posicion = grafico.PosicionEtiqueta!.Value;
+            Assert.InRange(posicion.X, 0, grafico.ActualWidth);
+            Assert.InRange(posicion.Y, 0, grafico.ActualHeight);
+
+            grafico.Resaltar(null);
+            Assert.False(grafico.EtiquetaAbierta);
+
+            // Cambiar los datos también la quita.
+            grafico.Resaltar(0);
+            Assert.True(grafico.EtiquetaAbierta);
+            grafico.Puntos = [];
+            Assert.False(grafico.EtiquetaAbierta);
+        }
+        finally
+        {
+            ventana.Close();
+        }
+    });
+
+    [Fact]
+    public void FueraDeUnaVentana_NoAbreLaEtiqueta_PeroConservaElTexto() => EnSta(() =>
+    {
+        var grafico = Lineas();
+        Dibujar(grafico);
+        grafico.Resaltar(1);
+        Assert.NotNull(grafico.TextoEtiqueta);
+        Assert.False(grafico.EtiquetaAbierta);
+    });
+
     private static Grafico Arco(bool compacto = false) => new()
     {
         Tipo = TipoGrafico.Arco,

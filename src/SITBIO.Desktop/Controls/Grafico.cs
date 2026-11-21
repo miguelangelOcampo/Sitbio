@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Automation;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -28,7 +29,8 @@ public sealed record PuntoGrafico(double X, double Y, int Serie, string Titulo, 
 /// Gráfico reutilizable (I-01, prototipo <c>LineChart</c>): eje con valores redondos, cuadrícula suave, leyenda opcional
 /// y una etiqueta flotante con la serie, el valor y la etiqueta del periodo al pasar el mouse (o con las flechas cuando
 /// tiene el foco). Línea, área, barras agrupadas y dispersión. En dispersión, el clic en un punto ejecuta
-/// <see cref="ComandoPunto"/> con su <see cref="PuntoGrafico"/>.
+/// <see cref="ComandoPunto"/> con su <see cref="PuntoGrafico"/>. La etiqueta va en un <see cref="Popup"/> (capa superior
+/// de la ventana, J-02) para que no se corte en los bordes del gráfico ni de su tarjeta; ver <see cref="UbicarEtiqueta"/>.
 /// </summary>
 public sealed class Grafico : Control
 {
@@ -38,6 +40,9 @@ public sealed class Grafico : Control
     public const double MargenInferior = 26;
     private const double AltoLeyenda = 24;
     private const double RadioPunto = 5;
+
+    /// <summary>Distancia entre el punto resaltado y la etiqueta, y margen con el borde de la ventana.</summary>
+    public const double SeparacionEtiqueta = 10;
 
     public static readonly DependencyProperty TipoProperty = Registrar(nameof(Tipo), TipoGrafico.Linea);
     public static readonly DependencyProperty EtiquetasProperty = Registrar<IReadOnlyList<string>>(nameof(Etiquetas), []);
@@ -59,11 +64,24 @@ public sealed class Grafico : Control
         ClipToBoundsProperty.OverrideMetadata(typeof(Grafico), new FrameworkPropertyMetadata(false));
     }
 
+    private readonly StackPanel _lineasEtiqueta = new() { Margin = new Thickness(9, 5, 9, 5) };
+    private readonly Border _globo;
+    private Popup? _capa;
+
     public Grafico()
     {
         MinHeight = 24;
         SnapsToDevicePixels = true;
         FocusVisualStyle = null;
+        _globo = new Border { CornerRadius = new CornerRadius(8), Child = _lineasEtiqueta, SnapsToDevicePixels = true };
+        Unloaded += (_, _) => CerrarEtiqueta();
+        IsVisibleChanged += (_, e) =>
+        {
+            if (e.NewValue is false)
+            {
+                Resaltar(null);
+            }
+        };
     }
 
     public TipoGrafico Tipo
@@ -141,6 +159,35 @@ public sealed class Grafico : Control
 
     /// <summary>Texto de la etiqueta flotante del elemento resaltado.</summary>
     public string? TextoEtiqueta => Resaltado is { } i ? Etiqueta(i) : null;
+
+    /// <summary>La etiqueta está abierta en la capa superior (solo cuando el gráfico está en una ventana).</summary>
+    public bool EtiquetaAbierta => _capa?.IsOpen == true;
+
+    /// <summary>Esquina superior izquierda de la etiqueta abierta, en coordenadas del gráfico.</summary>
+    public Point? PosicionEtiqueta => EtiquetaAbierta ? new Point(_capa!.HorizontalOffset, _capa.VerticalOffset) : null;
+
+    /// <summary>
+    /// Ubica la etiqueta junto al <paramref name="ancla"/> sin salirse de <paramref name="limites"/> (la ventana): a la
+    /// derecha del punto y, si no cabe, a la izquierda; arriba y, si no cabe, abajo. Si tampoco cabe así, se pega al borde.
+    /// </summary>
+    public static Point UbicarEtiqueta(Point ancla, Size etiqueta, Rect limites, double separacion = SeparacionEtiqueta)
+    {
+        var x = ancla.X + separacion;
+        if (x + etiqueta.Width > limites.Right)
+        {
+            x = ancla.X - separacion - etiqueta.Width;
+        }
+
+        var y = ancla.Y - separacion - etiqueta.Height;
+        if (y < limites.Top)
+        {
+            y = ancla.Y + separacion;
+        }
+
+        x = Math.Max(limites.Left, Math.Min(x, limites.Right - etiqueta.Width));
+        y = Math.Max(limites.Top, Math.Min(y, limites.Bottom - etiqueta.Height));
+        return new Point(x, y);
+    }
 
     // ---------------- Escala ----------------
 
@@ -284,6 +331,13 @@ public sealed class Grafico : Control
         Resaltar(null);
     }
 
+    /// <summary>Al desplazar la página la etiqueta quedaría fuera de lugar: se quita hasta que el mouse se mueva.</summary>
+    protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
+    {
+        base.OnPreviewMouseWheel(e);
+        Resaltar(null);
+    }
+
     protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonUp(e);
@@ -393,13 +447,82 @@ public sealed class Grafico : Control
         Cursor = indice is not null && Tipo == TipoGrafico.Dispersion && ComandoPunto is not null ? Cursors.Hand : null;
         AutomationProperties.SetHelpText(this, TextoEtiqueta?.Replace('\n', ' ') ?? string.Empty);
         InvalidateVisual();
+        ActualizarEtiqueta();
     }
 
     private static void AlCambiarDatos(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var grafico = (Grafico)d;
         grafico.Resaltado = null;
+        grafico.CerrarEtiqueta();
         grafico.InvalidateVisual();
+    }
+
+    // ---------------- Etiqueta en la capa superior (J-02) ----------------
+
+    private void ActualizarEtiqueta()
+    {
+        var texto = TextoEtiqueta;
+        var area = Area();
+        if (Resaltado is not { } indice || string.IsNullOrEmpty(texto) || PresentationSource.FromVisual(this) is null || area.Width <= 0 || area.Height <= 0)
+        {
+            CerrarEtiqueta();
+            return;
+        }
+
+        var letra = Pincel("Brush.OnAction", Brushes.White);
+        _globo.Background = Pincel("Brush.Action", Brushes.DarkGreen);
+        _lineasEtiqueta.Children.Clear();
+        var lineas = texto.Split('\n');
+        for (var k = 0; k < lineas.Length; k++)
+        {
+            _lineasEtiqueta.Children.Add(new TextBlock
+            {
+                Text = lineas[k],
+                FontFamily = FontFamily,
+                FontSize = k == 0 ? 12 : 11,
+                FontWeight = k == 0 ? FontWeights.SemiBold : FontWeights.Normal,
+                Foreground = letra,
+            });
+        }
+
+        _globo.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+        var posicion = UbicarEtiqueta(Ancla(indice, area), _globo.DesiredSize, LimitesVentana());
+        _capa ??= new Popup
+        {
+            Child = _globo,
+            PlacementTarget = this,
+            Placement = PlacementMode.Relative,
+            AllowsTransparency = true,
+            IsHitTestVisible = false,
+            Focusable = false,
+            StaysOpen = true,
+        };
+        _capa.HorizontalOffset = posicion.X;
+        _capa.VerticalOffset = posicion.Y;
+        _capa.IsOpen = true;
+    }
+
+    private void CerrarEtiqueta()
+    {
+        if (_capa is not null)
+        {
+            _capa.IsOpen = false;
+        }
+    }
+
+    /// <summary>El contenido de la ventana en coordenadas del gráfico, con un margen; sin ventana, el propio gráfico.</summary>
+    private Rect LimitesVentana()
+    {
+        if (Window.GetWindow(this)?.Content is UIElement raiz && raiz.IsAncestorOf(this))
+        {
+            var origen = raiz.TranslatePoint(default, this);
+            var limites = new Rect(origen, raiz.RenderSize);
+            limites.Inflate(-4, -4);
+            return limites.Width > 0 && limites.Height > 0 ? limites : new Rect(RenderSize);
+        }
+
+        return new Rect(RenderSize);
     }
 
     // ---------------- Dibujo ----------------
@@ -426,22 +549,12 @@ public sealed class Grafico : Control
         if (Tipo == TipoGrafico.Arco)
         {
             DibujarArco(dc, area);
-            if (Resaltado is { } segmento)
-            {
-                DibujarEtiqueta(dc, segmento, area, dpi);
-            }
-
             return;
         }
 
         if (Compacto)
         {
             DibujarPeriodos(dc, area, texto3, dpi);
-            if (Resaltado is { } periodo)
-            {
-                DibujarEtiqueta(dc, periodo, area, dpi);
-            }
-
             return;
         }
 
@@ -467,11 +580,6 @@ public sealed class Grafico : Control
         else
         {
             DibujarPeriodos(dc, area, texto3, dpi);
-        }
-
-        if (Resaltado is { } i)
-        {
-            DibujarEtiqueta(dc, i, area, dpi);
         }
     }
 
@@ -643,49 +751,21 @@ public sealed class Grafico : Control
         }
     }
 
-    private void DibujarEtiqueta(DrawingContext dc, int indice, Rect area, double dpi)
+    /// <summary>Punto junto al que va la etiqueta: el punto de dispersión, el valor mayor del periodo o el centro del arco.</summary>
+    private Point Ancla(int indice, Rect area)
     {
-        var lineas = Etiqueta(indice).Split('\n');
-        if (lineas.Length == 0 || string.IsNullOrEmpty(lineas[0]))
-        {
-            return;
-        }
-
-        var fondo = Pincel("Brush.Action", Brushes.DarkGreen);
-        var letra = Pincel("Brush.OnAction", Brushes.White);
-        var textos = lineas.Select((l, k) => Texto(l, k == 0 ? 12 : 11, letra, dpi, k == 0 ? FontWeights.SemiBold : FontWeights.Normal)).ToList();
-        var ancho = textos.Max(t => t.Width) + 18;
-        var alto = textos.Sum(t => t.Height) + 10;
-
-        Point ancla;
         if (Tipo == TipoGrafico.Arco)
         {
-            ancla = new Point(area.Left + (area.Width / 2), area.Top + 4);
-        }
-        else if (Tipo == TipoGrafico.Dispersion)
-        {
-            ancla = PosicionDispersion(Puntos[indice], area);
-        }
-        else
-        {
-            var mayor = Series.Where(s => indice < s.Valores.Count).Select(s => s.Valores[indice]).DefaultIfEmpty(0).Max();
-            ancla = Posicion(indice, mayor, area);
+            return new Point(area.Left + (area.Width / 2), area.Top + (area.Height / 2));
         }
 
-        var x = Math.Clamp(ancla.X - (ancho / 2), 0, Math.Max(0, ActualWidth - ancho));
-        var y = ancla.Y - alto - 10;
-        if (y < 0)
+        if (Tipo == TipoGrafico.Dispersion)
         {
-            y = Math.Min(ancla.Y + 12, Math.Max(0, ActualHeight - alto));
+            return PosicionDispersion(Puntos[indice], area);
         }
 
-        dc.DrawRoundedRectangle(fondo, null, new Rect(x, y, ancho, alto), 8, 8);
-        var arriba = y + 5;
-        foreach (var t in textos)
-        {
-            dc.DrawText(t, new Point(x + 9, arriba));
-            arriba += t.Height;
-        }
+        var mayor = Series.Where(s => indice < s.Valores.Count).Select(s => s.Valores[indice]).DefaultIfEmpty(0).Max();
+        return Posicion(indice, mayor, area);
     }
 
     private (Point Centro, double Radio, double Grosor) Anillo(Rect area)

@@ -40,13 +40,77 @@ public class SolicitudServicioViewModelTests
         await login.ConocerPlanesCommand.ExecuteAsync(null);
 
         Assert.NotNull(login.Solicitud);
+        Assert.True(login.Solicitud.VerPlanes);
+        Assert.Equal("Planes de SITBIO", login.Solicitud.Titulo);
         Assert.Equal(4, login.Solicitud.Planes.Count);
-        Assert.Equal(new PlanVisible("Clínica", "7 usuarios de gestión · 1.000 equipos · 25 GB", "$380.000", "COP/mes"), login.Solicitud.Planes[1]);
-        Assert.Equal("Cotización", login.Solicitud.Planes[3].Valor);
         Assert.Equal([SolicitudServicioViewModel.SinPlan, "Consultorio", "Clínica", "Hospital", "Red de Salud"], login.Solicitud.OpcionesPlan);
 
         login.Solicitud.CerrarCommand.Execute(null);
         Assert.Null(login.Solicitud);
+    }
+
+    [Fact]
+    public async Task J04_TarjetasDeLosPlanes_ComoElPrototipo()
+    {
+        var vm = Modelo();
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        var clinica = vm.Planes[1];
+        Assert.Equal(("Clínica", "Clínicas e IPS pequeñas", "$380.000", "COP/mes"), (clinica.Nombre, clinica.Dirigido, clinica.Valor, clinica.Periodo));
+        Assert.Equal(
+            ["Hasta 7 usuarios de gestión", "Hasta 1.000 equipos activos", "25 GB de documentos", "Personal clínico ilimitado", "Soporte en horario hábil"],
+            clinica.Incluye);
+        Assert.Equal("Elegir este plan", clinica.TextoBoton);
+        Assert.Equal("Soporte prioritario", vm.Planes[2].Incluye[^1]);
+
+        var red = vm.Planes[3];
+        Assert.True(red.ALaMedida);
+        Assert.Equal(("Cotización", "Pedir cotización"), (red.Valor, red.TextoBoton));
+        Assert.Equal(["Usuarios de gestión a la medida", "Equipos activos a la medida", "Almacenamiento a la medida", "Personal clínico ilimitado", "Soporte prioritario con acompañamiento"], red.Incluye);
+    }
+
+    [Fact]
+    public async Task J04_ElegirUnPlan_AbreElFormularioConElPlanMarcado_YVolverConservaLaSeleccion()
+    {
+        var vm = Modelo();
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        vm.ElegirPlanCommand.Execute(vm.Planes[2]);
+
+        Assert.True(vm.VerFormulario);
+        Assert.Equal("Solicitar el servicio", vm.Titulo);
+        Assert.Equal("Hospital", vm.Plan);
+        Assert.Equal(SolicitudServicioViewModel.Demostracion, vm.TipoElegido);
+        Assert.True(vm.Planes[2].Seleccionado);
+        Assert.Equal("Seleccionado", vm.Planes[2].TextoBoton);
+
+        vm.VolverAPlanesCommand.Execute(null);
+        Assert.True(vm.VerPlanes);
+        Assert.True(vm.Planes[2].Seleccionado);
+
+        // «Pedir cotización» en Red de Salud deja la solicitud como cotización y cambia la tarjeta marcada.
+        vm.ElegirPlanCommand.Execute(vm.Planes[3]);
+        Assert.Equal((true, SolicitudServicioViewModel.Cotizacion), (vm.EsCotizacion, vm.TipoElegido));
+        Assert.Equal([false, false, false, true], vm.Planes.Select(p => p.Seleccionado));
+
+        // Cambiar el plan en el formulario actualiza la tarjeta marcada.
+        vm.Plan = SolicitudServicioViewModel.SinPlan;
+        Assert.DoesNotContain(vm.Planes, p => p.Seleccionado);
+        Assert.Equal("Por definir", vm.PlanResumen);
+    }
+
+    [Fact]
+    public async Task J04_SolicitarSinElegirPlan_AbreElFormularioSinPlan()
+    {
+        var vm = Modelo();
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        vm.IrAFormularioCommand.Execute(null);
+
+        Assert.True(vm.VerFormulario);
+        Assert.Equal(SolicitudServicioViewModel.SinPlan, vm.Plan);
+        vm.TipoElegido = SolicitudServicioViewModel.Cotizacion;
+        Assert.Equal(SolicitudServicioViewModel.TipoCotizacion, vm.TipoSolicitado);
     }
 
     [Fact]
@@ -68,7 +132,9 @@ public class SolicitudServicioViewModelTests
         await vm.EnviarCommand.ExecuteAsync(null);
 
         Assert.True(vm.Enviada);
+        Assert.False(vm.VerFormulario);
         Assert.Equal("SOL-000012", vm.CodigoEnviado);
+        Assert.Equal("ana@sanrafael.co", vm.CorreoEnviado);
         await _servicio.Received(1).EnviarAsync(
             new DatosSolicitud("cotizacion", "Clínica San Rafael", "900.123.456-7", "Ana Gómez", "ana@sanrafael.co", null, "Hospital", null),
             Arg.Any<CancellationToken>());

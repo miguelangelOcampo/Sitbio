@@ -11,7 +11,8 @@ public sealed record GraficoCapturado(string Titulo, byte[] Png);
 /// <summary>
 /// Captura los gráficos de una pantalla para exportarlos a PDF (J-03): cada <see cref="Grafico"/> visible que tenga
 /// <see cref="Grafico.Titulo"/>, en el orden de la pantalla, como PNG a 2x (192 ppp) sobre el fondo de la tarjeta.
-/// Los mini gráficos de los indicadores no tienen título y no se exportan.
+/// Los mini gráficos de los indicadores no tienen título y no se exportan. Un bloque con <see cref="TituloProperty"/>
+/// (por ejemplo la dona del parque con su número central y su leyenda) se captura entero en lugar de sus gráficos.
 /// </summary>
 public static class CapturaGraficos
 {
@@ -20,19 +21,43 @@ public static class CapturaGraficos
 
     public const double Escala = 2;
 
+    /// <summary>Título con el que se exporta el bloque completo; los gráficos de adentro no se capturan aparte.</summary>
+    public static readonly DependencyProperty TituloProperty = DependencyProperty.RegisterAttached(
+        "Titulo", typeof(string), typeof(CapturaGraficos), new PropertyMetadata(string.Empty));
+
+    public static string GetTitulo(DependencyObject d) => (string)d.GetValue(TituloProperty);
+
+    public static void SetTitulo(DependencyObject d, string valor) => d.SetValue(TituloProperty, valor);
+
     public static IReadOnlyList<GraficoCapturado> Capturar(DependencyObject raiz)
     {
         var capturas = new List<GraficoCapturado>();
-        foreach (var grafico in Descendientes(raiz).OfType<Grafico>())
+        var bloques = new List<FrameworkElement>();
+        foreach (var elemento in Descendientes(raiz).OfType<FrameworkElement>())
         {
             if (capturas.Count == Maximo)
             {
                 break;
             }
 
-            if (grafico.IsVisible && !string.IsNullOrWhiteSpace(grafico.Titulo) && grafico.ActualWidth >= 1 && grafico.ActualHeight >= 1)
+            var titulo = GetTitulo(elemento);
+            if (string.IsNullOrWhiteSpace(titulo))
             {
-                capturas.Add(new GraficoCapturado(grafico.Titulo, Png(grafico)));
+                if (elemento is not Grafico grafico || bloques.Any(b => b.IsAncestorOf(grafico)))
+                {
+                    continue;
+                }
+
+                titulo = grafico.Titulo;
+            }
+            else
+            {
+                bloques.Add(elemento);
+            }
+
+            if (elemento.IsVisible && !string.IsNullOrWhiteSpace(titulo) && elemento.ActualWidth >= 1 && elemento.ActualHeight >= 1)
+            {
+                capturas.Add(new GraficoCapturado(titulo, Png(elemento)));
             }
         }
 

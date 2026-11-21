@@ -154,4 +154,31 @@ public class ExportarPdfTests
             ventana.Close();
         }
     });
+
+    [Fact]
+    public void Captura_UnBloqueConTitulo_ExportaLaDonaConSuLeyenda_YNoElArcoSolo() => EnSta(() =>
+    {
+        var dona = new Grafico { Titulo = "Estado del parque", Tipo = TipoGrafico.Arco, Width = 100, Height = 100, Series = [new SerieGrafico("Operativos", "Brush.Success", [8])] };
+        var leyenda = new TextBlock { Text = "Operativo 8", Width = 120 };
+        var bloque = new DockPanel { Children = { dona, leyenda } };
+        CapturaGraficos.SetTitulo(bloque, "Estado del parque");
+        var panel = new StackPanel { Children = { bloque } };
+        var ventana = new Window { Content = panel, Width = 400, Height = 300, ShowInTaskbar = false, ShowActivated = false, Left = -2000, Top = -2000 };
+        try
+        {
+            ventana.Show();
+            ventana.UpdateLayout();
+
+            var captura = Assert.Single(CapturaGraficos.Capturar(panel));
+
+            Assert.Equal("Estado del parque", captura.Titulo);
+            var imagen = System.Windows.Media.Imaging.BitmapFrame.Create(new MemoryStream(captura.Png));
+            Assert.Equal((int)Math.Ceiling(bloque.ActualWidth * CapturaGraficos.Escala), imagen.PixelWidth);
+            Assert.True(imagen.PixelWidth > 100 * CapturaGraficos.Escala); // la dona más la leyenda
+        }
+        finally
+        {
+            ventana.Close();
+        }
+    });
 }

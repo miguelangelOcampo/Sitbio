@@ -54,6 +54,9 @@ public sealed class Usuario : EntidadTenant
 
     public DateTimeOffset FechaCreacion { get; private set; }
 
+    /// <summary>J-11 (V011): ruta relativa de la foto de perfil (vista de hasta 512 px); null = sin foto, se ven las iniciales.</summary>
+    public string? FotoRuta { get; private set; }
+
     /// <summary>RN-006: la cuenta se bloquea al quinto intento fallido consecutivo.</summary>
     public const short MaximoIntentosFallidos = 5;
 
@@ -104,6 +107,12 @@ public sealed class Usuario : EntidadTenant
             Rol = null;
         }
     }
+
+    /// <summary>J-11: la foto de perfil que el propio usuario subió.</summary>
+    public void CambiarFoto(string ruta) => FotoRuta = Requerido(ruta, nameof(ruta));
+
+    /// <summary>J-11: sin foto; se vuelven a mostrar las iniciales.</summary>
+    public void QuitarFoto() => FotoRuta = null;
 
     /// <summary>La cuenta deja de poder iniciar sesión; sus datos y su historial se conservan.</summary>
     public void Desactivar() => EstadoActivo = false;

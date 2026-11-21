@@ -27,7 +27,7 @@ public partial class FotoEquipoViewModel(
         "La foto debe mostrar solo el equipo, sin pacientes, historias clínicas ni otros datos personales (Ley 1581 de 2012). "
         + "SITBIO la reduce a 128 px y 512 px antes de enviarla; el original no se guarda.";
 
-    private static readonly string[] Extensiones = [".jpg", ".jpeg", ".png", ".webp"];
+    public static readonly IReadOnlyList<string> Extensiones = [".jpg", ".jpeg", ".png", ".webp"];
 
     /// <summary>Al cerrar: la nueva miniatura (null si se quitó) cuando hubo cambio; sin cambio, no se invoca.</summary>
     public event EventHandler<CambioFoto>? Cambiada;

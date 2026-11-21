@@ -15,11 +15,11 @@ public sealed class ServicioPreferenciasArchivoTests : IDisposable
     }
 
     [Fact]
-    public void SinArchivo_UsaElTemaClaro()
+    public void SinArchivo_SigueElTemaDelSistema()
     {
         var servicio = new ServicioPreferenciasArchivo(_carpeta);
 
-        Assert.Equal(Temas.Claro, servicio.Leer().Tema);
+        Assert.Equal(Temas.Sistema, servicio.Leer().Tema);
         Assert.False(File.Exists(servicio.Ruta));
     }
 
@@ -40,11 +40,30 @@ public sealed class ServicioPreferenciasArchivoTests : IDisposable
     [InlineData("")]
     [InlineData("{\"Tema\":\"morado\"}")]
     [InlineData("null")]
-    public void ArchivoDanadoOTemaDesconocido_VuelveAlTemaClaro(string contenido)
+    public void ArchivoDanadoOTemaDesconocido_SigueElSistema(string contenido)
     {
         Directory.CreateDirectory(_carpeta);
         var servicio = new ServicioPreferenciasArchivo(_carpeta);
         File.WriteAllText(servicio.Ruta, contenido);
+
+        Assert.Equal(Temas.Sistema, servicio.Leer().Tema);
+    }
+
+    [Theory]
+    [InlineData(Temas.Sistema, true, Temas.Claro)]
+    [InlineData(Temas.Sistema, false, Temas.Oscuro)]
+    [InlineData("morado", false, Temas.Oscuro)]
+    [InlineData(Temas.Claro, false, Temas.Claro)]
+    [InlineData(Temas.Oscuro, true, Temas.Oscuro)]
+    public void J10_ElTemaDelSistemaSigueAWindows_YLosElegidosNo(string tema, bool windowsEnClaro, string pintado) =>
+        Assert.Equal(pintado, Temas.Resolver(tema, windowsEnClaro));
+
+    [Fact]
+    public void J10_ClaroGuardadoAntes_SeConserva()
+    {
+        Directory.CreateDirectory(_carpeta);
+        var servicio = new ServicioPreferenciasArchivo(_carpeta);
+        File.WriteAllText(servicio.Ruta, "{\"Tema\":\"claro\"}");
 
         Assert.Equal(Temas.Claro, servicio.Leer().Tema);
     }
@@ -70,6 +89,6 @@ public sealed class ServicioPreferenciasArchivoTests : IDisposable
         var error = Record.Exception(() => servicio.Guardar(new Preferencias(Temas.Oscuro)));
 
         Assert.Null(error);
-        Assert.Equal(Temas.Claro, servicio.Leer().Tema);
+        Assert.Equal(Temas.Sistema, servicio.Leer().Tema);
     }
 }

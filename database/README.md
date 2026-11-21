@@ -13,6 +13,7 @@
 | `V008__informacion_regulatoria_equipo.sql` | Información regulatoria del equipo (RF-030, RN-010): autorización INVIMA (registro sanitario o permiso de comercialización), número y vigencia; clase de riesgo (I, IIa, IIb, III); si requiere calibración y su periodicidad (1 a 60 meses). Valores por defecto en `tipo_equipo`; `plan_preventivo.ultima_ejecucion` (último preventivo conocido) y `equipo_biomedico.foto_documento_id` (RF-031). |
 | `V009__catalogo_tipo_falla.sql` | Catálogo de tipos de falla por institución (HU-025, RF-025): tabla `tipo_falla` con nombre único por tenant sin distinguir mayúsculas. Sin valores iniciales; `tiquete.tipo_falla` sigue siendo texto, así que inactivar un tipo no cambia los tiquetes anteriores. |
 | `V010__documentos_equipo_activos.sql` | Documentos adjuntos del equipo (HU-015, RF-015): desactivación lógica de `documento_equipo` (`estado_activo`, `fecha_desactivacion`, `desactivado_por_id`). El archivo se conserva y sigue contando en el almacenamiento del plan (RN-009). |
+| `V011__foto_perfil_usuario.sql` | Foto de perfil del usuario (HU-011, J-11): columna nula `usuario.foto_ruta` con la ruta de la vista (hasta 512 px); la miniatura de 128 px lleva el sufijo `-128`. No cuenta en el almacenamiento del plan (RN-009). |
 | `docker/postgres-init.sh` | Ejecuta el script 01 y las migraciones al crear el contenedor. |
 
 Reglas (ADR-005):

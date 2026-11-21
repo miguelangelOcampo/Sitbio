@@ -9,6 +9,7 @@
         Height="800"
         MinWidth="1024"
         MinHeight="700"
+        WindowState="Maximized"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource Brush.Background}"
         Foreground="{DynamicResource Brush.Text}"

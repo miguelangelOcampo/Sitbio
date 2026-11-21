@@ -24,6 +24,7 @@ public sealed class UsuarioConfiguracion : IEntityTypeConfiguration<Usuario>
         usuario.Property(u => u.EstadoActivo).HasColumnName("estado_activo");
         usuario.Property(u => u.UltimoAcceso).HasColumnName("ultimo_acceso");
         usuario.Property(u => u.FechaCreacion).HasColumnName("fecha_creacion");
+        usuario.Property(u => u.FotoRuta).HasColumnName("foto_ruta").HasMaxLength(500);
 
         usuario.HasOne(u => u.Rol).WithMany().HasForeignKey(u => u.RolId).IsRequired();
         usuario.HasIndex(u => new { u.TenantId, u.Correo }).IsUnique().HasDatabaseName("uq_usuario_tenant_correo");

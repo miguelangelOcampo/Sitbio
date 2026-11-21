@@ -260,7 +260,8 @@
             <Border Style="{StaticResource Section}">
               <StackPanel>
                 <TextBlock Text="Estado del parque" Style="{StaticResource SectionTitle}" />
-                <DockPanel Margin="0,14,0,0">
+                <!-- El PDF lleva la dona con su número y su leyenda, no solo el arco -->
+                <DockPanel Margin="0,14,0,0" controls:CapturaGraficos.Titulo="Estado del parque">
                   <Grid DockPanel.Dock="Left" Width="118" Height="118" Margin="0,0,18,0">
                     <controls:Grafico views:Animacion.Crecer="True" Tipo="Arco" Series="{Binding SeriesParque}" Titulo="Estado del parque" AutomationProperties.Name="Equipos activos por estado" />
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">

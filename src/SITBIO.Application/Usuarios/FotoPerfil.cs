@@ -42,51 +42,22 @@ public sealed class GestionFotoPerfil(
     {
         var usuario = await Usuario(cancellationToken);
         var errores = new Dictionary<string, string[]>();
-        var bytesMiniatura = await Leer(miniatura, "miniatura", errores, cancellationToken);
-        var bytesVista = await Leer(vista, "vista", errores, cancellationToken);
-        var imagenMiniatura = Revisar(
-            bytesMiniatura,
-            "miniatura",
-            errores,
-            i => i.Ancho == FotografiaEquipo.LadoMiniatura && i.Alto == FotografiaEquipo.LadoMiniatura,
-            "La miniatura debe medir 128 × 128 px.");
-        var imagenVista = Revisar(
-            bytesVista,
-            "vista",
-            errores,
-            i => i.LadoMayor <= FotografiaEquipo.LadoMaximoVista,
-            "La vista no debe pasar de 512 px en el lado mayor; reduce la imagen antes de subirla.");
-        if (imagenMiniatura is { } m && imagenVista is { } v && m.TipoMime != v.TipoMime)
-        {
-            errores["miniatura"] = ["La miniatura y la vista deben tener el mismo formato."];
-        }
-
-        if (errores.Count > 0)
-        {
-            throw new ErrorValidacion(errores);
-        }
+        var foto = await RevisionFoto.RevisarAsync(miniatura, vista, errores, cancellationToken) ?? throw new ErrorValidacion(errores);
 
         var anterior = usuario.FotoRuta;
-        var nombreVista = $"{NombreArchivo}-{Guid.NewGuid():N}{FotografiaEquipo.Extension(imagenVista!.Value.TipoMime)}";
-        var rutaVista = await almacen.GuardarAsync(contexto.TenantId, usuario.Id, nombreVista, new MemoryStream(bytesVista!), cancellationToken);
-        string? rutaMiniatura = null;
-        try
-        {
-            rutaMiniatura = await almacen.GuardarAsync(
-                contexto.TenantId, usuario.Id, FotografiaEquipo.RutaMiniatura(nombreVista), new MemoryStream(bytesMiniatura!), cancellationToken);
-            usuario.CambiarFoto(rutaVista);
-            await repositorio.GuardarAsync(cancellationToken);
-        }
-        catch
-        {
-            almacen.Eliminar(rutaVista);
-            if (rutaMiniatura is not null)
+        var nombreVista = $"{NombreArchivo}-{Guid.NewGuid():N}{foto.Extension}";
+        await RevisionFoto.GuardarAsync(
+            almacen,
+            contexto.TenantId,
+            usuario.Id,
+            nombreVista,
+            foto,
+            async rutaVista =>
             {
-                almacen.Eliminar(rutaMiniatura);
-            }
-
-            throw;
-        }
+                usuario.CambiarFoto(rutaVista);
+                await repositorio.GuardarAsync(cancellationToken);
+            },
+            cancellationToken);
 
         Borrar(anterior);
         await auditoria.RegistrarAsync(contexto.UsuarioId, AccionesAuditoria.Actualizar, Entidad, usuario.Id.ToString(), Detalle("cambiada"), cancellationToken);
@@ -121,47 +92,6 @@ public sealed class GestionFotoPerfil(
             almacen.Eliminar(ruta);
             almacen.Eliminar(FotografiaEquipo.RutaMiniatura(ruta));
         }
-    }
-
-    private static async Task<byte[]?> Leer(VersionFoto? version, string campo, Dictionary<string, string[]> errores, CancellationToken cancellationToken)
-    {
-        if (version is null || version.TamanoBytes <= 0)
-        {
-            errores[campo] = [campo == "miniatura" ? "Falta la miniatura de 128 px." : "Falta la vista de 512 px."];
-            return null;
-        }
-
-        if (version.TamanoBytes > FotografiaEquipo.TamanoMaximoBytes)
-        {
-            errores[campo] = ["La imagen reducida supera 2 MB."];
-            return null;
-        }
-
-        using var memoria = new MemoryStream();
-        await version.Contenido.CopyToAsync(memoria, cancellationToken);
-        return memoria.ToArray();
-    }
-
-    private static ImagenFoto? Revisar(byte[]? bytes, string campo, Dictionary<string, string[]> errores, Func<ImagenFoto, bool> cumple, string mensaje)
-    {
-        if (bytes is null)
-        {
-            return null;
-        }
-
-        if (FotografiaEquipo.Leer(bytes) is not { } imagen)
-        {
-            errores[campo] = [GestionFotoEquipo.FormatoNoPermitido];
-            return null;
-        }
-
-        if (!cumple(imagen))
-        {
-            errores[campo] = [mensaje];
-            return null;
-        }
-
-        return imagen;
     }
 
     private static Dictionary<string, string> Detalle(string cambio) => new() { ["foto_perfil"] = cambio };

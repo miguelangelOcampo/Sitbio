@@ -62,32 +62,10 @@ public sealed class GestionFotoEquipo(
             errores["aviso"] = [AvisoDatosPersonales];
         }
 
-        var bytesMiniatura = await Leer(miniatura, "miniatura", errores, cancellationToken);
-        var bytesVista = await Leer(vista, "vista", errores, cancellationToken);
-        var imagenMiniatura = Revisar(
-            bytesMiniatura,
-            "miniatura",
-            errores,
-            i => i.Ancho == FotografiaEquipo.LadoMiniatura && i.Alto == FotografiaEquipo.LadoMiniatura,
-            "La miniatura debe medir 128 × 128 px.");
-        var imagenVista = Revisar(
-            bytesVista,
-            "vista",
-            errores,
-            i => i.LadoMayor <= FotografiaEquipo.LadoMaximoVista,
-            "La vista no debe pasar de 512 px en el lado mayor; reduce la imagen antes de subirla.");
-        if (imagenMiniatura is { } m && imagenVista is { } v && m.TipoMime != v.TipoMime)
-        {
-            errores["miniatura"] = ["La miniatura y la vista deben tener el mismo formato."];
-        }
+        var foto = await RevisionFoto.RevisarAsync(miniatura, vista, errores, cancellationToken) ?? throw new ErrorValidacion(errores);
 
-        if (errores.Count > 0)
-        {
-            throw new ErrorValidacion(errores);
-        }
-
-        var mime = imagenVista!.Value.TipoMime;
-        var tamano = (long)bytesMiniatura!.Length + bytesVista!.Length;
+        var mime = foto.TipoMime;
+        var tamano = foto.TamanoBytes;
         var capacidad = await repositorio.CapacidadAsync(cancellationToken);
         if (!capacidad.Admite(tamano))
         {
@@ -99,35 +77,27 @@ public sealed class GestionFotoEquipo(
         }
 
         var ahora = tiempo.GetUtcNow();
-        var extension = FotografiaEquipo.Extension(mime);
+        var extension = foto.Extension;
         var documento = new DocumentoEquipo(
             contexto.TenantId, equipoId, contexto.UsuarioId, TiposDocumento.Fotografia, FotografiaEquipo.NombreArchivo + extension, mime, tamano, ahora);
 
         var nombreVista = documento.Id.ToString("N") + extension;
-        var rutaVista = await almacen.GuardarAsync(contexto.TenantId, equipoId, nombreVista, new MemoryStream(bytesVista), cancellationToken);
-        string? rutaMiniatura = null;
-        try
-        {
-            rutaMiniatura = await almacen.GuardarAsync(
-                contexto.TenantId, equipoId, FotografiaEquipo.RutaMiniatura(nombreVista), new MemoryStream(bytesMiniatura), cancellationToken);
-            documento.UbicarEn(rutaVista);
-
-            var anterior = await repositorio.ObtenerFotoAsync(equipoId, cancellationToken);
-            anterior?.Desactivar(contexto.UsuarioId, ahora);
-            repositorio.Agregar(documento);
-            equipo.AsignarFoto(documento.Id);
-            await repositorio.GuardarAsync(cancellationToken);
-        }
-        catch
-        {
-            almacen.Eliminar(rutaVista);
-            if (rutaMiniatura is not null)
+        await RevisionFoto.GuardarAsync(
+            almacen,
+            contexto.TenantId,
+            equipoId,
+            nombreVista,
+            foto,
+            async rutaVista =>
             {
-                almacen.Eliminar(rutaMiniatura);
-            }
-
-            throw;
-        }
+                documento.UbicarEn(rutaVista);
+                var anterior = await repositorio.ObtenerFotoAsync(equipoId, cancellationToken);
+                anterior?.Desactivar(contexto.UsuarioId, ahora);
+                repositorio.Agregar(documento);
+                equipo.AsignarFoto(documento.Id);
+                await repositorio.GuardarAsync(cancellationToken);
+            },
+            cancellationToken);
 
         await auditoria.RegistrarAsync(contexto.UsuarioId, AccionesAuditoria.Crear, Entidad, documento.Id.ToString(), Detalle(documento), cancellationToken);
         return Dto(documento);
@@ -152,47 +122,6 @@ public sealed class GestionFotoEquipo(
         }
 
         return await repositorio.ObtenerFotoAsync(equipoId, cancellationToken) ?? throw new ErrorNoEncontrado("La fotografía del equipo");
-    }
-
-    private static async Task<byte[]?> Leer(VersionFoto? version, string campo, Dictionary<string, string[]> errores, CancellationToken cancellationToken)
-    {
-        if (version is null || version.TamanoBytes <= 0)
-        {
-            errores[campo] = [campo == "miniatura" ? "Falta la miniatura de 128 px." : "Falta la vista de 512 px."];
-            return null;
-        }
-
-        if (version.TamanoBytes > FotografiaEquipo.TamanoMaximoBytes)
-        {
-            errores[campo] = ["La imagen reducida supera 2 MB."];
-            return null;
-        }
-
-        using var memoria = new MemoryStream();
-        await version.Contenido.CopyToAsync(memoria, cancellationToken);
-        return memoria.ToArray();
-    }
-
-    private static ImagenFoto? Revisar(byte[]? bytes, string campo, Dictionary<string, string[]> errores, Func<ImagenFoto, bool> cumple, string mensaje)
-    {
-        if (bytes is null)
-        {
-            return null;
-        }
-
-        if (FotografiaEquipo.Leer(bytes) is not { } imagen)
-        {
-            errores[campo] = [FormatoNoPermitido];
-            return null;
-        }
-
-        if (!cumple(imagen))
-        {
-            errores[campo] = [mensaje];
-            return null;
-        }
-
-        return imagen;
     }
 
     private static FotoEquipoDto Dto(DocumentoEquipo foto) => new(foto.Id, foto.EquipoId, foto.TipoMime, foto.TamanoBytes, foto.FechaCarga);

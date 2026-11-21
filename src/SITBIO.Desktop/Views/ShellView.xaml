@@ -230,7 +230,7 @@
           <!-- Campana del centro de alertas (UI-016), con el número de alertas sin revisar -->
           <Button Style="{StaticResource IconButton}" Width="40" Height="40" DataContext="{Binding Alertas}"
                   Command="{Binding AlternarCommand}" ToolTip="{Binding TextoPendientes}"
-                  AutomationProperties.Name="{Binding TextoPendientes, StringFormat='Centro de alertas: {0}'}"
+                  AutomationProperties.Name="{Binding TextoPendientes, StringFormat='Notificaciones: {0}'}"
                   Visibility="{Binding DataContext.TieneAlertas, RelativeSource={RelativeSource AncestorType=views:ShellView}, Converter={StaticResource Visible}}">
             <Grid>
               <ContentControl Style="{StaticResource Icono}" Width="20" Height="20" Content="{StaticResource Icono.Campana}" />
@@ -399,12 +399,14 @@
               </Button>
               <TextBlock Text="ALERTAS" Style="{StaticResource Overline}" />
             </DockPanel>
-            <TextBlock Text="Centro de alertas" Style="{StaticResource SectionTitle}" FontSize="20" Margin="0,4,0,0" />
-            <TextBlock Text="{Binding TextoAnticipacion}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0"
-                       Visibility="{Binding Cargado, Converter={StaticResource Visible}}" />
+            <TextBlock Text="{Binding Titulo}" Style="{StaticResource SectionTitle}" FontSize="20" Margin="0,4,0,0" />
+            <StackPanel Visibility="{Binding VeVencimientos, Converter={StaticResource Visible}}">
+              <TextBlock Text="{Binding TextoAnticipacion}" Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0"
+                         Visibility="{Binding Cargado, Converter={StaticResource Visible}}" />
+            </StackPanel>
             <DockPanel Margin="0,12,0,0">
               <Button DockPanel.Dock="Right" Content="Marcar todas como revisadas" Style="{StaticResource LinkButton}" FontSize="13"
-                      Command="{Binding MarcarTodasRevisadasCommand}" Visibility="{Binding HayPendientes, Converter={StaticResource Visible}}" />
+                      Command="{Binding MarcarTodasRevisadasCommand}" Visibility="{Binding HayVencimientosPendientes, Converter={StaticResource Visible}}" />
               <TextBlock Text="{Binding TextoPendientes}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
             </DockPanel>
 
@@ -440,8 +442,53 @@
             </StackPanel>
           </StackPanel>
           <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-            <ItemsControl ItemsSource="{Binding Filas}" ItemTemplate="{StaticResource TarjetaAlerta}" Margin="24,0,24,24" Focusable="False"
-                          AutomationProperties.Name="Alertas de vencimiento" />
+            <StackPanel Margin="24,0,24,24">
+              <!-- J-07: cambios de estado de los tiquetes que reportó quien está en la sesión (AC-02 y AC-04) -->
+              <StackPanel Margin="0,0,0,16" Visibility="{Binding VeMisTiquetes, Converter={StaticResource Visible}}">
+                <TextBlock Text="TUS TIQUETES" Style="{StaticResource Overline}" Margin="0,0,0,8" />
+                <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
+                        Margin="0,0,0,8" Visibility="{Binding AvisoCambios, Converter={StaticResource NuloVisible}}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding AvisoCambios.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding AvisoCambios.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="Sin cambios en los tiquetes que reportaste en los últimos 30 días." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap"
+                           Visibility="{Binding SinCambios, Converter={StaticResource Visible}}" />
+                <ItemsControl ItemsSource="{Binding Cambios}" Focusable="False" AutomationProperties.Name="Cambios de tus tiquetes">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="14,12" Margin="0,0,0,10" CornerRadius="{StaticResource Radius.Card}" BorderThickness="1"
+                                BorderBrush="{DynamicResource Brush.Border}" Background="{DynamicResource Brush.Surface}">
+                          <DockPanel>
+                            <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="{DynamicResource Brush.Primary}" VerticalAlignment="Top" Margin="0,6,10,0"
+                                     Visibility="{Binding Nuevo, Converter={StaticResource Visible}}" AutomationProperties.Name="Nuevo" />
+                            <StackPanel>
+                              <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="{Binding Estado}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text2}" Margin="8,0,0,0" />
+                                <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" TextTrimming="CharacterEllipsis" />
+                              </DockPanel>
+                              <TextBlock Text="{Binding Texto}" FontSize="13" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+                              <TextBlock Text="{Binding Comentario}" FontSize="13" FontStyle="Italic" Foreground="{DynamicResource Brush.Text2}" TextWrapping="Wrap" Margin="0,2,0,0"
+                                         Visibility="{Binding Comentario, Converter={StaticResource TextoVisible}}" />
+                              <DockPanel Margin="0,4,0,0">
+                                <Button DockPanel.Dock="Right" Content="Ver tiquete" Style="{StaticResource LinkButton}" FontSize="13"
+                                        Command="{Binding DataContext.AbrirCambioCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                        CommandParameter="{Binding}" AutomationProperties.Name="{Binding Titulo, StringFormat='Ver {0}'}" />
+                                <TextBlock Text="{Binding Detalle}" Style="{StaticResource Muted}" FontSize="12" VerticalAlignment="Center" />
+                              </DockPanel>
+                            </StackPanel>
+                          </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock Text="VENCIMIENTOS" Style="{StaticResource Overline}" Margin="0,16,0,0"
+                           Visibility="{Binding VeVencimientos, Converter={StaticResource Visible}}" />
+              </StackPanel>
+              <ItemsControl ItemsSource="{Binding Filas}" ItemTemplate="{StaticResource TarjetaAlerta}" Focusable="False"
+                            AutomationProperties.Name="Alertas de vencimiento" />
+            </StackPanel>
           </ScrollViewer>
         </DockPanel>
       </Border>

@@ -97,6 +97,18 @@ public sealed class RepositorioTiquetes(SitbioDbContext contexto, IContextoUsuar
         await transaccion.CommitAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<CambioMiTiqueteDto>> CambiosDeReportanteAsync(Guid reportanteId, DateTimeOffset desde, int maximo, CancellationToken cancellationToken) =>
+        await (from t in Filtrar(reportanteId)
+               join h in contexto.HistorialTiquetes.AsNoTracking() on t.Id equals h.TiqueteId
+               join e in contexto.Equipos on t.EquipoId equals e.Id
+               join tipo in contexto.TiposEquipo on e.TipoEquipoId equals tipo.Id
+               join u in contexto.Usuarios on h.UsuarioId equals u.Id
+               where h.FechaCambio > desde && h.UsuarioId != reportanteId
+               orderby h.FechaCambio descending, h.Id descending
+               select new CambioMiTiqueteDto(t.Codigo, e.PlacaInventario, tipo.Nombre, h.EstadoAnterior, h.NuevoEstado, h.Comentario, h.FechaCambio, u.Nombres + " " + u.Apellidos))
+            .Take(maximo)
+            .ToListAsync(cancellationToken);
+
     private IQueryable<Tiquete> Filtrar(Guid? reportanteId)
     {
         var tiquetes = contexto.Tiquetes.AsNoTracking();
@@ -110,5 +122,18 @@ public sealed class RepositorioTiquetes(SitbioDbContext contexto, IContextoUsuar
         join u in contexto.Ubicaciones on e.UbicacionId equals u.Id
         join s in contexto.EstadosEquipo on e.EstadoEquipoId equals s.Id
         join r in contexto.Usuarios on t.ReportanteId equals r.Id
-        select new TiqueteLeido(t, e.PlacaInventario, e.NumeroSerie, tipo.Nombre, u.Nombre, r.Nombres + " " + r.Apellidos, s.Codigo);
+        join o in contexto.Ordenes on (Guid?)t.Id equals o.TiqueteId into ordenes
+        from o in ordenes.DefaultIfEmpty()
+        join tec in contexto.Usuarios on o!.TecnicoId equals tec.Id into tecnicos
+        from tec in tecnicos.DefaultIfEmpty()
+        select new TiqueteLeido(
+            t,
+            e.PlacaInventario,
+            e.NumeroSerie,
+            tipo.Nombre,
+            u.Nombre,
+            r.Nombres + " " + r.Apellidos,
+            s.Codigo,
+            tec != null ? tec.Nombres + " " + tec.Apellidos : null,
+            o != null ? o.Estado : null);
 }

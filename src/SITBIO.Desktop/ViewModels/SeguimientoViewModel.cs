@@ -7,7 +7,8 @@ namespace Sitbio.Desktop.ViewModels;
 
 /// <summary>
 /// UI-010 Seguimiento de tiquetes (HU-017; FLU-004). Lista de tiquetes con filtro por estado, consulta
-/// por código y detalle con el estado actual y el historial de cambios (CA-HU-017-01). Consultan AC-01 a
+/// por código y, al lado, el detalle del tiquete elegido con sus pasos, el técnico y el historial de cambios
+/// (CA-HU-017-01; J-08: la lista y el detalle se ven juntos y se elige el primero al cargar). Consultan AC-01 a
 /// AC-04 y AC-07; el Personal Clínico (AC-04) solo ve los que reportó, porque así responde la API
 /// (CA-HU-017-02). El Ingeniero Biomédico, que también reporta, puede ver solo los suyos.
 /// </summary>
@@ -23,6 +24,7 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
 
     private int _consulta;
     private int _apertura;
+    private string? _codigoPedido;
 
     public static IReadOnlyList<OpcionFiltro> OpcionesEstado { get; } =
         [new(string.Empty, "Todos los estados"), .. EstadosTiquete.Todos.Select(e => new OpcionFiltro(e, EstadosTiquete.Nombre(e)))];
@@ -64,6 +66,7 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
     private Aviso? _aviso;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SinDetalle), nameof(MuestraPanel))]
     private IReadOnlyList<FilaTiquete> _filas = [];
 
     [ObservableProperty]
@@ -94,15 +97,26 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
 
     // ---------- Detalle ----------
 
-    /// <summary>Tiquete abierto con su historial; null mientras se ve la lista.</summary>
+    /// <summary>Tiquete elegido con su historial, en el panel de la derecha; null si aún no hay uno.</summary>
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(EnLista))]
+    [NotifyPropertyChangedFor(nameof(HayDetalle), nameof(SinDetalle), nameof(MuestraPanel))]
     private DetalleTiquete? _detalle;
 
+    /// <summary>Fila marcada en la lista: la del tiquete del panel. Elegir otra con el teclado la abre.</summary>
     [ObservableProperty]
+    private FilaTiquete? _seleccionada;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(SinDetalle))]
     private bool _abriendo;
 
-    public bool EnLista => Detalle is null;
+    public bool HayDetalle => Detalle is not null;
+
+    /// <summary>Panel vacío: con tiquetes en la lista pero ninguno abierto.</summary>
+    public bool SinDetalle => Detalle is null && !Abriendo && Filas.Count > 0;
+
+    /// <summary>El panel de la derecha se ve con un tiquete abierto o con tiquetes para elegir.</summary>
+    public bool MuestraPanel => Detalle is not null || Filas.Count > 0;
 
     // ---------- Comandos ----------
 
@@ -133,13 +147,6 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
 
     [RelayCommand]
     private Task AbrirAsync(FilaTiquete? fila) => fila is null ? Task.CompletedTask : AbrirCodigoAsync(fila.Codigo, desdeBusqueda: false);
-
-    [RelayCommand]
-    private void Volver()
-    {
-        Detalle = null;
-        Aviso = null;
-    }
 
     [RelayCommand]
     private void CerrarAviso() => Aviso = null;
@@ -183,6 +190,14 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
 
     partial void OnCodigoChanged(string value) => ErrorCodigo = null;
 
+    partial void OnSeleccionadaChanged(FilaTiquete? value)
+    {
+        if (value is not null)
+        {
+            _ = AbrirCodigoAsync(value.Codigo, desdeBusqueda: false);
+        }
+    }
+
     private async Task ConsultarAsync(int pagina)
     {
         var filtro = new FiltroTiquetes(FiltroEstado.Valor.Length > 0 ? FiltroEstado.Valor : null, PuedeVerSoloMios && SoloMios, pagina, TamanoPagina);
@@ -202,6 +217,7 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
             Total = resultado.Total;
             Pagina = pagina;
             Aviso = null;
+            MarcarFila();
         }
         catch (ErrorApi error)
         {
@@ -228,11 +244,33 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
                 OnPropertyChanged(nameof(SinTiquetes));
             }
         }
+
+        // Como en el prototipo, al entrar se ve el primero de la lista, salvo que ya se pidiera otro.
+        if (consulta == _consulta && _codigoPedido is null && Filas.Count > 0)
+        {
+            await AbrirCodigoAsync(Filas[0].Codigo, desdeBusqueda: false);
+        }
+    }
+
+    /// <summary>Marca en la lista la fila del tiquete abierto, sin volver a pedirlo.</summary>
+    private void MarcarFila()
+    {
+        var codigo = Detalle?.Codigo ?? _codigoPedido;
+        // Al cambiar la selección se pide el tiquete, pero ya está abierto o en camino y no se repite.
+        Seleccionada = Filas.FirstOrDefault(f => f.Codigo == codigo);
     }
 
     private async Task AbrirCodigoAsync(string codigo, bool desdeBusqueda)
     {
+        // El clic en la fila también la selecciona: no se pide dos veces el mismo tiquete.
+        if (!desdeBusqueda && codigo == _codigoPedido && (Abriendo || Detalle?.Codigo == codigo))
+        {
+            return;
+        }
+
         var apertura = ++_apertura;
+        var anterior = _codigoPedido;
+        _codigoPedido = codigo;
         Abriendo = true;
         try
         {
@@ -244,8 +282,15 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
                 return;
             }
 
+            if (await tiquete is not { } leido)
+            {
+                _codigoPedido = Detalle?.Codigo;
+                return;
+            }
+
             Aviso = null;
-            Detalle = new DetalleTiquete(await tiquete, await historial);
+            Detalle = new DetalleTiquete(leido, await historial ?? []);
+            MarcarFila();
         }
         catch (ErrorApi error)
         {
@@ -254,6 +299,9 @@ public partial class SeguimientoViewModel(IServicioTiquetes servicio, SesionActu
                 return;
             }
 
+            // Sigue abierto el que estaba; la lista vuelve a marcar su fila.
+            _codigoPedido = Detalle?.Codigo ?? (anterior == codigo ? null : anterior);
+            MarcarFila();
             if (desdeBusqueda && !error.SinConexion)
             {
                 // Un código que no existe o que no se puede ver se explica junto al campo.
@@ -357,7 +405,25 @@ public sealed class DetalleTiquete(Tiquete tiquete, IReadOnlyList<CambioTiquete>
 
     public string Equipo => $"{Tiquete.PlacaInventario} · {Tiquete.TipoEquipo}";
 
+    /// <summary>Clave del ícono según el tipo de equipo.</summary>
+    public string IconoTipo => IconosTipoEquipo.Clave(Tiquete.TipoEquipo);
+
     public string Serie => $"Serie {Tiquete.NumeroSerie} · {Tiquete.Ubicacion}";
+
+    /// <summary>Recibido, Asignado, En ejecución y Cerrado: hechos hasta el actual y el siguiente como el que sigue.</summary>
+    public IReadOnlyList<PasoTiquete> Pasos { get; } = PasoTiquete.De(tiquete.Estado);
+
+    public string Reportante => Tiquete.Reportante;
+
+    public string Cuando => TextosTiquete.FechaHora(Tiquete.FechaReporte);
+
+    /// <summary>Técnico de la orden que lo atiende, o «Pendiente» mientras no se asigne.</summary>
+    public string Tecnico => string.IsNullOrWhiteSpace(Tiquete.Tecnico) ? "Pendiente" : Tiquete.Tecnico;
+
+    public bool TecnicoPendiente => string.IsNullOrWhiteSpace(Tiquete.Tecnico);
+
+    /// <summary>Estado de la orden de trabajo del tiquete, o «—» si aún no tiene.</summary>
+    public string Orden => Tiquete.EstadoOrden is { } estado ? EstadosOrden.Nombre(estado) : "—";
 
     public string TipoFalla => Tiquete.TipoFalla;
 
@@ -381,6 +447,26 @@ public sealed class DetalleTiquete(Tiquete tiquete, IReadOnlyList<CambioTiquete>
         .OrderByDescending(c => c.FechaCambio)
         .Select((c, i) => new PasoHistorial(c, EsActual: i == 0))
         .ToList();
+}
+
+/// <summary>Un paso del avance del tiquete en el panel de detalle (J-08).</summary>
+public sealed record PasoTiquete(int Numero, string Nombre, bool Hecho, bool Siguiente)
+{
+    public bool Pendiente => !Hecho && !Siguiente;
+
+    public bool EsUltimo => Numero == EstadosTiquete.Todos.Count;
+
+    public string Texto => Hecho ? "✓" : Numero.ToString(CultureInfo.InvariantCulture);
+
+    public string Accesible => $"{Nombre}: {(Hecho ? "hecho" : Siguiente ? "sigue" : "pendiente")}";
+
+    public static IReadOnlyList<PasoTiquete> De(string estado)
+    {
+        var actual = EstadosTiquete.Todos.ToList().IndexOf(estado);
+        return EstadosTiquete.Todos
+            .Select((e, i) => new PasoTiquete(i + 1, EstadosTiquete.Nombre(e), i <= actual, i == actual + 1))
+            .ToList();
+    }
 }
 
 /// <summary>Un cambio de la línea de tiempo del detalle.</summary>

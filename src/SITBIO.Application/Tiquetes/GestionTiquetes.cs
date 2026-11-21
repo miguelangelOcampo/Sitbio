@@ -94,6 +94,24 @@ public sealed class GestionTiquetes(
         return cambios.Select(HistorialTiqueteDto.Desde).ToList();
     }
 
+    /// <summary>Días hacia atrás que cubre GET /tiquetes/mis-cambios (J-07).</summary>
+    public const int DiasMisCambios = 30;
+
+    /// <summary>Máximo de cambios que devuelve GET /tiquetes/mis-cambios.</summary>
+    public const int MaximoMisCambios = 50;
+
+    /// <summary>
+    /// J-07 (HU-017): cambios de estado de los tiquetes que reportó quien consulta, hechos por otras personas,
+    /// desde <paramref name="desde"/> (como mucho <see cref="DiasMisCambios"/> días atrás) y del más reciente al más
+    /// antiguo. Siempre son los del usuario del token, nunca de otra persona ni de otra institución.
+    /// </summary>
+    public Task<IReadOnlyList<CambioMiTiqueteDto>> MisCambiosAsync(DateTimeOffset? desde, CancellationToken cancellationToken)
+    {
+        var limite = tiempo.GetUtcNow().AddDays(-DiasMisCambios);
+        var inicio = desde is { } d && d > limite ? d : limite;
+        return repositorio.CambiosDeReportanteAsync(contexto.UsuarioId, inicio, MaximoMisCambios, cancellationToken);
+    }
+
     /// <summary>Tipos de falla activos del catálogo de la institución, para el formulario UI-009 (quien reporta no consulta /catalogos).</summary>
     public Task<IReadOnlyList<string>> TiposFallaAsync(CancellationToken cancellationToken) => repositorio.TiposFallaActivosAsync(cancellationToken);
 

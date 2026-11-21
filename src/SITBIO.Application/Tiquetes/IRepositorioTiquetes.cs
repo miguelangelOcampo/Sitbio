@@ -19,6 +19,13 @@ public interface IRepositorioTiquetes
     /// <summary>Cambios de estado del tiquete, del más antiguo al más reciente (CA-HU-017-01).</summary>
     Task<IReadOnlyList<HistorialTiqueteLeido>> HistorialAsync(Guid tiqueteId, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// J-07: cambios de estado posteriores a <paramref name="desde"/> de los tiquetes que reportó
+    /// <paramref name="reportanteId"/> en el tenant del token, hechos por otras personas; del más reciente al más
+    /// antiguo y como máximo <paramref name="maximo"/>.
+    /// </summary>
+    Task<IReadOnlyList<CambioMiTiqueteDto>> CambiosDeReportanteAsync(Guid reportanteId, DateTimeOffset desde, int maximo, CancellationToken cancellationToken);
+
     /// <summary>Equipo con seguimiento de cambios (RN-005 puede cambiar su estado); null si no existe o es de otro tenant.</summary>
     Task<EquipoBiomedico?> EquipoAsync(Guid id, CancellationToken cancellationToken);
 

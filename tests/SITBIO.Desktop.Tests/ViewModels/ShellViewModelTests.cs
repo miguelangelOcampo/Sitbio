@@ -130,8 +130,8 @@ public class ShellViewModelTests
 
     [Theory]
     [InlineData("AC-01")]
-    [InlineData("AC-04")]
     [InlineData("AC-05")]
+    [InlineData("AC-06")]
     [InlineData("AC-07")]
     public void LosDemasRoles_NoTienenCentroDeAlertas(string rol)
     {

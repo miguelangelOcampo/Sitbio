@@ -5,7 +5,8 @@ namespace Sitbio.Application.Tiquetes;
 /// <summary>
 /// Tiquete de API-TIQ (DOC-06). <see cref="PrioridadSugerida"/> es la prioridad que se propone para la
 /// orden de trabajo (CA-HU-018-01); <see cref="EquipoFueraDeServicio"/> indica el estado actual del equipo
-/// (RN-005).
+/// (RN-005). <see cref="Tecnico"/> y <see cref="EstadoOrden"/> son los de la orden que atiende el tiquete;
+/// null mientras no tenga técnico asignado (UI-010, J-08).
 /// </summary>
 public sealed record TiqueteDto(
     Guid Id,
@@ -25,7 +26,9 @@ public sealed record TiqueteDto(
     Guid ReportanteId,
     string Reportante,
     string EstadoEquipo,
-    bool EquipoFueraDeServicio)
+    bool EquipoFueraDeServicio,
+    string? Tecnico = null,
+    string? EstadoOrden = null)
 {
     public static TiqueteDto Desde(TiqueteLeido leido)
     {
@@ -49,7 +52,9 @@ public sealed record TiqueteDto(
             t.ReportanteId,
             leido.Reportante,
             leido.EstadoEquipo,
-            leido.EstadoEquipo == GestionTiquetes.CodigoFueraDeServicio);
+            leido.EstadoEquipo == GestionTiquetes.CodigoFueraDeServicio,
+            leido.Tecnico,
+            leido.EstadoOrden);
     }
 }
 
@@ -79,10 +84,24 @@ public sealed record HistorialTiqueteDto(
     }
 }
 
+/// <summary>
+/// J-07: un cambio de estado de un tiquete que reportó quien consulta, hecho por otra persona (GET
+/// /tiquetes/mis-cambios). Lleva el equipo para que la notificación se entienda sin abrir el tiquete.
+/// </summary>
+public sealed record CambioMiTiqueteDto(
+    string Codigo,
+    string PlacaInventario,
+    string TipoEquipo,
+    string? EstadoAnterior,
+    string NuevoEstado,
+    string? Comentario,
+    DateTimeOffset FechaCambio,
+    string Usuario);
+
 /// <summary>Cambio del historial con el nombre de quien lo hizo.</summary>
 public sealed record HistorialTiqueteLeido(HistorialTiquete Cambio, string Usuario);
 
-/// <summary>Tiquete con los datos del equipo y de quien lo reportó, para armar el DTO.</summary>
+/// <summary>Tiquete con los datos del equipo, de quien lo reportó y de la orden que lo atiende, para armar el DTO.</summary>
 public sealed record TiqueteLeido(
     Tiquete Tiquete,
     string PlacaInventario,
@@ -90,4 +109,6 @@ public sealed record TiqueteLeido(
     string TipoEquipo,
     string Ubicacion,
     string Reportante,
-    string EstadoEquipo);
+    string EstadoEquipo,
+    string? Tecnico = null,
+    string? EstadoOrden = null);

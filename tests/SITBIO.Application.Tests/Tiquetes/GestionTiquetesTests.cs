@@ -300,4 +300,28 @@ public class GestionTiquetesTests
 
         await _repositorio.DidNotReceiveWithAnyArgs().HistorialAsync(default, default);
     }
+
+    // ---------- J-07: cambios de los tiquetes propios ----------
+
+    [Fact]
+    public async Task J07_MisCambios_SonSiempreLosDelUsuarioDelToken_DesdeLaFechaPedida()
+    {
+        var desde = Ahora.AddDays(-2);
+        var cambio = new CambioMiTiqueteDto("TQT-000004", "PL-001", "Monitor", "recibido", "asignado", null, Ahora.AddHours(-1), "Andrés Rojas");
+        _repositorio.CambiosDeReportanteAsync(_usuario, desde, GestionTiquetes.MaximoMisCambios, Arg.Any<CancellationToken>()).Returns([cambio]);
+
+        var cambios = await _caso.MisCambiosAsync(desde, CancellationToken.None);
+
+        Assert.Equal(cambio, Assert.Single(cambios));
+    }
+
+    [Fact]
+    public async Task J07_MisCambios_SinFechaOMuyAntigua_CubreLosUltimos30Dias()
+    {
+        await _caso.MisCambiosAsync(null, CancellationToken.None);
+        await _caso.MisCambiosAsync(Ahora.AddYears(-1), CancellationToken.None);
+
+        await _repositorio.Received(2).CambiosDeReportanteAsync(
+            _usuario, Ahora.AddDays(-GestionTiquetes.DiasMisCambios), GestionTiquetes.MaximoMisCambios, Arg.Any<CancellationToken>());
+    }
 }

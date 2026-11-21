@@ -1,7 +1,7 @@
-<!-- UI-010 Seguimiento de tiquetes (HU-017; FLU-004). Página de lista + detalle: consulta por código, lista
-     filtrada por estado y detalle con el estado actual y el historial de cambios (CA-HU-017-01). Para el
-     Personal Clínico es «Mis tiquetes»: la API solo le devuelve lo que reportó (CA-HU-017-02). Solo
-     lectura. Diseño clínico editorial: sin tarjetas; el estado es punto + texto. -->
+<!-- UI-010 Seguimiento de tiquetes (HU-017; FLU-004). Lista a la izquierda y, a la derecha, el tiquete elegido
+     (J-08, como el prototipo): consulta por código, lista filtrada por estado y panel con los pasos, el
+     técnico, la orden y el historial de cambios (CA-HU-017-01). Para el Personal Clínico es «Mis tiquetes»:
+     la API solo le devuelve lo que reportó (CA-HU-017-02). Solo lectura; el estado es punto + texto. -->
 <UserControl x:Class="Sitbio.Desktop.Views.SeguimientoView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -49,25 +49,100 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Detalle del tiquete con su línea de tiempo -->
+    <!-- Panel del tiquete elegido (J-08, como el prototipo): código y criticidad, pasos, equipo, falla,
+         quién y cuándo, técnico y orden, e historial de cambios -->
     <DataTemplate DataType="{x:Type vm:DetalleTiquete}">
       <StackPanel>
-        <controls:TextoCopiable Text="{Binding Codigo, Mode=OneWay}" FontFamily="Consolas" FontSize="30" FontWeight="SemiBold" TextWrapping="NoWrap"
-                                AutomationProperties.Name="Código del tiquete" />
-        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center"
+                      AutomationProperties.Name="{Binding Criticidad, StringFormat='Criticidad {0}'}">
+            <Ellipse Style="{StaticResource PuntoCriticidad}" />
+            <TextBlock Text="{Binding Criticidad}" FontSize="13" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text2}" />
+          </StackPanel>
+          <controls:TextoCopiable Text="{Binding Codigo, Mode=OneWay}" FontFamily="Consolas" FontSize="20" FontWeight="SemiBold" TextWrapping="NoWrap"
+                                  AutomationProperties.Name="Código del tiquete" />
+        </DockPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
           <Ellipse Style="{StaticResource PuntoEstado}" />
-          <TextBlock Text="{Binding Estado}" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}"
+          <TextBlock Text="{Binding Estado}" FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}"
                      AutomationProperties.Name="{Binding Estado, StringFormat='Estado {0}'}" />
         </StackPanel>
 
+        <!-- Pasos: Recibido, Asignado, En ejecución y Cerrado -->
+        <ItemsControl ItemsSource="{Binding Pasos}" Focusable="False" Margin="0,18,0,0" AutomationProperties.Name="Avance del tiquete">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Rows="1" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:PasoTiquete}">
+              <Grid AutomationProperties.Name="{Binding Accesible}">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto" />
+                  <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Rectangle x:Name="Linea" Height="2" VerticalAlignment="Center" HorizontalAlignment="Stretch" Margin="14,0,-14,0"
+                           Fill="{DynamicResource Brush.Border}" />
+                <Border x:Name="Circulo" Width="28" Height="28" CornerRadius="14" BorderThickness="2" HorizontalAlignment="Left"
+                        BorderBrush="{DynamicResource Brush.Border}" Background="{DynamicResource Brush.Surface}">
+                  <TextBlock x:Name="Marca" Text="{Binding Texto}" FontSize="12" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"
+                             Foreground="{DynamicResource Brush.Text3}" />
+                </Border>
+                <TextBlock x:Name="Nombre" Grid.Row="1" Text="{Binding Nombre}" FontSize="12" Margin="0,6,4,0" TextWrapping="Wrap"
+                           Foreground="{DynamicResource Brush.Text2}" />
+              </Grid>
+              <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Hecho}" Value="True">
+                  <Setter TargetName="Circulo" Property="Background" Value="{DynamicResource Brush.Primary}" />
+                  <Setter TargetName="Circulo" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                  <Setter TargetName="Marca" Property="Foreground" Value="{DynamicResource Brush.OnPrimary}" />
+                  <Setter TargetName="Linea" Property="Fill" Value="{DynamicResource Brush.Primary}" />
+                  <Setter TargetName="Nombre" Property="Foreground" Value="{DynamicResource Brush.Text}" />
+                  <Setter TargetName="Nombre" Property="FontWeight" Value="SemiBold" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Siguiente}" Value="True">
+                  <Setter TargetName="Circulo" Property="BorderBrush" Value="{DynamicResource Brush.Primary}" />
+                  <Setter TargetName="Marca" Property="Foreground" Value="{DynamicResource Brush.Primary}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding EsUltimo}" Value="True">
+                  <Setter TargetName="Linea" Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+              </DataTemplate.Triggers>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
         <!-- RN-005 -->
-        <StackPanel Orientation="Horizontal" Margin="0,12,0,0" Visibility="{Binding EquipoFueraDeServicio, Converter={StaticResource Visible}}">
+        <StackPanel Orientation="Horizontal" Margin="0,14,0,0" Visibility="{Binding EquipoFueraDeServicio, Converter={StaticResource Visible}}">
           <Ellipse Style="{StaticResource StatusDot}" Fill="{DynamicResource Brush.Danger}" />
           <TextBlock Text="{Binding TextoFueraDeServicio}" Foreground="{DynamicResource Brush.DangerText}" TextWrapping="Wrap" />
         </StackPanel>
 
-        <!-- Datos -->
-        <Grid Margin="0,24,0,0">
+        <!-- Equipo con su ícono -->
+        <Border Margin="0,18,0,0" Padding="12" CornerRadius="10" Background="{DynamicResource Brush.Background}"
+                BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+          <DockPanel>
+            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="10" Margin="0,0,12,0" VerticalAlignment="Center"
+                    Background="{DynamicResource Brush.PrimarySoft}">
+              <ContentControl Style="{StaticResource Icono}" Content="{Binding IconoTipo, Converter={StaticResource Recurso}}" Width="20" Height="20"
+                              Foreground="{DynamicResource Brush.Primary}" />
+            </Border>
+            <StackPanel VerticalAlignment="Center">
+              <controls:TextoCopiable Text="{Binding Equipo, Mode=OneWay}" FontSize="14" FontWeight="SemiBold" AutomationProperties.Name="Equipo" />
+              <controls:TextoCopiable Text="{Binding Serie, Mode=OneWay}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" AutomationProperties.Name="Serie y ubicación" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+        <!-- Falla -->
+        <TextBlock Text="Falla" Style="{StaticResource Muted}" FontSize="12" Margin="0,16,0,2" />
+        <TextBlock Text="{Binding TipoFalla}" Foreground="{DynamicResource Brush.Text}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding Descripcion}" Foreground="{DynamicResource Brush.Text2}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0"
+                   AutomationProperties.Name="Descripción de la falla" />
+
+        <!-- Quién, cuándo, técnico y orden -->
+        <Grid Margin="0,16,0,0">
           <Grid.ColumnDefinitions>
             <ColumnDefinition />
             <ColumnDefinition />
@@ -77,60 +152,44 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
           </Grid.RowDefinitions>
-          <StackPanel Margin="0,0,24,18">
-            <TextBlock Text="Equipo" Style="{StaticResource Muted}" FontSize="13" />
-            <controls:TextoCopiable Text="{Binding Equipo, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" AutomationProperties.Name="Equipo" />
-            <controls:TextoCopiable Text="{Binding Serie, Mode=OneWay}" FontSize="13" Foreground="{DynamicResource Brush.Text2}" AutomationProperties.Name="Serie" />
+          <StackPanel Margin="0,0,12,12">
+            <TextBlock Text="Reportó" Style="{StaticResource Muted}" FontSize="12" />
+            <TextBlock Text="{Binding Reportante}" Foreground="{DynamicResource Brush.Text}" FontSize="13" TextWrapping="Wrap" />
           </StackPanel>
-          <StackPanel Grid.Column="1" Margin="0,0,24,18">
-            <TextBlock Text="Reportado por" Style="{StaticResource Muted}" FontSize="13" />
-            <TextBlock Text="{Binding Reporte}" Foreground="{DynamicResource Brush.Text}" FontSize="15" TextWrapping="Wrap" />
+          <StackPanel Grid.Column="1" Margin="0,0,0,12">
+            <TextBlock Text="Cuándo" Style="{StaticResource Muted}" FontSize="12" />
+            <TextBlock Text="{Binding Cuando}" Foreground="{DynamicResource Brush.Text}" FontSize="13" TextWrapping="Wrap" />
           </StackPanel>
-          <StackPanel Grid.Row="1" Margin="0,0,24,18">
-            <TextBlock Text="Tipo de falla" Style="{StaticResource Muted}" FontSize="13" />
-            <TextBlock Text="{Binding TipoFalla}" Foreground="{DynamicResource Brush.Text}" FontSize="15" TextWrapping="Wrap" />
+          <StackPanel Grid.Row="1" Margin="0,0,12,12">
+            <TextBlock Text="Técnico asignado" Style="{StaticResource Muted}" FontSize="12" />
+            <TextBlock x:Name="Tecnico" Text="{Binding Tecnico}" Foreground="{DynamicResource Brush.Text}" FontSize="13" TextWrapping="Wrap" />
           </StackPanel>
-          <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,24,18">
-            <TextBlock Text="Criticidad" Style="{StaticResource Muted}" FontSize="13" />
-            <StackPanel Orientation="Horizontal">
-              <Ellipse Style="{StaticResource PuntoCriticidad}" />
-              <TextBlock Text="{Binding Criticidad}" Foreground="{DynamicResource Brush.Text}" FontSize="15" />
-            </StackPanel>
+          <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,12">
+            <TextBlock Text="Orden de trabajo" Style="{StaticResource Muted}" FontSize="12" />
+            <TextBlock Text="{Binding Orden}" Foreground="{DynamicResource Brush.Text}" FontSize="13" TextWrapping="Wrap" />
           </StackPanel>
-          <StackPanel Grid.Row="2" Margin="0,0,24,18">
-            <TextBlock Text="Descripción" Style="{StaticResource Muted}" FontSize="13" />
-            <TextBlock Text="{Binding Descripcion}" Foreground="{DynamicResource Brush.Text}" FontSize="15" TextWrapping="Wrap" />
-          </StackPanel>
-          <StackPanel Grid.Row="2" Grid.Column="1" Margin="0,0,24,18" Visibility="{Binding Cierre, Converter={StaticResource TextoVisible}}">
-            <TextBlock Text="Cerrado" Style="{StaticResource Muted}" FontSize="13" />
-            <TextBlock Text="{Binding Cierre}" Foreground="{DynamicResource Brush.Text}" FontSize="15" />
+          <StackPanel Grid.Row="2" Margin="0,0,12,12" Visibility="{Binding Cierre, Converter={StaticResource TextoVisible}}">
+            <TextBlock Text="Cerrado" Style="{StaticResource Muted}" FontSize="12" />
+            <TextBlock Text="{Binding Cierre}" Foreground="{DynamicResource Brush.Text}" FontSize="13" />
           </StackPanel>
         </Grid>
 
         <!-- Historial (CA-HU-017-01), del más reciente al más antiguo -->
-        <TextBlock Text="Historial" Style="{StaticResource SectionTitle}" Margin="0,8,0,4" />
-        <TextBlock Text="Cada cambio de estado del tiquete, con quién lo hizo." Style="{StaticResource Muted}" Margin="0,0,0,12" />
+        <TextBlock Text="Historial de cambios" Style="{StaticResource SectionTitle}" FontSize="15" Margin="0,8,0,8" />
         <ItemsControl ItemsSource="{Binding Historial}" Focusable="False" AutomationProperties.Name="Historial del tiquete">
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="{x:Type vm:PasoHistorial}">
-              <Border Style="{StaticResource ListRow}">
-                <Grid>
-                  <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="190" />
-                    <ColumnDefinition Width="*" />
-                  </Grid.ColumnDefinitions>
-                  <TextBlock Text="{Binding Fecha}" Style="{StaticResource Muted}" FontSize="13" Margin="0,2,16,0" />
-                  <StackPanel Grid.Column="1">
-                    <StackPanel Orientation="Horizontal">
-                      <Ellipse Style="{StaticResource PuntoEstado}" />
-                      <TextBlock x:Name="Titulo" Text="{Binding Titulo}" Foreground="{DynamicResource Brush.Text}" />
-                    </StackPanel>
-                    <TextBlock Text="{Binding Comentario}" Foreground="{DynamicResource Brush.Text2}" TextWrapping="Wrap" Margin="16,2,0,0"
-                               Visibility="{Binding Comentario, Converter={StaticResource TextoVisible}}" />
-                    <TextBlock Text="{Binding Usuario}" Style="{StaticResource Muted}" FontSize="13" Margin="16,2,0,0" />
-                  </StackPanel>
-                </Grid>
-              </Border>
+              <DockPanel Margin="0,0,0,12">
+                <Ellipse DockPanel.Dock="Left" Style="{StaticResource PuntoEstado}" VerticalAlignment="Top" Margin="0,6,10,0" />
+                <StackPanel>
+                  <TextBlock x:Name="Titulo" Text="{Binding Titulo}" Foreground="{DynamicResource Brush.Text}" FontSize="13" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Comentario}" Foreground="{DynamicResource Brush.Text2}" FontSize="13" TextWrapping="Wrap" Margin="0,2,0,0"
+                             Visibility="{Binding Comentario, Converter={StaticResource TextoVisible}}" />
+                  <TextBlock Style="{StaticResource Muted}" FontSize="12" Margin="0,2,0,0" TextWrapping="Wrap">
+                    <Run Text="{Binding Usuario, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Fecha, Mode=OneWay}" />
+                  </TextBlock>
+                </StackPanel>
+              </DockPanel>
               <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding EsActual}" Value="True">
                   <Setter TargetName="Titulo" Property="FontWeight" Value="SemiBold" />
@@ -140,11 +199,17 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
       </StackPanel>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding TecnicoPendiente}" Value="True">
+          <Setter TargetName="Tecnico" Property="Foreground" Value="{DynamicResource Brush.Text2}" />
+          <Setter TargetName="Tecnico" Property="FontStyle" Value="Italic" />
+        </DataTrigger>
+      </DataTemplate.Triggers>
     </DataTemplate>
   </UserControl.Resources>
 
   <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
-    <StackPanel Margin="40,24,40,40" MaxWidth="1160" HorizontalAlignment="Stretch">
+    <StackPanel Margin="40,24,40,40" MaxWidth="1400" HorizontalAlignment="Stretch">
       <!-- Aviso de error -->
       <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.DangerSoft}" BorderBrush="{DynamicResource Brush.Danger}"
               Margin="0,0,0,18" AutomationProperties.LiveSetting="Assertive"
@@ -171,142 +236,140 @@
         </Grid>
       </Border>
 
-      <!-- Detalle -->
-      <StackPanel Visibility="{Binding Detalle, Converter={StaticResource NuloVisible}}">
-        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-          <Button Content="‹ Volver a la lista" Style="{StaticResource LinkButton}" Command="{Binding VolverCommand}"
-                  AutomationProperties.Name="{Binding Titulo, StringFormat='Volver a {0}'}" />
+      <TextBlock Text="SOLICITUDES" Style="{StaticResource Overline}" />
+      <TextBlock Text="{Binding Titulo}" Style="{StaticResource PageTitle}" Margin="0,4,0,6" />
+      <TextBlock Text="{Binding Descripcion}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,20" />
+
+      <!-- Consulta por código y filtros -->
+      <WrapPanel>
+        <StackPanel Margin="0,0,28,0">
+          <TextBlock Text="Código del tiquete" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+          <StackPanel Orientation="Horizontal">
+            <Border Style="{StaticResource CampoCodigo}" Width="240">
+              <TextBox Style="{StaticResource FieldInput}" FontFamily="Consolas" Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}"
+                       AutomationProperties.Name="Código del tiquete, por ejemplo TQT-000015">
+                <TextBox.InputBindings>
+                  <KeyBinding Key="Enter" Command="{Binding ConsultarCodigoCommand}" />
+                </TextBox.InputBindings>
+              </TextBox>
+            </Border>
+            <Button Content="Consultar" Style="{StaticResource PrimaryButton}" Command="{Binding ConsultarCodigoCommand}" Margin="12,0,0,0" />
+          </StackPanel>
+          <TextBlock Text="{Binding ErrorCodigo}" Style="{StaticResource FieldError}" AutomationProperties.LiveSetting="Assertive" MaxWidth="420" HorizontalAlignment="Left"
+                     TextWrapping="Wrap" Visibility="{Binding ErrorCodigo, Converter={StaticResource TextoVisible}}" />
         </StackPanel>
-        <TextBlock Text="SOLICITUDES › SEGUIMIENTO" Style="{StaticResource Overline}" />
-        <ContentControl Content="{Binding Detalle}" Focusable="False" IsTabStop="False" Margin="0,6,0,0" MaxWidth="820" HorizontalAlignment="Left" />
-      </StackPanel>
-
-      <!-- Lista -->
-      <StackPanel Visibility="{Binding EnLista, Converter={StaticResource Visible}}">
-        <TextBlock Text="SOLICITUDES" Style="{StaticResource Overline}" />
-        <TextBlock Text="{Binding Titulo}" Style="{StaticResource PageTitle}" Margin="0,4,0,6" />
-        <TextBlock Text="{Binding Descripcion}" Style="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,24" />
-
-        <!-- Consulta por código -->
-        <TextBlock Text="Código del tiquete" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
-        <StackPanel Orientation="Horizontal">
-          <Border Style="{StaticResource CampoCodigo}" Width="260">
-            <TextBox Style="{StaticResource FieldInput}" FontFamily="Consolas" Text="{Binding Codigo, UpdateSourceTrigger=PropertyChanged}"
-                     AutomationProperties.Name="Código del tiquete, por ejemplo TQT-000015">
-              <TextBox.InputBindings>
-                <KeyBinding Key="Enter" Command="{Binding ConsultarCodigoCommand}" />
-              </TextBox.InputBindings>
-            </TextBox>
-          </Border>
-          <Button Content="Consultar" Style="{StaticResource PrimaryButton}" Command="{Binding ConsultarCodigoCommand}" Margin="12,0,0,0" />
-          <TextBlock Text="Abriendo…" Style="{StaticResource Muted}" VerticalAlignment="Center" Margin="16,0,0,0"
-                     Visibility="{Binding Abriendo, Converter={StaticResource Visible}}" />
+        <StackPanel VerticalAlignment="Top">
+          <TextBlock Text="Estado" Style="{StaticResource FieldLabel}" Margin="0,0,0,6" />
+          <StackPanel Orientation="Horizontal">
+            <ComboBox Style="{StaticResource FieldCombo}" Width="220" ItemsSource="{x:Static vm:SeguimientoViewModel.OpcionesEstado}"
+                      SelectedItem="{Binding FiltroEstado}" DisplayMemberPath="Texto" AutomationProperties.Name="Filtrar por estado" />
+            <CheckBox Content="Solo los que reporté" IsChecked="{Binding SoloMios}" VerticalAlignment="Center" Margin="20,0,0,0"
+                      Style="{StaticResource Casilla}" Visibility="{Binding PuedeVerSoloMios, Converter={StaticResource Visible}}" />
+          </StackPanel>
         </StackPanel>
-        <TextBlock Text="{Binding ErrorCodigo}" Style="{StaticResource FieldError}" AutomationProperties.LiveSetting="Assertive"
-                   Visibility="{Binding ErrorCodigo, Converter={StaticResource TextoVisible}}" />
+      </WrapPanel>
 
-        <!-- Filtros -->
-        <StackPanel Orientation="Horizontal" Margin="0,28,0,0">
-          <ComboBox Style="{StaticResource FieldCombo}" Width="240" ItemsSource="{x:Static vm:SeguimientoViewModel.OpcionesEstado}"
-                    SelectedItem="{Binding FiltroEstado}" DisplayMemberPath="Texto" AutomationProperties.Name="Filtrar por estado" />
-          <CheckBox Content="Solo los que reporté" IsChecked="{Binding SoloMios}" VerticalAlignment="Center" Margin="20,0,0,0"
-                    Style="{StaticResource Casilla}" Visibility="{Binding PuedeVerSoloMios, Converter={StaticResource Visible}}" />
-        </StackPanel>
+      <!-- J-08: la lista a la izquierda y el tiquete elegido a la derecha -->
+      <Grid Margin="0,22,0,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="3*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="2.2*" MinWidth="340" />
+        </Grid.ColumnDefinitions>
 
-        <!-- Tabla abierta, solo lectura: un clic o Enter abre el seguimiento (I-09) -->
-        <TextBlock Text="Haz clic en un tiquete para ver su seguimiento." Style="{StaticResource Muted}" FontSize="13" Margin="0,16,0,0" />
-        <DataGrid x:Name="TablaTiquetes" Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filas}" RowHeight="58" Margin="0,8,0,0"
-                  AutomationProperties.Name="Tiquetes" ScrollViewer.CanContentScroll="False"
-                  controls:FilaClicable.Comando="{Binding AbrirCommand}">
-          <DataGrid.Columns>
-            <DataGridTemplateColumn Header="CÓDIGO" Width="1.1*">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate DataType="{x:Type vm:FilaTiquete}">
-                  <StackPanel>
-                    <TextBlock Text="{Binding Codigo}" FontFamily="Consolas" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding Fecha}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
-                  </StackPanel>
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="EQUIPO" Width="1.8*">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate DataType="{x:Type vm:FilaTiquete}">
-                  <DockPanel>
-                    <Border DockPanel.Dock="Left" Width="32" Height="32" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Center"
-                            Background="{DynamicResource Brush.PrimarySoft}">
-                      <ContentControl Style="{StaticResource Icono}" Content="{Binding IconoTipo, Converter={StaticResource Recurso}}" Width="16" Height="16"
-                                      Foreground="{DynamicResource Brush.Primary}" />
-                    </Border>
-                    <StackPanel VerticalAlignment="Center">
-                      <TextBlock Text="{Binding Equipo}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Equipo}" />
-                      <TextBlock Text="{Binding Ubicacion}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
+        <!-- Lista: un clic, Enter o las flechas abren el tiquete en el panel (I-09) -->
+        <StackPanel>
+          <TextBlock Text="Haz clic en un tiquete para ver su seguimiento." Style="{StaticResource Muted}" FontSize="13" Margin="0,0,0,4" />
+          <DataGrid x:Name="TablaTiquetes" Style="{StaticResource OpenGrid}" ItemsSource="{Binding Filas}" RowHeight="58"
+                    SelectedItem="{Binding Seleccionada, Mode=TwoWay}"
+                    AutomationProperties.Name="Tiquetes" ScrollViewer.CanContentScroll="False"
+                    controls:FilaClicable.Comando="{Binding AbrirCommand}">
+            <DataGrid.Columns>
+              <DataGridTemplateColumn Header="CÓDIGO" Width="1*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaTiquete}">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Codigo}" FontFamily="Consolas" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Fecha}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
                     </StackPanel>
-                  </DockPanel>
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="FALLA" Width="1.4*">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate DataType="{x:Type vm:FilaTiquete}">
-                  <StackPanel>
-                    <TextBlock Text="{Binding TipoFalla}" TextTrimming="CharacterEllipsis" ToolTip="{Binding TipoFalla}" />
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="EQUIPO" Width="1.8*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaTiquete}">
+                    <DockPanel>
+                      <Border DockPanel.Dock="Left" Width="32" Height="32" CornerRadius="8" Margin="0,0,10,0" VerticalAlignment="Center"
+                              Background="{DynamicResource Brush.PrimarySoft}">
+                        <ContentControl Style="{StaticResource Icono}" Content="{Binding IconoTipo, Converter={StaticResource Recurso}}" Width="16" Height="16"
+                                        Foreground="{DynamicResource Brush.Primary}" />
+                      </Border>
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Equipo}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Equipo}" />
+                        <TextBlock Text="{Binding TipoFalla}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                    </DockPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="CRITICIDAD" Width="0.85*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaTiquete}">
                     <StackPanel Orientation="Horizontal">
                       <Ellipse Style="{StaticResource PuntoCriticidad}" />
-                      <TextBlock Text="{Binding Criticidad}" FontSize="12" Foreground="{DynamicResource Brush.Text2}" />
+                      <TextBlock Text="{Binding Criticidad}" />
                     </StackPanel>
-                  </StackPanel>
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="REPORTADO POR" Width="1.3*">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate DataType="{x:Type vm:FilaTiquete}">
-                  <TextBlock Text="{Binding Reportante}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Reportante}" />
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="ESTADO" Width="1.1*">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate DataType="{x:Type vm:FilaTiquete}">
-                  <StackPanel Orientation="Horizontal">
-                    <Ellipse Style="{StaticResource PuntoEstado}" />
-                    <TextBlock Text="{Binding Estado}" />
-                  </StackPanel>
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-            <DataGridTemplateColumn Header="" Width="Auto" MinWidth="90">
-              <DataGridTemplateColumn.CellTemplate>
-                <DataTemplate DataType="{x:Type vm:FilaTiquete}">
-                  <Button views:Boton.Icono="{StaticResource Icono.Ojo}" Content="Ver detalle" Style="{StaticResource LinkButton}" HorizontalAlignment="Right"
-                          Command="{Binding DataContext.AbrirCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}"
-                          AutomationProperties.Name="{Binding Codigo, StringFormat='Ver detalle del tiquete {0}'}" />
-                </DataTemplate>
-              </DataGridTemplateColumn.CellTemplate>
-            </DataGridTemplateColumn>
-          </DataGrid.Columns>
-        </DataGrid>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+              <DataGridTemplateColumn Header="ESTADO" Width="1.25*">
+                <DataGridTemplateColumn.CellTemplate>
+                  <DataTemplate DataType="{x:Type vm:FilaTiquete}">
+                    <StackPanel Orientation="Horizontal">
+                      <Ellipse Style="{StaticResource PuntoEstado}" />
+                      <TextBlock Text="{Binding Estado}" />
+                    </StackPanel>
+                  </DataTemplate>
+                </DataGridTemplateColumn.CellTemplate>
+              </DataGridTemplateColumn>
+            </DataGrid.Columns>
+          </DataGrid>
 
-        <views:Esqueleto Texto="Consultando los tiquetes…" Margin="0,16,0,0"
-                   Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
-        <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinTiquetes, Converter={StaticResource Visible}}">
-          <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Bandeja}" />
-          <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="{Binding TextoSinTiquetes}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
-          <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Cuando se reporte una falla, su tiquete aparecerá aquí con su estado." Style="{StaticResource Muted}" Margin="0,4,0,0" />
+          <views:Esqueleto Texto="Consultando los tiquetes…" Margin="0,16,0,0"
+                     Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+          <StackPanel HorizontalAlignment="Center" Margin="0,24,0,0" Visibility="{Binding SinTiquetes, Converter={StaticResource Visible}}">
+            <ContentControl Style="{StaticResource IlustracionVacia}" Content="{StaticResource Icono.Bandeja}" />
+            <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="{Binding TextoSinTiquetes}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" />
+            <TextBlock TextAlignment="Center" HorizontalAlignment="Center" Text="Cuando se reporte una falla, su tiquete aparecerá aquí con su estado." Style="{StaticResource Muted}" Margin="0,4,0,0" />
+          </StackPanel>
+
+          <!-- Pie: resumen y paginación -->
+          <DockPanel Margin="0,14,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+              <Button Content="‹ Anterior" Style="{StaticResource LinkButton}" Command="{Binding PaginaAnteriorCommand}" Margin="0,0,20,0"
+                      AutomationProperties.Name="Página anterior" />
+              <Button Content="Siguiente ›" Style="{StaticResource LinkButton}" Command="{Binding PaginaSiguienteCommand}"
+                      AutomationProperties.Name="Página siguiente" />
+            </StackPanel>
+            <TextBlock Text="{Binding ResumenPagina}" Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center" />
+          </DockPanel>
         </StackPanel>
 
-        <!-- Pie: resumen y paginación -->
-        <DockPanel Margin="0,14,0,0">
-          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-            <Button Content="‹ Anterior" Style="{StaticResource LinkButton}" Command="{Binding PaginaAnteriorCommand}" Margin="0,0,20,0"
-                    AutomationProperties.Name="Página anterior" />
-            <Button Content="Siguiente ›" Style="{StaticResource LinkButton}" Command="{Binding PaginaSiguienteCommand}"
-                    AutomationProperties.Name="Página siguiente" />
+        <Border Grid.Column="1" Width="24" />
+
+        <!-- Panel del tiquete -->
+        <Border Grid.Column="2" VerticalAlignment="Top" Padding="22" CornerRadius="{StaticResource Radius.Card}" BorderThickness="1"
+                BorderBrush="{DynamicResource Brush.Border}" Background="{DynamicResource Brush.Surface}"
+                AutomationProperties.Name="Detalle del tiquete" Visibility="{Binding MuestraPanel, Converter={StaticResource Visible}}">
+          <StackPanel>
+            <TextBlock Text="Abriendo el tiquete…" Style="{StaticResource Muted}" Margin="0,0,0,8"
+                       Visibility="{Binding Abriendo, Converter={StaticResource Visible}}" />
+            <TextBlock Text="Elige un tiquete de la lista para ver su seguimiento." Style="{StaticResource Muted}" TextWrapping="Wrap"
+                       Visibility="{Binding SinDetalle, Converter={StaticResource Visible}}" />
+            <ContentControl Content="{Binding Detalle}" Focusable="False" IsTabStop="False" />
           </StackPanel>
-          <TextBlock Text="{Binding ResumenPagina}" Style="{StaticResource Muted}" FontSize="13" VerticalAlignment="Center" />
-        </DockPanel>
-      </StackPanel>
+        </Border>
+      </Grid>
     </StackPanel>
   </ScrollViewer>
 </UserControl>

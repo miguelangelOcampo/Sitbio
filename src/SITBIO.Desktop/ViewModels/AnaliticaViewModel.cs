@@ -69,6 +69,13 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
     private Agrupamiento? _resultado;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportarPdfCommand))]
+    private bool _exportandoPdf;
+
+    /// <summary>La vista la asigna: captura el gráfico visible para el PDF (J-03).</summary>
+    public Func<IReadOnlyList<GraficoCapturado>>? CapturarGraficos { get; set; }
+
+    [ObservableProperty]
     private int _gruposSolicitados = 3;
 
     [ObservableProperty]
@@ -339,6 +346,39 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
         Confirmacion = new Aviso("Exportación lista", ruta, null, EsError: false);
     }
 
+    private bool SePuedeExportarPdf() => HayAgrupacion && dialogo is not null && !ExportandoPdf;
+
+    /// <summary>
+    /// «Exportar PDF» (J-03): el número de grupos, los ejes y el gráfico de la pantalla van a la API, que arma el PDF con
+    /// el último cálculo de la institución (grupos, equipos y «Cómo leerlo»).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(SePuedeExportarPdf))]
+    private async Task ExportarPdfAsync()
+    {
+        if (dialogo is null || !HayAgrupacion)
+        {
+            return;
+        }
+
+        ExportandoPdf = true;
+        Confirmacion = null;
+        try
+        {
+            var graficos = GraficoPdf.De(CapturarGraficos?.Invoke() ?? []);
+            var archivo = await servicio.AnaliticaPdfAsync(new SolicitudPdfAnalitica(GruposSolicitados, EjeX.Clave, EjeY.Clave, graficos), CancellationToken.None);
+            (Confirmacion, var error) = GuardarArchivo.Guardar(dialogo, archivo);
+            Aviso = error;
+        }
+        catch (ErrorApi error)
+        {
+            Aviso = new Aviso(error.SinConexion ? "Sin conexión" : "No pudimos generar el PDF", error.Message, error.SinConexion ? "MSG-011" : error.Codigo, PuedeReintentar: true);
+        }
+        finally
+        {
+            ExportandoPdf = false;
+        }
+    }
+
     partial void OnGruposSolicitadosChanged(int value) => Refrescar();
 
     partial void OnEjeXChanged(VariableAnalitica value) => Refrescar();
@@ -357,6 +397,8 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
         {
             OnPropertyChanged(propiedad);
         }
+
+        ExportarPdfCommand.NotifyCanExecuteChanged();
     }
 
     private static string NombreGrupo(GrupoAnalitica g) => string.IsNullOrWhiteSpace(g.Nombre) ? $"Grupo {g.Grupo + 1}" : g.Nombre;

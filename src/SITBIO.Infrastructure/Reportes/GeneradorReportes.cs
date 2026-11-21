@@ -181,6 +181,175 @@ public sealed class GeneradorReportes : IGeneradorReportes
             });
         })).GeneratePdf();
 
+    public byte[] IndicadoresPdf(IndicadoresDocumento documento) =>
+        Document.Create(doc => doc.Page(pagina =>
+        {
+            Pagina(pagina, documento.Encabezado, PageSizes.A4);
+            pagina.Content().PaddingTop(10).Column(col =>
+            {
+                col.Spacing(6);
+                col.Item().Text("Indicadores del periodo").FontSize(12).SemiBold().FontColor(Primario);
+                Tabla(col, ["Indicador", "Valor", "Detalle"], [150, 0, 0], FilasIndicadores(documento.Indicadores));
+                if (!documento.Indicadores.CostosCompletos)
+                {
+                    col.Item().Background(Colors.Orange.Lighten4).Padding(6)
+                        .Text("No se pudo leer el costo de las intervenciones; el costo por equipo no está disponible.");
+                }
+
+                Graficos(col, documento.Graficos);
+
+                col.Item().PaddingTop(8).Text("Mantenimientos por mes").FontSize(12).SemiBold().FontColor(Primario);
+                Tabla(
+                    col,
+                    ["Mes", "Preventivos", "Correctivos", "Total", "Cumplimiento", "MTTR"],
+                    [0, 0, 0, 0, 0, 0],
+                    documento.Serie.Select(m => (IReadOnlyList<string>)
+                    [
+                        m.Mes.ToString("MMMM yyyy", Cultura),
+                        m.Preventivos.ToString(Cultura),
+                        m.Correctivos.ToString(Cultura),
+                        (m.Preventivos + m.Correctivos).ToString(Cultura),
+                        m.CumplimientoPreventivo is { } c ? $"{c.ToString("0.#", Cultura)} %" : "—",
+                        m.MttrHoras is { } h ? $"{h.ToString("0.#", Cultura)} h" : "—",
+                    ]).ToList());
+
+                var p = documento.Parque;
+                col.Item().PaddingTop(8).Text("Estado del parque").FontSize(12).SemiBold().FontColor(Primario);
+                Tabla(col, ["Operativos", "En mantenimiento", "Fuera de servicio"], [0, 0, 0],
+                    [[p.Operativos.ToString(Cultura), p.EnMantenimiento.ToString(Cultura), p.FueraDeServicio.ToString(Cultura)]]);
+                if (p.EquiposFuera.Count > 0)
+                {
+                    col.Item().PaddingTop(4).Text("Equipos fuera de servicio").SemiBold();
+                    Tabla(col, ["Placa", "Equipo", "Ubicación"], [80, 0, 0],
+                        p.EquiposFuera.Select(e => (IReadOnlyList<string>)[e.PlacaInventario, e.TipoEquipo, e.Ubicacion]).ToList());
+                }
+
+                ComoLeerlo(col, documento.ComoLeerlo);
+            });
+        })).GeneratePdf();
+
+    public byte[] AnaliticaPdf(AnaliticaDocumento documento) =>
+        Document.Create(doc => doc.Page(pagina =>
+        {
+            Pagina(pagina, documento.Encabezado, PageSizes.A4);
+            pagina.Content().PaddingTop(10).Column(col =>
+            {
+                col.Spacing(6);
+                Graficos(col, documento.Graficos);
+                col.Item().PaddingTop(4).Text("Grupos").FontSize(12).SemiBold().FontColor(Primario);
+                Tabla(col, ["Grupo", "Equipos", "Fallas", "Costo medio", "Atención"], [0, 50, 55, 80, 60],
+                    documento.Grupos.Select(g => (IReadOnlyList<string>)[g.Nombre, g.Equipos.ToString(Cultura), g.Fallas, g.CostoMedio, g.Atencion]).ToList());
+                ComoLeerlo(col, documento.ComoLeerlo);
+                col.Item().PaddingTop(8).Text("Equipos").FontSize(12).SemiBold().FontColor(Primario);
+                Tabla(col, ["Placa", "Tipo", "Grupo", documento.TituloEjeX, documento.TituloEjeY], [70, 0, 0, 85, 85],
+                    documento.Equipos.Select(e => (IReadOnlyList<string>)[e.Placa, e.Tipo, e.Grupo, e.ValorX, e.ValorY]).ToList());
+            });
+        })).GeneratePdf();
+
+    /// <summary>Filas de la tabla de indicadores del PDF: indicador, valor y detalle.</summary>
+    public static IReadOnlyList<IReadOnlyList<string>> FilasIndicadores(Application.Indicadores.IndicadoresDto i) =>
+    [
+        ["Cumplimiento preventivo", Porcentaje(i.CumplimientoPreventivo.Porcentaje), $"{i.CumplimientoPreventivo.Cumplidas} de {i.CumplimientoPreventivo.Programadas} programadas"],
+        ["MTTR", i.MttrHoras is { } r ? $"{r.ToString("0.#", Cultura)} h" : "—", "Tiempo medio de reparación"],
+        ["MTBF", i.MtbfHoras is { } b ? $"{b.ToString("0.#", Cultura)} h" : "—", "Tiempo medio entre fallas"],
+        ["Costo por equipo", i.CostoPorEquipo.Promedio is { } c ? c.ToString("C0", Cultura) : "—",
+            i.CostoPorEquipo.CostoTotal is { } t ? $"{t.ToString("C0", Cultura)} entre {i.CostoPorEquipo.EquiposActivos} equipos activos" : "Sin costo registrado"],
+        ["Fuera de servicio", Porcentaje(i.FueraDeServicio.Porcentaje), $"{i.FueraDeServicio.Equipos} de {i.FueraDeServicio.EquiposActivos} equipos activos"],
+    ];
+
+    private static string Porcentaje(double? valor) => valor is { } v ? $"{v.ToString("0.#", Cultura)} %" : "—";
+
+    /// <summary>Cada gráfico con su título, a todo el ancho y sin partirse entre páginas.</summary>
+    private static void Graficos(ColumnDescriptor col, IReadOnlyList<ImagenGrafico> graficos)
+    {
+        foreach (var grafico in graficos)
+        {
+            if (Imagen(grafico.Png) is not { } imagen)
+            {
+                continue;
+            }
+
+            col.Item().PaddingTop(8).ShowEntire().Column(c =>
+            {
+                c.Item().Text(grafico.Titulo).FontSize(11).SemiBold().FontColor(Primario);
+                // A su tamaño en pantalla como máximo (el PNG viene a 2x, 192 ppp): un gráfico pequeño no se estira.
+                var (ancho, alto) = TamanoEnPuntos(grafico.Png);
+                c.Item().PaddingTop(4).Border(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(6).AlignCenter()
+                    .MaxWidth(ancho).MaxHeight(Math.Min(alto, 300)).Image(imagen).FitArea();
+            });
+        }
+    }
+
+    /// <summary>Tamaño en puntos de un PNG capturado a 192 ppp (ancho y alto de la cabecera IHDR); 1 píxel = 0,375 pt.</summary>
+    public static (float Ancho, float Alto) TamanoEnPuntos(byte[] png)
+    {
+        const float PuntosPorPixel = 72f / 192f;
+        if (png.Length < 24)
+        {
+            return (600, 300);
+        }
+
+        var ancho = (png[16] << 24) | (png[17] << 16) | (png[18] << 8) | png[19];
+        var alto = (png[20] << 24) | (png[21] << 16) | (png[22] << 8) | png[23];
+        return ancho <= 0 || alto <= 0 ? (600, 300) : (ancho * PuntosPorPixel, alto * PuntosPorPixel);
+    }
+
+    private static void ComoLeerlo(ColumnDescriptor col, IReadOnlyList<string> textos)
+    {
+        if (textos.Count == 0)
+        {
+            return;
+        }
+
+        col.Item().PaddingTop(8).ShowEntire().Background(Colors.Blue.Lighten5).Padding(8).Column(c =>
+        {
+            c.Spacing(3);
+            c.Item().Text("Cómo leerlo").SemiBold().FontColor(Primario);
+            foreach (var texto in textos)
+            {
+                c.Item().Text("• " + texto);
+            }
+        });
+    }
+
+    /// <summary>Tabla con encabezado de color; un ancho 0 es una columna relativa.</summary>
+    private static void Tabla(ColumnDescriptor col, IReadOnlyList<string> titulos, IReadOnlyList<float> anchos, IReadOnlyList<IReadOnlyList<string>> filas) =>
+        col.Item().Table(tabla =>
+        {
+            tabla.ColumnsDefinition(c =>
+            {
+                foreach (var ancho in anchos)
+                {
+                    if (ancho > 0)
+                    {
+                        c.ConstantColumn(ancho);
+                    }
+                    else
+                    {
+                        c.RelativeColumn();
+                    }
+                }
+            });
+            tabla.Header(h =>
+            {
+                foreach (var titulo in titulos)
+                {
+                    h.Cell().Background(Primario).Padding(4).Text(titulo).FontColor(Colors.White).SemiBold();
+                }
+            });
+            var par = false;
+            foreach (var fila in filas)
+            {
+                var fondo = par ? Colors.Grey.Lighten4 : Colors.White;
+                foreach (var valor in fila)
+                {
+                    tabla.Cell().Background(fondo).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(valor);
+                }
+
+                par = !par;
+            }
+        });
+
     /// <summary>La fotografía lista para el PDF; null si no hay o si su contenido no es una imagen legible.</summary>
     public static Image? Imagen(byte[]? foto)
     {

@@ -37,13 +37,23 @@ internal static class PeticionApi
     }
 
     /// <summary>GET de un archivo (PDF o Excel) con el nombre que propone la API en Content-Disposition.</summary>
-    public static async Task<ArchivoDescargado> DescargarAsync(
+    public static Task<ArchivoDescargado> DescargarAsync(
         ClienteApi cliente,
         string ruta,
         Func<int, string?> mensajePorEstado,
+        CancellationToken cancellationToken) =>
+        DescargarAsync(cliente, HttpMethod.Get, ruta, null, mensajePorEstado, cancellationToken);
+
+    /// <summary>Archivo que devuelve una petición con cuerpo (J-03: POST con los gráficos para el PDF).</summary>
+    public static async Task<ArchivoDescargado> DescargarAsync(
+        ClienteApi cliente,
+        HttpMethod metodo,
+        string ruta,
+        object? cuerpo,
+        Func<int, string?> mensajePorEstado,
         CancellationToken cancellationToken)
     {
-        using var respuesta = await SolicitarAsync(cliente, HttpMethod.Get, ruta, null, mensajePorEstado, cancellationToken);
+        using var respuesta = await SolicitarAsync(cliente, metodo, ruta, cuerpo, mensajePorEstado, cancellationToken);
         var contenido = await respuesta.Content.ReadAsByteArrayAsync(cancellationToken);
         var disposicion = respuesta.Content.Headers.ContentDisposition;
         var nombre = (disposicion?.FileNameStar ?? disposicion?.FileName)?.Trim('"');

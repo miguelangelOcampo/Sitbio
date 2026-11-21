@@ -55,6 +55,7 @@ public sealed class Grafico : Control
     public static readonly DependencyProperty FormatoValorProperty = Registrar(nameof(FormatoValor), "N0");
     public static readonly DependencyProperty ComandoPuntoProperty = Registrar<ICommand?>(nameof(ComandoPunto), null);
     public static readonly DependencyProperty CompactoProperty = Registrar(nameof(Compacto), false);
+    public static readonly DependencyProperty TituloProperty = DependencyProperty.Register(nameof(Titulo), typeof(string), typeof(Grafico), new PropertyMetadata(string.Empty));
 
     private static readonly CultureInfo Cultura = CultureInfo.GetCultureInfo("es-CO");
 
@@ -82,6 +83,13 @@ public sealed class Grafico : Control
                 Resaltar(null);
             }
         };
+    }
+
+    /// <summary>Título del gráfico en el PDF (J-03); sin título, <see cref="CapturaGraficos"/> no lo exporta.</summary>
+    public string Titulo
+    {
+        get => (string)GetValue(TituloProperty);
+        set => SetValue(TituloProperty, value);
     }
 
     public TipoGrafico Tipo

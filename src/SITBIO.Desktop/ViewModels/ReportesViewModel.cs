@@ -36,7 +36,7 @@ public static class FechasFiltro
 /// UI-021 Reportes e indicadores (HU-026): los cinco indicadores de la institución en el periodo
 /// (CA-HU-026-01). Solo consulta: la Directiva (AC-06) no tiene más acciones (CA-HU-026-02).
 /// </summary>
-public partial class ReportesViewModel(IServicioReportes servicio, SesionActual? sesion = null) : ObservableObject, ISolicitaNavegacion
+public partial class ReportesViewModel(IServicioReportes servicio, SesionActual? sesion = null, IDialogoArchivos? dialogo = null) : ObservableObject, ISolicitaNavegacion
 {
     public const string IdPantalla = "UI-021";
 
@@ -63,6 +63,17 @@ public partial class ReportesViewModel(IServicioReportes servicio, SesionActual?
     private Aviso? _aviso;
 
     [ObservableProperty]
+    private Aviso? _confirmacion;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportarPdfCommand))]
+    private bool _exportandoPdf;
+
+    /// <summary>La vista la asigna: captura los gráficos visibles para el PDF (J-03).</summary>
+    public Func<IReadOnlyList<GraficoCapturado>>? CapturarGraficos { get; set; }
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportarPdfCommand))]
     [NotifyPropertyChangedFor(
         nameof(HayDatos), nameof(Periodo), nameof(Cumplimiento), nameof(DetalleCumplimiento), nameof(Mttr), nameof(Mtbf),
         nameof(Costo), nameof(DetalleCosto), nameof(Fuera), nameof(DetalleFuera), nameof(AvisoCostos), nameof(MiniDisponibilidad))]
@@ -285,6 +296,39 @@ public partial class ReportesViewModel(IServicioReportes servicio, SesionActual?
         finally
         {
             Cargando = false;
+        }
+    }
+
+    private bool SePuedeExportarPdf() => HayDatos && dialogo is not null && !ExportandoPdf;
+
+    /// <summary>
+    /// «Exportar PDF» (J-03): el periodo consultado, los meses del gráfico y los gráficos de la pantalla van a la API,
+    /// que arma el PDF con los datos de la institución.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(SePuedeExportarPdf))]
+    private async Task ExportarPdfAsync()
+    {
+        if (dialogo is null || Indicadores is not { } k)
+        {
+            return;
+        }
+
+        ExportandoPdf = true;
+        Confirmacion = null;
+        try
+        {
+            var graficos = GraficoPdf.De(CapturarGraficos?.Invoke() ?? []);
+            var archivo = await servicio.IndicadoresPdfAsync(new SolicitudPdfIndicadores(k.Desde, k.Hasta, MesesSerie, graficos), CancellationToken.None);
+            (Confirmacion, var error) = GuardarArchivo.Guardar(dialogo, archivo);
+            Aviso = error;
+        }
+        catch (ErrorApi error)
+        {
+            Aviso = new Aviso(error.SinConexion ? "Sin conexión" : "No pudimos generar el PDF", error.Message, error.SinConexion ? "MSG-011" : error.Codigo, PuedeReintentar: true);
+        }
+        finally
+        {
+            ExportandoPdf = false;
         }
     }
 

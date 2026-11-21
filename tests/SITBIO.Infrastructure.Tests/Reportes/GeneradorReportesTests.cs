@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using ClosedXML.Excel;
 using Sitbio.Application.Equipos;
+using Sitbio.Application.Indicadores;
 using Sitbio.Application.Reportes;
 using Sitbio.Infrastructure.Reportes;
 
@@ -136,5 +137,67 @@ public class GeneradorReportesTests
 
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
         Assert.False(TieneImagen(pdf));
+    }
+
+    // ---- J-03: Reportes e indicadores y Analítica con sus gráficos ----
+    private static IndicadoresDocumento Indicadores(IReadOnlyList<ImagenGrafico> graficos) => new(
+        Encabezado with { Titulo = "Reportes e indicadores" },
+        new IndicadoresDto(
+            new DateOnly(2026, 11, 1),
+            new DateOnly(2026, 11, 20),
+            new CumplimientoPreventivoDto(4, 3, 75),
+            5.5,
+            120,
+            new CostoPorEquipoDto(1_500_000, 10, 150_000),
+            new FueraDeServicioDto(1, 10, 10),
+            CostosCompletos: false),
+        [new MesIndicadoresDto(new DateOnly(2026, 10, 1), 3, 1, 75, 4.5), new MesIndicadoresDto(new DateOnly(2026, 11, 1), 2, 2, null, null)],
+        new ParqueDto(8, 1, 1, [new EquipoFueraDto(Guid.NewGuid(), "MON-07", "Monitor", "UCI")]),
+        graficos,
+        ExportacionGraficos.ComoLeerIndicadores);
+
+    [Fact]
+    public void IndicadoresPdf_ConGraficos_IncluyeLasImagenes()
+    {
+        var pdf = _generador.IndicadoresPdf(Indicadores([new ImagenGrafico("Mantenimientos por mes", Png), new ImagenGrafico("Estado del parque", Png)]));
+
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
+        Assert.True(TieneImagen(pdf));
+        Assert.False(TieneImagen(_generador.IndicadoresPdf(Indicadores([]))));
+    }
+
+    [Fact]
+    public void TamanoEnPuntos_LeeLaCabeceraDelPng_A192ppp()
+    {
+        Assert.Equal((0.375f, 0.375f), GeneradorReportes.TamanoEnPuntos(Png));
+        Assert.Equal((600f, 300f), GeneradorReportes.TamanoEnPuntos([1, 2, 3]));
+    }
+
+    [Fact]
+    public void FilasIndicadores_TraenElValorYElDetalle()
+    {
+        var filas = GeneradorReportes.FilasIndicadores(Indicadores([]).Indicadores);
+
+        Assert.Equal(["Cumplimiento preventivo", "75 %", "3 de 4 programadas"], filas[0]);
+        Assert.Equal("5,5 h", filas[1][1]);
+        Assert.Equal("1 de 10 equipos activos", filas[4][2]);
+    }
+
+    [Fact]
+    public void AnaliticaPdf_ConGraficoIlegible_SaleSinImagenPeroConLasTablas()
+    {
+        var documento = new AnaliticaDocumento(
+            Encabezado with { Titulo = "Analítica de equipos" },
+            "Fallas (correctivos)",
+            "Costo confirmado (M COP)",
+            [new FilaGrupoPdf("Alto costo y muchas fallas", 2, "8", "$ 4.000.000", "120 min"), new FilaGrupoPdf("Estables", 5, "1", "$ 900.000", "30 min")],
+            Enumerable.Range(0, 60).Select(i => new FilaEquipoPdf($"PL-{i:00}", "Monitor", "Estables", "1", "0,9")).ToList(),
+            [new ImagenGrafico("Dispersión", [0x89, 0x50, 0x4E, 0x47, 1, 2, 3])],
+            ["Los grupos se ordenan por número de fallas."]);
+
+        var pdf = _generador.AnaliticaPdf(documento);
+        Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
+        Assert.False(TieneImagen(pdf));
+        Assert.True(TieneImagen(_generador.AnaliticaPdf(documento with { Graficos = [new ImagenGrafico("Dispersión", Png)] })));
     }
 }

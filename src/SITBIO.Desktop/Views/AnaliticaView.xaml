@@ -132,7 +132,7 @@
             </StackPanel>
             <controls:Grafico views:Animacion.Crecer="True" Tipo="Dispersion" Height="380" Margin="0,14,0,0" FormatoValor="0.##"
                               Visibility="{Binding VistaGrafico, Converter={StaticResource Visible}}"
-                              Series="{Binding SeriesGrupos}" Puntos="{Binding Puntos}"
+                              Series="{Binding SeriesGrupos}" Puntos="{Binding Puntos}" Titulo="{Binding TituloGrafico}"
                               TituloEjeX="{Binding TituloEjeX}" TituloEjeY="{Binding TituloEjeY}"
                               ComandoPunto="{Binding AbrirEquipoCommand}"
                               AutomationProperties.Name="Dispersión de los equipos por grupo; las tarjetas de la derecha resumen cada grupo" />
@@ -247,8 +247,24 @@
             </DockPanel>
           </Border>
 
-          <Button views:Boton.Icono="{StaticResource Icono.Descargar}" Style="{StaticResource LinkButton}" Content="Exportar resultado" HorizontalAlignment="Left"
-                  Margin="0,14,0,0" Command="{Binding ExportarCommand}" AutomationProperties.Name="Exportar el grupo de cada equipo a un archivo CSV" />
+          <WrapPanel Margin="0,14,0,0">
+            <Button views:Boton.Icono="{StaticResource Icono.Descargar}" Style="{StaticResource LinkButton}" Content="Exportar resultado" Margin="0,0,20,0"
+                    Command="{Binding ExportarCommand}" AutomationProperties.Name="Exportar el grupo de cada equipo a un archivo CSV" />
+            <!-- J-03: PDF con el gráfico, los grupos, los equipos y «Cómo leerlo» -->
+            <Button views:Boton.Icono="{StaticResource Icono.Documento}" Command="{Binding ExportarPdfCommand}"
+                    AutomationProperties.Name="Exportar la analítica y su gráfico a PDF">
+              <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource LinkButton}">
+                  <Setter Property="Content" Value="Exportar PDF" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding ExportandoPdf}" Value="True">
+                      <Setter Property="Content" Value="Generando PDF…" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </Button.Style>
+            </Button>
+          </WrapPanel>
         </StackPanel>
       </Grid>
 

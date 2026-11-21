@@ -12,6 +12,9 @@ public interface IServicioAnalitica
 
     /// <summary>GET /analitica/agrupamiento: estado del último recálculo y fecha del último cálculo.</summary>
     Task<EstadoRecalculo> EstadoRecalculoAsync(CancellationToken cancellationToken);
+
+    /// <summary>POST /reportes/analitica.pdf (J-03): la analítica en PDF con el gráfico de la pantalla.</summary>
+    Task<ArchivoDescargado> AnaliticaPdfAsync(SolicitudPdfAnalitica solicitud, CancellationToken cancellationToken);
 }
 
 public sealed record Caracteristicas(double? Intervenciones, double? ProporcionCorrectivos, double? CostoConfirmado, double? TiempoMedioMin);
@@ -53,6 +56,9 @@ public sealed class ServicioAnaliticaHttp(ClienteApi cliente) : IServicioAnaliti
 
     public Task<EstadoRecalculo> EstadoRecalculoAsync(CancellationToken cancellationToken) =>
         PeticionApi.EnviarAsync<EstadoRecalculo>(cliente, HttpMethod.Get, Recalculo, null, Mensaje, cancellationToken);
+
+    public Task<ArchivoDescargado> AnaliticaPdfAsync(SolicitudPdfAnalitica solicitud, CancellationToken cancellationToken) =>
+        PeticionApi.DescargarAsync(cliente, HttpMethod.Post, "reportes/analitica.pdf", solicitud, Mensaje, cancellationToken);
 
     private static string? Mensaje(int estado) => estado == 403 ? "Tu rol no permite consultar la analítica." : null;
 

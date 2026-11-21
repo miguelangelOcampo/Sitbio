@@ -40,6 +40,7 @@ DefaultGroupName={#Nombre}
 DisableProgramGroupPage=yes
 UninstallDisplayName={#Nombre}
 UninstallDisplayIcon={app}\{#Ejecutable}
+SetupIconFile=..\src\SITBIO.Desktop\Assets\Logo\sitbio.ico
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0

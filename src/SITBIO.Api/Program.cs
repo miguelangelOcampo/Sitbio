@@ -68,6 +68,7 @@ var api = app.MapGroup(RutasApi.V1);
 api.MapSalud();
 api.MapAutenticacion();
 api.MapUsuarios();
+api.MapFotoPerfil();
 api.MapAuditoria();
 api.MapEquipos();
 api.MapCatalogos();

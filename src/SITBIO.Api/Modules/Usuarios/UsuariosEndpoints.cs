@@ -16,6 +16,7 @@ public static class UsuariosEndpoints
     public static IServiceCollection AddModuloUsuarios(this IServiceCollection services)
     {
         services.AddScoped<GestionUsuarios>();
+        services.AddScoped<GestionFotoPerfil>();
         services.AddAuthorizationBuilder()
             .AddPolicy(PoliticaAdministrador, politica => politica.RequireRole(CodigosRol.AdministradorSistema));
         return services;

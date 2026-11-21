@@ -9,8 +9,18 @@ public static class Temas
     public const string Claro = "claro";
     public const string Oscuro = "oscuro";
 
-    /// <summary>Un valor desconocido o vacío vuelve al tema claro.</summary>
-    public static string Normalizar(string? tema) => tema == Oscuro ? Oscuro : Claro;
+    /// <summary>J-10: sigue el modo de aplicaciones de Windows (claro u oscuro) y cambia con él.</summary>
+    public const string Sistema = "sistema";
+
+    /// <summary>Un valor desconocido o vacío sigue al sistema.</summary>
+    public static string Normalizar(string? tema) => tema is Claro or Oscuro ? tema : Sistema;
+
+    /// <summary>El tema que se pinta: el elegido o, con «Sistema», el de Windows.</summary>
+    public static string Resolver(string? tema, bool sistemaClaro) => Normalizar(tema) switch
+    {
+        Sistema => sistemaClaro ? Claro : Oscuro,
+        var elegido => elegido,
+    };
 }
 
 /// <summary>Preferencias de la estación (DOC-06, Tabla 44). No son datos de la cuenta: no viajan a la API.</summary>
@@ -19,7 +29,7 @@ public static class Temas
 /// J-07: por usuario (id de la sesión), fecha del último cambio de sus tiquetes que ya vio en la campana. Es por
 /// usuario porque la estación puede ser compartida.
 /// </param>
-public sealed record Preferencias(string Tema = Temas.Claro, bool VerFotosEquipo = true, IReadOnlyDictionary<string, DateTimeOffset>? RevisionTiquetes = null)
+public sealed record Preferencias(string Tema = Temas.Sistema, bool VerFotosEquipo = true, IReadOnlyDictionary<string, DateTimeOffset>? RevisionTiquetes = null)
 {
     /// <summary>Último cambio visto por el usuario; null si nunca abrió la campana en esta estación.</summary>
     public DateTimeOffset? RevisionDe(Guid usuarioId) =>

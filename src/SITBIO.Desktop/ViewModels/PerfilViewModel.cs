@@ -83,6 +83,19 @@ public partial class PerfilViewModel : ObservableObject
 
     // ---------- Tema ----------
 
+    /// <summary>J-10: el tema de Windows, que es el valor por defecto.</summary>
+    public bool EsSistema
+    {
+        get => _temaActual == Temas.Sistema;
+        set
+        {
+            if (value)
+            {
+                CambiarTema(Temas.Sistema);
+            }
+        }
+    }
+
     public bool EsClaro
     {
         get => _temaActual == Temas.Claro;
@@ -117,6 +130,7 @@ public partial class PerfilViewModel : ObservableObject
         _temaActual = tema;
         _tema.Aplicar(tema);
         _preferencias.Guardar(_preferencias.Leer() with { Tema = tema });
+        OnPropertyChanged(nameof(EsSistema));
         OnPropertyChanged(nameof(EsClaro));
         OnPropertyChanged(nameof(EsOscuro));
     }

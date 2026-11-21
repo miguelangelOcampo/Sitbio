@@ -157,8 +157,17 @@
       <!-- Preferencias -->
       <StackPanel Visibility="{Binding EnPreferencias, Converter={StaticResource Visible}}" MaxWidth="620" HorizontalAlignment="Left">
         <TextBlock Text="Apariencia" Style="{StaticResource SectionTitle}" Margin="0,0,0,12" />
-        <UniformGrid Columns="2" AutomationProperties.Name="Tema">
-          <RadioButton Style="{StaticResource OpcionTema}" GroupName="Tema" IsChecked="{Binding EsClaro}" Margin="0,0,6,0" AutomationProperties.Name="Tema claro">
+        <UniformGrid Columns="3" AutomationProperties.Name="Tema">
+          <RadioButton Style="{StaticResource OpcionTema}" GroupName="Tema" IsChecked="{Binding EsSistema}" Margin="0,0,6,0" AutomationProperties.Name="Tema del sistema">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Ajustes}" Width="18" Height="18" Margin="0,0,6,0" />
+                <TextBlock Text="Sistema" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBlock Text="Igual que Windows; cambia cuando cambie Windows." Style="{StaticResource Muted}" FontSize="13" TextWrapping="Wrap" Margin="0,4,0,0" />
+            </StackPanel>
+          </RadioButton>
+          <RadioButton Style="{StaticResource OpcionTema}" GroupName="Tema" IsChecked="{Binding EsClaro}" Margin="6,0,6,0" AutomationProperties.Name="Tema claro">
             <StackPanel>
               <StackPanel Orientation="Horizontal">
                 <ContentControl Style="{StaticResource Icono}" Content="{StaticResource Icono.Sol}" Width="18" Height="18" Margin="0,0,6,0" />

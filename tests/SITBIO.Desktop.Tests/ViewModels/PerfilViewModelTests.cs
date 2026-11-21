@@ -59,12 +59,13 @@ public class PerfilViewModelTests
     public void ElegirOscuro_LoAplicaAlInstanteYLoGuarda()
     {
         var vm = Crear();
-        Assert.True(vm.EsClaro);
+        Assert.True(vm.EsSistema); // J-10: por defecto, el de Windows
+        Assert.False(vm.EsClaro);
 
         vm.EsOscuro = true;
 
         Assert.True(vm.EsOscuro);
-        Assert.False(vm.EsClaro);
+        Assert.False(vm.EsSistema);
         _tema.Received(1).Aplicar(Temas.Oscuro);
         _preferencias.Received(1).Guardar(new Preferencias(Temas.Oscuro));
     }
@@ -74,7 +75,7 @@ public class PerfilViewModelTests
     {
         var vm = Crear();
 
-        vm.EsClaro = true;
+        vm.EsSistema = true;
         vm.EsOscuro = false;
 
         _tema.DidNotReceiveWithAnyArgs().Aplicar(default!);

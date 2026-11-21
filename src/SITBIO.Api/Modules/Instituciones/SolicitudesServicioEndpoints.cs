@@ -21,6 +21,11 @@ public static class SolicitudesServicioEndpoints
     {
         services.AddScoped<SolicitudesServicio>();
 
+        // J-05: aviso por correo al proveedor, en segundo plano.
+        services.AddSingleton<ColaAvisosSolicitudes>();
+        services.AddSingleton<IAvisoSolicitudes>(sp => sp.GetRequiredService<ColaAvisosSolicitudes>());
+        services.AddHostedService<ServicioAvisosSolicitudes>();
+
         var limite = configuration.GetValue(SeccionLimite, SolicitudesPorMinutoPredeterminadas);
         services.AddRateLimiter(opciones => opciones.AddPolicy(PoliticaSolicitudes, http => RateLimitPartition.GetFixedWindowLimiter(
             http.Connection.RemoteIpAddress?.ToString() ?? "sin-ip",

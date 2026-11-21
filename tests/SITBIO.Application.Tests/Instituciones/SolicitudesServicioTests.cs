@@ -14,6 +14,7 @@ public class SolicitudesServicioTests
     private readonly IRepositorioSolicitudesServicio _repositorio = Substitute.For<IRepositorioSolicitudesServicio>();
     private readonly IRepositorioInstitucion _instituciones = Substitute.For<IRepositorioInstitucion>();
     private readonly TimeProvider _tiempo = Substitute.For<TimeProvider>();
+    private readonly IAvisoSolicitudes _avisos = Substitute.For<IAvisoSolicitudes>();
     private readonly SolicitudesServicio _caso;
 
     public SolicitudesServicioTests()
@@ -21,7 +22,7 @@ public class SolicitudesServicioTests
         _tiempo.GetUtcNow().Returns(Ahora);
         _repositorio.When(r => r.RegistrarAsync(Arg.Any<SolicitudServicio>(), Arg.Any<CancellationToken>()))
             .Do(llamada => llamada.Arg<SolicitudServicio>().Numerar(7));
-        _caso = new SolicitudesServicio(_repositorio, _instituciones, _tiempo);
+        _caso = new SolicitudesServicio(_repositorio, _instituciones, _tiempo, _avisos);
     }
 
     private static DatosSolicitudServicio Datos(string tipo = "demostracion", string? plan = null, string? nit = "900.123.456-7") =>
@@ -50,6 +51,23 @@ public class SolicitudesServicioTests
     }
 
     // ---------- CA-HU-028-01 ----------
+
+    [Fact]
+    public async Task J05_SolicitudGuardada_EncolaElAvisoAlProveedorConSuCodigo()
+    {
+        await _caso.SolicitarAsync(Datos(tipo: "cotizacion", plan: "Hospital"), CancellationToken.None);
+
+        _avisos.Received(1).Encolar(Arg.Is<AvisoSolicitud>(a =>
+            a.Codigo == "SOL-000007" && a.Tipo == "cotizacion" && a.Plan == "Hospital" && a.Institucion == "Clínica San Rafael" && a.Correo == "ana@sanrafael.co"));
+    }
+
+    [Fact]
+    public async Task J05_SolicitudInvalida_NoSeGuardaNiSeAvisa()
+    {
+        await Assert.ThrowsAsync<ErrorValidacion>(() => _caso.SolicitarAsync(Datos(nit: "123"), CancellationToken.None));
+
+        _avisos.DidNotReceiveWithAnyArgs().Encolar(default!);
+    }
 
     [Fact]
     public async Task CA_HU_028_01_SolicitudSinCuenta_SeRegistraYDevuelveElCodigo()

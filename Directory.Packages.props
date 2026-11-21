@@ -18,6 +18,9 @@
     <PackageVersion Include="QuestPDF" Version="2024.12.3" />
     <PackageVersion Include="ClosedXML" Version="0.104.2" />
   </ItemGroup>
+  <ItemGroup Label="Correo (J-05)">
+    <PackageVersion Include="MailKit" Version="4.18.2" />
+  </ItemGroup>
   <ItemGroup Label="Cliente WPF">
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />

@@ -11,6 +11,7 @@
     <PackageReference Include="QuestPDF" />
     <PackageReference Include="ClosedXML" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <PackageReference Include="MailKit" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SITBIO.Application\SITBIO.Application.csproj" />

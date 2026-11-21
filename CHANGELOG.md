@@ -4,7 +4,7 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [Sin publicar]
 
-## [1.2.0] - 2026-11-23
+## [1.2.0] - 2026-11-20
 
 Gráficos en Reportes y en el Panel, analítica de 2 a 6 grupos que el Ingeniero biomédico recalcula desde la aplicación, y mejoras de usabilidad y de paridad visual con el prototipo. Incluye todo lo de la versión 1.1.1.
 
@@ -35,7 +35,7 @@ Gráficos en Reportes y en el Panel, analítica de 2 a 6 grupos que el Ingeniero
 ### Pendiente
 - CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes (k6).
 
-## [1.1.1] - 2026-11-20
+## [1.1.1] - 2026-11-19
 
 Corrige los hallazgos de operación de la v1.1.0 y agrega el historial de intervenciones. Incluye todo lo de la versión 1.1.0.
 
@@ -65,7 +65,7 @@ Corrige los hallazgos de operación de la v1.1.0 y agrega el historial de interv
 - CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes (k6).
 - Filtro por técnico en la pantalla del historial: la API ya lo admite, pero la sesión del cliente todavía no guarda el id del usuario.
 
-## [1.1.0] - 2026-11-21
+## [1.1.0] - 2026-11-18
 
 Completa las 28 historias del DOC-04 e iguala el cliente WPF con el prototipo v0.24. Incluye todo lo de la versión 1.0.0.
 

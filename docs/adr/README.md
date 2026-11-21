@@ -9,7 +9,7 @@
 | [ADR-003](003-autenticacion.md) | Autenticación | Aceptado | 22/10/2026 |
 | [ADR-004](004-multi-tenant.md) | Modelo multi-tenant | Aceptado | 22/10/2026 |
 | [ADR-005](005-gestion-esquema.md) | Gestión del esquema | Aceptado | 22/10/2026 |
-| [ADR-006](006-analitica.md) | Integración de la analítica | Propuesto | 22/10/2026 |
+| [ADR-006](006-analitica.md) | Integración de la analítica | Aceptado | 22/10/2026 (ampliado el 20/11/2026) |
 | [ADR-007](007-distribucion-cliente.md) | Distribución del cliente | Propuesto | 22/10/2026 |
 | [ADR-008](008-sin-microservicios.md) | No usar microservicios ni mensajería | Aceptado | 22/10/2026 |
 | [ADR-009](009-reportes.md) | Generación de reportes | Propuesto | 22/10/2026 |

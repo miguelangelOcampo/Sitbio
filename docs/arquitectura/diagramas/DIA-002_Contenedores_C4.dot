@@ -1,7 +1,7 @@
 // DIA-002 v1.0 (09/11/2026): vista de contenedores C4 nivel 2 de SITBIO. Fuente: DOC-06 secciones 6.2 y 7.1, ADR-006 y ADR-010.
 // Líneas en ángulo recto (splines=ortho); las etiquetas de las relaciones son nodos intermedios.
 digraph DIA002 {
-  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-002 · Vista de contenedores (C4 nivel 2) de SITBIO</b><br/><font point-size="10" color="#555555">Versión 1.1 · 11/11/2026 · Fuente: DOC-06, secciones 6.2 y 7.1, ADR-006 y ADR-010</font><br/> >, rankdir=TB, splines=ortho, nodesep=0.5, ranksep=0.4, fontname="Liberation Sans", bgcolor="white", pad=0.3, forcelabels=true, newrank=true];
+  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-002 · Vista de contenedores (C4 nivel 2) de SITBIO</b><br/><font point-size="10" color="#555555">Versión 1.2 · 20/11/2026 · Fuente: DOC-06, secciones 6.2 y 7.1, ADR-006 y ADR-010</font><br/> >, rankdir=TB, splines=ortho, nodesep=0.5, ranksep=0.4, fontname="Liberation Sans", bgcolor="white", pad=0.3, forcelabels=true, newrank=true];
   node  [shape=box, style="rounded,filled", fontname="Liberation Sans", fontsize=11, color="#8C8C8C", fillcolor="#FFFFFF", fontcolor="#222222", margin="0.16,0.10"];
   edge  [color="#555555", fontname="Liberation Sans", fontsize=9, fontcolor="#333333", arrowsize=0.7];
 
@@ -16,10 +16,10 @@ digraph DIA002 {
   subgraph cluster_nube {
     label=<<b>SITBIO · nube del proveedor (ADR-010)</b><br/><font point-size="9">Operada por los administradores de la plataforma (EXT-006)</font>>; fontsize=11; fontcolor="#2F5D8A"; style="rounded,dashed"; color="#9AA5B1"; margin=16;
     api [label=<<b>API REST</b><br/><font point-size="9">[Contenedor: ASP.NET Core · .NET 10]</font><br/><font point-size="9">Monolito modular en capas: autenticación JWT,<br/>RBAC, filtro por tenant, reglas RN-001 a RN-010,<br/>reportes PDF y Excel</font>>, fillcolor="#2F5D8A", color="#24496D", fontcolor="#FFFFFF"];
-    pg  [label=<<b>Base de datos relacional</b><br/><font point-size="9">[Contenedor: PostgreSQL 16]</font><br/><font point-size="9">Instituciones, usuarios, equipos e información<br/>regulatoria, tiquetes, órdenes, planes,<br/>calibraciones y catálogos (17 tablas)</font>>, shape=cylinder, style=filled, fillcolor="#FFF4DC", color="#B8862B"];
+    pg  [label=<<b>Base de datos relacional</b><br/><font point-size="9">[Contenedor: PostgreSQL 16]</font><br/><font point-size="9">Instituciones, usuarios, equipos e información<br/>regulatoria, tiquetes, órdenes, planes,<br/>calibraciones y catálogos (18 tablas)</font>>, shape=cylinder, style=filled, fillcolor="#FFF4DC", color="#B8862B"];
     mg  [label=<<b>Base de datos documental</b><br/><font point-size="9">[Contenedor: MongoDB 7]</font><br/><font point-size="9">intervenciones · configuracion_campos ·<br/>bitacora_auditoria · resultados_analitica</font>>, shape=cylinder, style=filled, fillcolor="#FFF4DC", color="#B8862B"];
     fs  [label=<<b>Almacenamiento de archivos</b><br/><font point-size="9">[Contenedor: sistema de archivos del servidor] EXT-003</font><br/><font point-size="9">Documentos adjuntos y fotografías<br/>reducidas (128 y 512 px)</font>>, shape=folder, style=filled, fillcolor="#F1F1F1"];
-    py  [label=<<b>Módulo analítico</b><br/><font point-size="9">[Contenedor: Python 3.12 · PyMongo · Pandas · scikit-learn]</font><br/><font point-size="9">Lote programado: métricas (MTTR, MTBF, costos)<br/>y agrupamiento K-Means</font>>, fillcolor="#FFFFFF", color="#2F5D8A"];
+    py  [label=<<b>Módulo analítico</b><br/><font point-size="9">[Contenedor: Python 3.12 · PyMongo · Pandas · scikit-learn]</font><br/><font point-size="9">Lote programado o a pedido de la API: métricas<br/>(MTTR, MTBF, costos) y K-Means de 2 a 6 grupos</font>>, fillcolor="#FFFFFF", color="#2F5D8A"];
       lbl4 [shape=box, style="filled", fillcolor="white", color="white", label="EF Core · Npgsql\nfiltro global por tenant", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
     lbl5 [shape=box, style="filled", fillcolor="white", color="white", label="MongoDB.Driver\nfiltro obligatorio por tenant", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
     lbl6 [shape=box, style="filled", fillcolor="white", color="white", label="Lee y escribe\narchivos", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];

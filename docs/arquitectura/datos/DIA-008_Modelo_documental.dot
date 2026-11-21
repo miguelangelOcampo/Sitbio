@@ -1,6 +1,6 @@
 // DIA-008 v1.0 (11/11/2026): modelo documental de MongoDB 7 y enlaces lógicos con PostgreSQL. Fuente: 02_MongoDB_SITBIO.js, V007__bitacora_acciones.js, ADR-006 y DOC-06 sección 8.3.
 digraph DIA008 {
-  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-008 · Modelo documental de MongoDB 7 y enlaces con PostgreSQL</b><br/><font point-size="10" color="#555555">Versión 1.0 · 11/11/2026 · Fuente: 02_MongoDB_SITBIO.js, V007 y ADR-006</font><br/> >, rankdir=LR, splines=ortho, nodesep=0.35, ranksep=0.9, fontname="Liberation Sans", bgcolor="white", pad=0.2, forcelabels=true, newrank=true];
+  graph [labelloc=t, fontsize=17, fontcolor="#24496D", label=<<b>DIA-008 · Modelo documental de MongoDB 7 y enlaces con PostgreSQL</b><br/><font point-size="10" color="#555555">Versión 1.1 · 20/11/2026 · Fuente: 02_MongoDB_SITBIO.js, V007, lote.py y ADR-006</font><br/> >, rankdir=LR, splines=ortho, nodesep=0.35, ranksep=0.9, fontname="Liberation Sans", bgcolor="white", pad=0.2, forcelabels=true, newrank=true];
   node [fontname="Liberation Sans", shape=plaintext, margin=0];
   edge [color="#8C8C8C", style=dashed, arrowsize=0.6, arrowhead=vee, fontname="Liberation Sans", fontsize=8, fontcolor="#555555"];
 
@@ -44,11 +44,15 @@ digraph DIA008 {
       <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>detalle { }</b> resumen sin datos sensibles</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">objeto embebido</font></td></tr>
     </table>>];
 
-    res [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="2" color="#B8862B" bgcolor="#FFFFFF" style="dashed">
-      <tr><td colspan="2" bgcolor="#E9D6AE" align="left"><font point-size="10"><b>resultados_analitica</b></font>  <font point-size="8">propuesta (ADR-006)</font></td></tr>
-      <tr><td align="left"><font point-size="8.5"><i>tenant_id</i> · periodo</font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
-      <tr><td align="left"><font point-size="8.5">tipo · fecha_calculo</font></td><td align="left"><font point-size="8" color="#666666">métricas o agrupamientos · date</font></td></tr>
-      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>datos { }</b> MTTR, MTBF, costos o grupos K-Means</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">objeto embebido</font></td></tr>
+    res [label=<<table border="1" cellborder="0" cellspacing="0" cellpadding="2" color="#B8862B" bgcolor="#FFFFFF">
+      <tr><td colspan="2" bgcolor="#B8862B" align="left"><font color="#FFFFFF" point-size="10"><b>resultados_analitica</b></font>  <font color="#FFFFFF" point-size="8">DAT-ANALITICA · un documento por tenant</font></td></tr>
+      <tr><td align="left"><font point-size="8.5"><u>_id</u> = <i>tenant_id</i></font></td><td align="left"><font point-size="8" color="#666666">string (UUID)</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">generado_en · fecha_corte</font></td><td align="left"><font point-size="8" color="#666666">date</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">version · huella_entrada</font></td><td align="left"><font point-size="8" color="#666666">string</font></td></tr>
+      <tr><td align="left"><font point-size="8.5">intervenciones_analizadas</font></td><td align="left"><font point-size="8" color="#666666">int</font></td></tr>
+      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>indicadores { }</b> MTTR, MTBF, costos</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">objeto embebido</font></td></tr>
+      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>agrupacion { }</b> k, inercia, semilla, caracteristicas,<br align="left"/>grupos[ ] (grupo, nombre, equipos, intervenciones,<br align="left"/>proporcion_correctivos, costo, tiempo medio), equipos[ ]</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">objeto embebido</font></td></tr>
+      <tr><td align="left" bgcolor="#FBF3E2"><font point-size="8.5"><b>agrupaciones[ ]</b> la misma estructura para k = 2 a 6</font></td><td align="left" bgcolor="#FBF3E2"><font point-size="8" color="#666666">array embebido</font></td></tr>
     </table>>];
   }
 
@@ -61,7 +65,7 @@ digraph DIA008 {
     ptip [label="tipo_equipo"];
   }
 
-  py [shape=box, style="rounded,dashed,filled", fillcolor="#F1F1F1", color="#8C8C8C", fontsize=10, margin="0.12,0.06", label=<<b>Módulo analítico</b><br/><font point-size="8">Python, por lotes</font>>];
+  py [shape=box, style="rounded,dashed,filled", fillcolor="#F1F1F1", color="#8C8C8C", fontsize=10, margin="0.12,0.06", label=<<b>Módulo analítico</b><br/><font point-size="8">Python, por lotes o a pedido de la API</font>>];
 
   intv -> pot;
   intv -> peq;
@@ -85,5 +89,5 @@ digraph DIA008 {
    <tr><td colspan="2" align="left"><font point-size="8.5">Todas las colecciones llevan tenant_id (referencia a tenant, no dibujada)<br align="left"/>y toda consulta filtra por él (RN-008). Subrayado: identificador; cursiva: referencia.</font></td></tr>
   </table>>];
     lbl1 [shape=box, style="filled", fillcolor="white", color="white", label="lee", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
-    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="escribe", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
+    lbl2 [shape=box, style="filled", fillcolor="white", color="white", label="reemplaza (upsert)", fontsize=9, fontcolor="#333333", margin="0.03,0.01", width=0, height=0];
 }

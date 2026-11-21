@@ -58,6 +58,25 @@ dotnet user-secrets set "Jwt:Clave" "<clave aleatoria de al menos 32 caracteres>
 
 La clave JWT firma los tokens (ADR-003): cada integrante genera la suya en desarrollo, y en los demás entornos se define con la variable de entorno `Jwt__Clave`. Nunca va en `appsettings.json`.
 
+Aviso por correo de las solicitudes del servicio (RF-029): cada demostración, cotización o cambio de plan que llega a la API se avisa por correo al proveedor (`Proveedor:CorreoSolicitudes`, en `appsettings.json`), en segundo plano y con un reintento. Si el correo falla, la solicitud igual queda guardada y el registro solo lleva el código SOL-###### y el tipo de error. Sin `Smtp:Servidor`, remitente y destino no se intenta enviar (así corren las pruebas y CI).
+
+En desarrollo, usa el servidor de pruebas `smtp4dev` del `docker compose` (bandeja en http://localhost:5081):
+
+```powershell
+dotnet user-secrets set "Smtp:Servidor" "localhost" --project src/SITBIO.Api
+dotnet user-secrets set "Smtp:Puerto" "2525" --project src/SITBIO.Api
+dotnet user-secrets set "Smtp:Seguridad" "Ninguna" --project src/SITBIO.Api
+dotnet user-secrets set "Smtp:Remitente" "avisos@sitbio.local" --project src/SITBIO.Api
+```
+
+Con Gmail (smtp.gmail.com, puerto 587 y STARTTLS, que ya vienen en `appsettings.json`), la cuenta necesita la verificación en dos pasos y una [contraseña de aplicación](https://myaccount.google.com/apppasswords). Usuario y contraseña van solo en User Secrets o en las variables de entorno `Smtp__Usuario` y `Smtp__Contrasena`, nunca en el repositorio:
+
+```powershell
+dotnet user-secrets remove "Smtp:Servidor" --project src/SITBIO.Api; dotnet user-secrets remove "Smtp:Puerto" --project src/SITBIO.Api; dotnet user-secrets remove "Smtp:Seguridad" --project src/SITBIO.Api; dotnet user-secrets remove "Smtp:Remitente" --project src/SITBIO.Api
+dotnet user-secrets set "Smtp:Usuario" "<cuenta>@gmail.com" --project src/SITBIO.Api
+dotnet user-secrets set "Smtp:Contrasena" "<contraseña de aplicación de 16 letras>" --project src/SITBIO.Api
+```
+
 Instalador del cliente de escritorio (RNF-011): publica el cliente autocontenido para `win-x64` y, si está instalado [Inno Setup 6](https://jrsoftware.org/isdl.php), compila `installer/SITBIO.iss` en `dist/SITBIO-Setup-<versión>.exe`. El asistente crea el acceso directo, registra la desinstalación y pide la dirección de la API, que guarda en la variable de usuario `SITBIO_API_URL`.
 
 ```powershell

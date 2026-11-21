@@ -36,12 +36,14 @@ public sealed record SolicitudServicioCreadaDto(string Codigo, string Tipo, stri
 /// <summary>
 /// Consulta de planes y solicitud del servicio (HU-028, RF-029). La demostración y la cotización son
 /// públicas; el cambio de plan exige al Administrador del Sistema (lo valida la API) y que el consumo
-/// actual quepa en el plan elegido (CA-HU-028-02, RN-009).
+/// actual quepa en el plan elegido (CA-HU-028-02, RN-009). Cada solicitud guardada se avisa al proveedor por
+/// correo en segundo plano (J-05).
 /// </summary>
 public sealed class SolicitudesServicio(
     IRepositorioSolicitudesServicio repositorio,
     IRepositorioInstitucion instituciones,
-    TimeProvider tiempo)
+    TimeProvider tiempo,
+    IAvisoSolicitudes? avisos = null)
 {
     public const string CodigoLimitePlan = "RN-009";
 
@@ -112,6 +114,7 @@ public sealed class SolicitudesServicio(
     private async Task<SolicitudServicioCreadaDto> RegistrarAsync(SolicitudServicio solicitud, CancellationToken cancellationToken)
     {
         await repositorio.RegistrarAsync(solicitud, cancellationToken);
+        avisos?.Encolar(AvisoSolicitud.Desde(solicitud));
         return new SolicitudServicioCreadaDto(solicitud.Codigo, solicitud.Tipo, solicitud.Estado, solicitud.PlanSolicitado, solicitud.FechaCreacion);
     }
 

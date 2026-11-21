@@ -21,6 +21,7 @@ using Sitbio.Infrastructure.Auditoria;
 using Sitbio.Infrastructure.Busqueda;
 using Sitbio.Infrastructure.Catalogos;
 using Sitbio.Infrastructure.Configuracion;
+using Sitbio.Infrastructure.Correo;
 using Sitbio.Infrastructure.Indicadores;
 using Sitbio.Infrastructure.Instituciones;
 using Sitbio.Infrastructure.Inventario;
@@ -40,6 +41,22 @@ public static class DependencyInjection
     /// "ConnectionStrings:Mongo" salen de User Secrets o de variables de entorno,
     /// nunca de appsettings.json (SEC-008). "Mongo:Database" indica la base de MongoDB.
     /// </summary>
+    /// <summary>Lee «Smtp:*» y «Proveedor:CorreoSolicitudes» (J-05).</summary>
+    public static OpcionesCorreo OpcionesCorreoDesde(IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        return new OpcionesCorreo
+        {
+            Servidor = configuration["Smtp:Servidor"],
+            Puerto = int.TryParse(configuration["Smtp:Puerto"], System.Globalization.CultureInfo.InvariantCulture, out var puerto) ? puerto : 587,
+            Seguridad = Enum.TryParse<SeguridadSmtp>(configuration["Smtp:Seguridad"], ignoreCase: true, out var seguridad) ? seguridad : SeguridadSmtp.StartTls,
+            Usuario = configuration["Smtp:Usuario"],
+            Contrasena = configuration["Smtp:Contrasena"],
+            Remitente = configuration["Smtp:Remitente"],
+            Destino = configuration["Proveedor:CorreoSolicitudes"],
+        };
+    }
+
     public static IServiceCollection AddInfraestructura(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<SitbioDbContext>(options =>
@@ -105,6 +122,10 @@ public static class DependencyInjection
         // Configuración de la institución (HU-024).
         services.AddScoped<IRepositorioInstitucion, RepositorioInstitucion>();
         services.AddScoped<IRepositorioSolicitudesServicio, RepositorioSolicitudesServicio>();
+
+        // Aviso por correo de cada solicitud (J-05). Usuario y contraseña SMTP solo en user-secrets o variables de entorno.
+        services.AddSingleton(OpcionesCorreoDesde(configuration));
+        services.AddSingleton<IEnviadorCorreo, EnviadorCorreoSmtp>();
 
         // Motor de campos dinámicos (HU-006).
         services.AddScoped<IRepositorioConfiguracionCampos, ConfiguracionCamposMongo>();

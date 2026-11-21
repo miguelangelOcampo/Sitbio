@@ -15,9 +15,9 @@ public class SeguimientoViewModelTests
 
     private static Tiquete Tiquete(
         string codigo, string estado = EstadosTiquete.Recibido, string criticidad = Criticidades.Alta, string descripcion = "La pantalla queda en negro.",
-        DateTimeOffset? cierre = null, bool fueraDeServicio = false) =>
+        DateTimeOffset? cierre = null, bool fueraDeServicio = false, string? tecnico = null, string? estadoOrden = null) =>
         new(Guid.NewGuid(), codigo, Guid.NewGuid(), "HSV-EQ-0412", "MX-1", "Monitor", "UCI", "No enciende", descripcion, criticidad, criticidad, estado,
-            Reporte, cierre, Guid.NewGuid(), "Laura Gómez", fueraDeServicio ? "FUERA_DE_SERVICIO" : "OPERATIVO", fueraDeServicio);
+            Reporte, cierre, Guid.NewGuid(), "Laura Gómez", fueraDeServicio ? "FUERA_DE_SERVICIO" : "OPERATIVO", fueraDeServicio, tecnico, estadoOrden);
 
     private static PaginaTiquetes Pagina(int total, params Tiquete[] tiquetes) => new(tiquetes, 1, SeguimientoViewModel.TamanoPagina, total);
 
@@ -158,7 +158,7 @@ public class SeguimientoViewModelTests
         await vm.ConsultarCodigoCommand.ExecuteAsync(null);
 
         Assert.Equal("TQT-000015", vm.Codigo);
-        Assert.False(vm.EnLista);
+        Assert.True(vm.HayDetalle);
         var detalle = vm.Detalle!;
         Assert.Equal(("TQT-000015", "Cerrado", TonoEstado.Exito), (detalle.Codigo, detalle.Estado, detalle.Tono));
         Assert.NotNull(detalle.Cierre);
@@ -180,8 +180,7 @@ public class SeguimientoViewModelTests
         await vm.ConsultarCodigoCommand.ExecuteAsync(null);
 
         Assert.Equal(error, vm.ErrorCodigo);
-        await _servicio.DidNotReceiveWithAnyArgs().ObtenerAsync(default!, default);
-        Assert.True(vm.EnLista);
+        await _servicio.Received(1).ObtenerAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()); // solo el primero de la lista
     }
 
     [Fact]
@@ -203,7 +202,7 @@ public class SeguimientoViewModelTests
     }
 
     [Fact]
-    public async Task AbrirUnaFilaYVolver()
+    public async Task AbrirUnaFila_LaMarcaEnLaListaYMuestraElDetalleAlLado()
     {
         var vm = await AbrirAsync("AC-02");
         ConHistorial("TQT-000002", Tiquete("TQT-000002", EstadosTiquete.Asignado, Criticidades.Critica, descripcion: string.Empty, fueraDeServicio: true),
@@ -216,9 +215,9 @@ public class SeguimientoViewModelTests
         Assert.True(detalle.EquipoFueraDeServicio);
         Assert.Equal("El equipo HSV-EQ-0412 está «Fuera de servicio» hasta que se cierre la orden.", detalle.TextoFueraDeServicio);
         Assert.Null(detalle.Cierre);
-
-        vm.VolverCommand.Execute(null);
-        Assert.True(vm.EnLista);
+        Assert.Same(vm.Filas[0], vm.Seleccionada);
+        Assert.Equal(("Pendiente", true, "—"), (detalle.Tecnico, detalle.TecnicoPendiente, detalle.Orden));
+        Assert.Equal(2, vm.Filas.Count);
     }
 
     [Fact]
@@ -231,7 +230,7 @@ public class SeguimientoViewModelTests
         await vm.AbrirCommand.ExecuteAsync(vm.Filas[1]);
 
         Assert.Equal(("Sin conexión", "MSG-011"), (vm.Aviso!.Titulo, vm.Aviso.Codigo));
-        Assert.True(vm.EnLista);
+        Assert.Null(vm.Detalle);
     }
 
     [Fact]
@@ -245,6 +244,79 @@ public class SeguimientoViewModelTests
 
         Assert.Equal("TQT-000015", vm.Detalle?.Codigo);
         Assert.Equal(["Recibido"], vm.Detalle!.Historial.Select(p => p.Titulo));
+    }
+
+    // ---------- J-08: lista y panel juntos ----------
+
+    [Fact]
+    public async Task AlCargar_AbreElPrimeroDeLaListaYLoMarca()
+    {
+        ConHistorial("TQT-000002", Tiquete("TQT-000002", EstadosTiquete.Asignado, tecnico: "Carlos Ruiz", estadoOrden: EstadosOrden.Asignada),
+            Cambio(null, EstadosTiquete.Recibido, 0), Cambio(EstadosTiquete.Recibido, EstadosTiquete.Asignado, 5, usuario: "Andrés Rojas"));
+
+        var vm = await AbrirAsync("AC-04");
+
+        Assert.Equal("TQT-000002", vm.Detalle?.Codigo);
+        Assert.Same(vm.Filas[0], vm.Seleccionada);
+        Assert.Equal(("Carlos Ruiz", false, "Asignada"), (vm.Detalle!.Tecnico, vm.Detalle.TecnicoPendiente, vm.Detalle.Orden));
+        Assert.Equal(("Laura Gómez", "Icono.Tipo.Monitor"), (vm.Detalle.Reportante, vm.Detalle.IconoTipo));
+        Assert.True(vm.MuestraPanel);
+        Assert.False(vm.SinDetalle);
+    }
+
+    [Fact]
+    public async Task ElegirOtraFila_AbreSuTiqueteUnaSolaVez()
+    {
+        var vm = await AbrirAsync("AC-02");
+        ConHistorial("TQT-000001", Tiquete("TQT-000001"), Cambio(null, EstadosTiquete.Recibido, 0));
+
+        // El clic selecciona la fila y además ejecuta «Abrir»: el tiquete se pide una vez.
+        vm.Seleccionada = vm.Filas[1];
+        await vm.AbrirCommand.ExecuteAsync(vm.Filas[1]);
+
+        Assert.Equal("TQT-000001", vm.Detalle?.Codigo);
+        await _servicio.Received(1).ObtenerAsync("TQT-000001", Arg.Any<CancellationToken>());
+        await _servicio.Received(1).HistorialAsync("TQT-000001", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ElTiqueteQueLlegaDeMsg005_NoLoReemplazaElPrimeroDeLaLista()
+    {
+        ConHistorial("TQT-000015", Tiquete("TQT-000015"), Cambio(null, EstadosTiquete.Recibido, 0));
+        _servicio.ListarAsync(Arg.Any<FiltroTiquetes>(), Arg.Any<CancellationToken>()).Returns(Pagina(2, Tiquete("TQT-000002"), Tiquete("TQT-000001")));
+        var vm = new SeguimientoViewModel(_servicio, EquiposPrueba.Sesion("AC-04"));
+
+        vm.Recibir("TQT-000015");
+        await vm.CargarCommand.ExecuteAsync(null);
+
+        Assert.Equal("TQT-000015", vm.Detalle?.Codigo);
+        Assert.Null(vm.Seleccionada);
+        await _servicio.DidNotReceive().ObtenerAsync("TQT-000002", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SinTiquetes_NoHayPanel()
+    {
+        var vm = await AbrirAsync("AC-04", Pagina(0));
+
+        Assert.Equal((false, false, true), (vm.MuestraPanel, vm.SinDetalle, vm.SinTiquetes));
+        await _servicio.DidNotReceiveWithAnyArgs().ObtenerAsync(default!, default);
+    }
+
+    [Theory]
+    [InlineData(EstadosTiquete.Recibido, "TFFF", "FTFF")]
+    [InlineData(EstadosTiquete.Asignado, "TTFF", "FFTF")]
+    [InlineData(EstadosTiquete.EnEjecucion, "TTTF", "FFFT")]
+    [InlineData(EstadosTiquete.Cerrado, "TTTT", "FFFF")]
+    public void Pasos_HechosHastaElActualYElSiguienteMarcado(string estado, string hechos, string siguiente)
+    {
+        var pasos = PasoTiquete.De(estado);
+
+        Assert.Equal(["Recibido", "Asignado", "En ejecución", "Cerrado"], pasos.Select(p => p.Nombre));
+        Assert.Equal(hechos, string.Concat(pasos.Select(p => p.Hecho ? 'T' : 'F')));
+        Assert.Equal(siguiente, string.Concat(pasos.Select(p => p.Siguiente ? 'T' : 'F')));
+        Assert.Equal([false, false, false, true], pasos.Select(p => p.EsUltimo));
+        Assert.Equal(pasos[0].Hecho ? "✓" : "1", pasos[0].Texto);
     }
 
     // ---------- Navegación ----------

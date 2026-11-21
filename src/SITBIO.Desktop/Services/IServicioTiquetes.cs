@@ -84,7 +84,7 @@ public static class Criticidades
 /// <summary>Cuerpo de POST /tiquetes. La descripción es opcional (DOC-05).</summary>
 public sealed record DatosTiquete(Guid EquipoId, string TipoFalla, string? Descripcion, string Criticidad);
 
-/// <summary>Tiquete tal como lo devuelve la API (TiqueteDto).</summary>
+/// <summary>Tiquete tal como lo devuelve la API (TiqueteDto); el técnico y la orden, si ya tiene una asignada.</summary>
 public sealed record Tiquete(
     Guid Id,
     string Codigo,
@@ -103,7 +103,9 @@ public sealed record Tiquete(
     Guid ReportanteId,
     string Reportante,
     string EstadoEquipo,
-    bool EquipoFueraDeServicio);
+    bool EquipoFueraDeServicio,
+    string? Tecnico = null,
+    string? EstadoOrden = null);
 
 public sealed class ServicioTiquetesHttp(ClienteApi cliente) : IServicioTiquetes
 {

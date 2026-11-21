@@ -122,5 +122,18 @@ public sealed class RepositorioTiquetes(SitbioDbContext contexto, IContextoUsuar
         join u in contexto.Ubicaciones on e.UbicacionId equals u.Id
         join s in contexto.EstadosEquipo on e.EstadoEquipoId equals s.Id
         join r in contexto.Usuarios on t.ReportanteId equals r.Id
-        select new TiqueteLeido(t, e.PlacaInventario, e.NumeroSerie, tipo.Nombre, u.Nombre, r.Nombres + " " + r.Apellidos, s.Codigo);
+        join o in contexto.Ordenes on (Guid?)t.Id equals o.TiqueteId into ordenes
+        from o in ordenes.DefaultIfEmpty()
+        join tec in contexto.Usuarios on o!.TecnicoId equals tec.Id into tecnicos
+        from tec in tecnicos.DefaultIfEmpty()
+        select new TiqueteLeido(
+            t,
+            e.PlacaInventario,
+            e.NumeroSerie,
+            tipo.Nombre,
+            u.Nombre,
+            r.Nombres + " " + r.Apellidos,
+            s.Codigo,
+            tec != null ? tec.Nombres + " " + tec.Apellidos : null,
+            o != null ? o.Estado : null);
 }

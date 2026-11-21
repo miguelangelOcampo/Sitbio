@@ -15,3 +15,4 @@
 | [ADR-009](009-reportes.md) | Generación de reportes | Propuesto | 22/10/2026 |
 | [ADR-010](010-alojamiento.md) | Alojamiento del servicio | Propuesto | 25/10/2026 |
 | [ADR-011](011-tenant-en-inicio-de-sesion.md) | Tenant en el inicio de sesión | Aceptado | 30/10/2026 |
+| [ADR-012](012-correo-solicitudes.md) | Aviso por correo de las solicitudes del servicio | Aceptado | 21/11/2026 |

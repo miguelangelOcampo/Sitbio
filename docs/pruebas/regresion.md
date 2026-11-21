@@ -1,5 +1,46 @@
 # Regresión y prueba de restauración
 
+## v1.3.0 (Z-07)
+
+Ejecución de toda la suite sobre `main` con las filas de la v1.3.0 integradas (J-01 a J-12), con PostgreSQL y MongoDB reales en Docker, la migración V011 aplicada y la semilla de demostración «Hospital Demo SITBIO» cargada en `sitbio_dev`.
+
+- **Fecha:** 21/11/2026
+- **Commit base:** `15f1db9` (`main`, PR #63: inicio maximizado, tema de Windows, foto de perfil y dona del parque en el PDF, J-10 a J-12).
+- **Cómo reproducir:** `scripts/regresion.sh`, que corre los proyectos de prueba uno a la vez. Los TRX quedan en `TestResults/regresion-20261121-1042/`.
+
+### Resultado
+
+| Proyecto | Pruebas | Correctas | Con error | Omitidas |
+|---|---|---|---|---|
+| SITBIO.Domain.Tests | 200 | 200 | 0 | 0 |
+| SITBIO.Application.Tests | 402 | 402 | 0 | 0 |
+| SITBIO.Infrastructure.Tests | 161 | 161 | 0 | 0 |
+| SITBIO.Api.Tests | 464 | 464 | 0 | 0 |
+| SITBIO.Desktop.Tests | 949 | 949 | 0 | 0 |
+| **Total .NET** | **2 176** | **2 176** | **0** | **0** |
+| tests/analytics (pytest) | — | — | — | Se ejecuta en la CI (job «Analytics»); la v1.3.0 no lo cambia |
+
+Pasó a la primera; no hubo defectos nuevos. Con las bases activas no se omite ninguna prueba de integración. Frente a la v1.2.0 hay 134 pruebas .NET más (2 042 → 2 176).
+
+### Pruebas nuevas de la v1.3.0
+
+| Fila | Cambio | Pruebas automáticas | CP | Estado |
+|---|---|---|---|---|
+| J-01 | Selector «Gráfico / Tabla de datos» en Analítica (HU-009) | `AnaliticaViewModelTests` | CP-012 | Aprobado |
+| J-02 | Etiqueta de los gráficos en la capa superior, sin cortes en los bordes | `GraficoTests` | — | Aprobado |
+| J-03 | Exportar Reportes e indicadores y Analítica a PDF con sus gráficos (HU-026, HU-009); la dona del parque lleva el número central y la leyenda | `ExportacionGraficosTests`, `ExportacionGraficosEndpointTests`, `ExportarPdfTests`, `GeneradorReportesTests` | CP-012, CP-030 | Aprobado |
+| J-04 | Vista de planes como el prototipo (HU-028) | `SolicitudServicioViewModelTests` | CP-032 | Aprobado |
+| J-05 | Aviso por correo de cada solicitud de servicio (RF-029) | `AvisoSolicitudesTests`, `SolicitudesServicioTests` | CP-032 | Aprobado |
+| J-06 | Envío del correo con un emisor sustituto y SMTP de prueba | `EnviadorCorreoSmtpTests` | CP-032 | Aprobado |
+| J-07 | Notificaciones de los cambios de los tiquetes propios (HU-017) | `TiquetesEndpointTests`, `GestionTiquetesTests`, `ShellViewModelTests` | CP-021 | Aprobado |
+| J-08 | Panel lateral del tiquete con pasos, técnico y orden (UI-010) | `SeguimientoViewModelTests` | CP-021 | Aprobado |
+| J-09 | Notificaciones propias y aislamiento entre usuarios e instituciones | `CentroAlertasMisTiquetesTests`, `TiquetesEndpointTests`, `RepositorioOrdenesPostgresTests` | CP-021, CP-036 | Aprobado |
+| J-10 | Ventana maximizada y tema «Sistema» que sigue a Windows | `ServicioPreferenciasArchivoTests`, `PerfilViewModelTests` | — | Aprobado |
+| J-11 | Foto de perfil del usuario en la API, V011 (HU-011) | `GestionFotoPerfilTests`, `FotoPerfilEndpointTests`, `FotoPerfilPostgresTests` | CP-015, CP-036 | Aprobado |
+| J-12 | «Cambiar foto» y «Quitar foto» en Mi perfil; avatar con la foto o las iniciales | `FotoPerfilTests` | CP-015 | Aprobado |
+
+Las filas sin CP son cambios de la interfaz sin un caso de prueba propio en la matriz; se verificaron además con capturas de pantalla. El cambio en vivo del tema al cambiar el modo de Windows (J-10) depende del sistema operativo y se revisa a mano. El resto de los CP (CP-001 a CP-037) siguen aprobados con las mismas pruebas de la matriz de [go-no-go.md](go-no-go.md). CP-037 sigue sin iniciar (falta la prueba de carga con k6).
+
 ## v1.2.0 (Z-04)
 
 Ejecución de toda la suite sobre `main` con las filas de la v1.2.0 integradas (I-00 a I-14), con PostgreSQL y MongoDB reales en Docker y la semilla de demostración «Hospital Demo SITBIO» cargada en `sitbio_dev`.

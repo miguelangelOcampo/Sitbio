@@ -69,6 +69,13 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
     private Agrupamiento? _resultado;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(ExportarPdfCommand))]
+    private bool _exportandoPdf;
+
+    /// <summary>La vista la asigna: captura el gráfico visible para el PDF (J-03).</summary>
+    public Func<IReadOnlyList<GraficoCapturado>>? CapturarGraficos { get; set; }
+
+    [ObservableProperty]
     private int _gruposSolicitados = 3;
 
     [ObservableProperty]
@@ -76,6 +83,17 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
 
     [ObservableProperty]
     private VariableAnalitica _ejeY = OpcionesEje[1];
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(VistaGrafico))]
+    private bool _vistaTabla;
+
+    /// <summary>«Vista: Gráfico / Tabla de datos», como en Reportes; la tabla es la alternativa accesible de la dispersión.</summary>
+    public bool VistaGrafico
+    {
+        get => !VistaTabla;
+        set => VistaTabla = !value;
+    }
 
     public bool HayDatos => Resultado is { Equipos.Count: > 0 };
 
@@ -149,6 +167,32 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
                 e))
             .ToList()
         : [];
+
+    /// <summary>«Tabla de datos»: un equipo por fila con su grupo y los valores de los ejes elegidos, del grupo con más fallas al de menos.</summary>
+    public IReadOnlyList<FilaEquipoAnalitica> FilasTabla
+    {
+        get
+        {
+            if (Agrupacion is not { } a)
+            {
+                return [];
+            }
+
+            var nombres = a.Grupos.ToDictionary(g => g.Grupo, NombreGrupo);
+            return a.Equipos
+                .OrderByDescending(e => e.Grupo)
+                .ThenBy(e => e.PlacaInventario, StringComparer.Ordinal)
+                .Select(e => new FilaEquipoAnalitica(
+                    e.PlacaInventario ?? "—",
+                    string.IsNullOrWhiteSpace(e.TipoEquipo) ? "—" : e.TipoEquipo,
+                    nombres.GetValueOrDefault(e.Grupo, $"Grupo {e.Grupo + 1}"),
+                    Color(e.Grupo, a.K),
+                    Numero(EjeX.Valor(e.Caracteristicas)),
+                    Numero(EjeY.Valor(e.Caracteristicas)),
+                    e))
+                .ToList();
+        }
+    }
 
     /// <summary>Tarjetas por grupo, del que tiene más fallas al que tiene menos.</summary>
     public IReadOnlyList<FilaGrupo> Resumen => Agrupacion is { } a
@@ -254,10 +298,17 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
         }
     }
 
+    /// <summary>Clic en un punto del gráfico o en una fila de la tabla: abre la hoja de vida del equipo.</summary>
     [RelayCommand]
-    private void AbrirEquipo(PuntoGrafico? punto)
+    private void AbrirEquipo(object? origen)
     {
-        if (punto?.Dato is EquipoAgrupado equipo && PuedeAbrirEquipos)
+        var equipo = origen switch
+        {
+            PuntoGrafico { Dato: EquipoAgrupado e } => e,
+            FilaEquipoAnalitica f => f.Equipo,
+            _ => null,
+        };
+        if (equipo is not null && PuedeAbrirEquipos)
         {
             NavegacionSolicitada?.Invoke(this, new SolicitudNavegacion(
                 EquiposViewModel.IdPantalla, EquiposViewModel.ParametroDetalle(equipo.EquipoId, equipo.PlacaInventario ?? string.Empty)));
@@ -295,6 +346,39 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
         Confirmacion = new Aviso("Exportación lista", ruta, null, EsError: false);
     }
 
+    private bool SePuedeExportarPdf() => HayAgrupacion && dialogo is not null && !ExportandoPdf;
+
+    /// <summary>
+    /// «Exportar PDF» (J-03): el número de grupos, los ejes y el gráfico de la pantalla van a la API, que arma el PDF con
+    /// el último cálculo de la institución (grupos, equipos y «Cómo leerlo»).
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(SePuedeExportarPdf))]
+    private async Task ExportarPdfAsync()
+    {
+        if (dialogo is null || !HayAgrupacion)
+        {
+            return;
+        }
+
+        ExportandoPdf = true;
+        Confirmacion = null;
+        try
+        {
+            var graficos = GraficoPdf.De(CapturarGraficos?.Invoke() ?? []);
+            var archivo = await servicio.AnaliticaPdfAsync(new SolicitudPdfAnalitica(GruposSolicitados, EjeX.Clave, EjeY.Clave, graficos), CancellationToken.None);
+            (Confirmacion, var error) = GuardarArchivo.Guardar(dialogo, archivo);
+            Aviso = error;
+        }
+        catch (ErrorApi error)
+        {
+            Aviso = new Aviso(error.SinConexion ? "Sin conexión" : "No pudimos generar el PDF", error.Message, error.SinConexion ? "MSG-011" : error.Codigo, PuedeReintentar: true);
+        }
+        finally
+        {
+            ExportandoPdf = false;
+        }
+    }
+
     partial void OnGruposSolicitadosChanged(int value) => Refrescar();
 
     partial void OnEjeXChanged(VariableAnalitica value) => Refrescar();
@@ -308,11 +392,13 @@ public partial class AnaliticaViewModel(IServicioAnalitica servicio, SesionActua
         foreach (var propiedad in new[]
         {
             nameof(Agrupacion), nameof(HayAgrupacion), nameof(AvisoGrupos), nameof(TituloEjeX), nameof(TituloEjeY), nameof(TituloGrafico),
-            nameof(SeriesGrupos), nameof(Puntos), nameof(Resumen), nameof(ComoLeerlo),
+            nameof(SeriesGrupos), nameof(Puntos), nameof(FilasTabla), nameof(Resumen), nameof(ComoLeerlo),
         })
         {
             OnPropertyChanged(propiedad);
         }
+
+        ExportarPdfCommand.NotifyCanExecuteChanged();
     }
 
     private static string NombreGrupo(GrupoAnalitica g) => string.IsNullOrWhiteSpace(g.Nombre) ? $"Grupo {g.Grupo + 1}" : g.Nombre;
@@ -331,6 +417,9 @@ public sealed record VariableAnalitica(string Clave, string Nombre, string Unida
 {
     public override string ToString() => Nombre;
 }
+
+/// <summary>Fila de «Tabla de datos»: placa, tipo, grupo (con su color) y los valores de los dos ejes elegidos.</summary>
+public sealed record FilaEquipoAnalitica(string Placa, string Tipo, string Grupo, string ClaveColor, string ValorX, string ValorY, EquipoAgrupado Equipo);
 
 /// <summary>Tarjeta de un grupo: nombre, color, cuántos equipos y sus promedios.</summary>
 public sealed record FilaGrupo(int Grupo, string Nombre, string ClaveColor, string Equipos, string Fallas, string Costo, string Tiempo);

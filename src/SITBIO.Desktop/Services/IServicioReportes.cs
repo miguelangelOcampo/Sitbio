@@ -25,7 +25,23 @@ public interface IServicioReportes
     Task<ArchivoDescargado> HistorialOrdenesAsync(DateOnly desde, DateOnly hasta, string formato, CancellationToken cancellationToken);
 
     Task<ArchivoDescargado> HojaVidaAsync(Guid equipoId, CancellationToken cancellationToken);
+
+    /// <summary>POST /reportes/indicadores.pdf (J-03): Reportes e indicadores en PDF con los gráficos de la pantalla.</summary>
+    Task<ArchivoDescargado> IndicadoresPdfAsync(SolicitudPdfIndicadores solicitud, CancellationToken cancellationToken);
 }
+
+/// <summary>Gráfico para el PDF: título y PNG en base64.</summary>
+public sealed record GraficoPdf(string Titulo, string Png)
+{
+    public static IReadOnlyList<GraficoPdf> De(IEnumerable<Controls.GraficoCapturado> capturas) =>
+        capturas.Select(c => new GraficoPdf(c.Titulo, Convert.ToBase64String(c.Png))).ToList();
+}
+
+/// <summary>Cuerpo de POST /reportes/indicadores.pdf.</summary>
+public sealed record SolicitudPdfIndicadores(DateOnly Desde, DateOnly Hasta, int Meses, IReadOnlyList<GraficoPdf> Graficos);
+
+/// <summary>Cuerpo de POST /reportes/analitica.pdf.</summary>
+public sealed record SolicitudPdfAnalitica(int Grupos, string EjeX, string EjeY, IReadOnlyList<GraficoPdf> Graficos);
 
 /// <summary>Respuesta de GET /indicadores (IndicadoresDto).</summary>
 public sealed record Indicadores(
@@ -95,6 +111,9 @@ public sealed class ServicioReportesHttp(ClienteApi cliente) : IServicioReportes
 
     public Task<ArchivoDescargado> HojaVidaAsync(Guid equipoId, CancellationToken cancellationToken) =>
         PeticionApi.DescargarAsync(cliente, $"equipos/{equipoId}/hoja-vida.pdf", Mensaje, cancellationToken);
+
+    public Task<ArchivoDescargado> IndicadoresPdfAsync(SolicitudPdfIndicadores solicitud, CancellationToken cancellationToken) =>
+        PeticionApi.DescargarAsync(cliente, HttpMethod.Post, "reportes/indicadores.pdf", solicitud, Mensaje, cancellationToken);
 
     private static string Iso(DateOnly fecha) => fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 }

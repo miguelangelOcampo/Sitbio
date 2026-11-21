@@ -62,6 +62,12 @@ public interface IGeneradorReportes
     byte[] HistorialExcel(EncabezadoReporte encabezado, IReadOnlyList<FilaHistorialOrden> filas);
 
     byte[] HojaVidaPdf(HojaVidaDocumento documento);
+
+    /// <summary>Reportes e indicadores con sus gráficos (J-03).</summary>
+    byte[] IndicadoresPdf(IndicadoresDocumento documento);
+
+    /// <summary>Analítica con sus gráficos (J-03).</summary>
+    byte[] AnaliticaPdf(AnaliticaDocumento documento);
 }
 
 /// <summary>

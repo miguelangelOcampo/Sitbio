@@ -87,6 +87,46 @@ public sealed class AnaliticaViewModelTests
     }
 
     [Fact]
+    public async Task Tabla_de_datos_lista_cada_equipo_con_su_grupo_y_los_ejes_elegidos()
+    {
+        _servicio.AgrupamientosAsync(default).ReturnsForAnyArgs(Resultado(4));
+        var vm = Vm();
+        await vm.CargarCommand.ExecuteAsync(null);
+        var cambios = new List<string?>();
+        vm.PropertyChanged += (_, e) => cambios.Add(e.PropertyName);
+
+        Assert.True(vm.VistaGrafico);
+        vm.VistaTabla = true;
+        Assert.False(vm.VistaGrafico);
+        Assert.Contains(nameof(AnaliticaViewModel.VistaGrafico), cambios);
+
+        // Del grupo con más fallas al de menos; dentro del grupo, por placa.
+        Assert.Equal(["BIO-2", "BIO-1", "BIO-0", "BIO-3"], vm.FilasTabla.Select(f => f.Placa));
+        Assert.Equal(new FilaEquipoAnalitica("BIO-1", "Monitor", "Muchas fallas", "Brush.Warning", "2", "2", vm.Agrupacion!.Equipos[1]), vm.FilasTabla[1]);
+
+        // Los valores siguen a los ejes elegidos, sin volver a consultar.
+        cambios.Clear();
+        vm.EjeY = AnaliticaViewModel.OpcionesEje.Single(v => v.Clave == "tiempo");
+        Assert.Contains(nameof(AnaliticaViewModel.FilasTabla), cambios);
+        Assert.Equal("20", vm.FilasTabla[1].ValorY);
+        await _servicio.Received(1).AgrupamientosAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Clic_en_una_fila_de_la_tabla_abre_la_hoja_de_vida()
+    {
+        _servicio.AgrupamientosAsync(default).ReturnsForAnyArgs(Resultado(4));
+        var vm = Vm("AC-02");
+        await vm.CargarCommand.ExecuteAsync(null);
+        SolicitudNavegacion? solicitud = null;
+        vm.NavegacionSolicitada += (_, s) => solicitud = s;
+
+        vm.AbrirEquipoCommand.Execute(vm.FilasTabla[0]);
+
+        Assert.Equal(EquiposViewModel.IdPantalla, solicitud?.IdOpcion);
+    }
+
+    [Fact]
     public async Task Mas_grupos_que_equipos_pide_reducirlos()
     {
         _servicio.AgrupamientosAsync(default).ReturnsForAnyArgs(Resultado(3, k: 2));

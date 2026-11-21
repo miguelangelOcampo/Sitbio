@@ -72,6 +72,21 @@
         <Button Grid.Column="4" Style="{StaticResource PrimaryButton}" Content="Consultar" Command="{Binding CargarCommand}" VerticalAlignment="Bottom" />
         <TextBlock Grid.Column="5" Text="Calculando…" Style="{StaticResource Muted}" VerticalAlignment="Bottom" Margin="16,0,0,10"
                    Visibility="{Binding Cargando, Converter={StaticResource Visible}}" />
+        <!-- J-03: PDF con los indicadores, las tablas y los gráficos de la pantalla -->
+        <Button Grid.Column="5" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                Command="{Binding ExportarPdfCommand}" Visibility="{Binding HayDatos, Converter={StaticResource Visible}}"
+                AutomationProperties.Name="Exportar los indicadores y sus gráficos a PDF">
+          <Button.Style>
+            <Style TargetType="Button" BasedOn="{StaticResource BotonSecundario}">
+              <Setter Property="Content" Value="Exportar PDF" />
+              <Style.Triggers>
+                <DataTrigger Binding="{Binding ExportandoPdf}" Value="True">
+                  <Setter Property="Content" Value="Generando PDF…" />
+                </DataTrigger>
+              </Style.Triggers>
+            </Style>
+          </Button.Style>
+        </Button>
       </Grid>
       <TextBlock Text="{Binding ErrorFechas}" Style="{StaticResource FieldError}" Visibility="{Binding ErrorFechas, Converter={StaticResource TextoVisible}}" />
 
@@ -85,6 +100,15 @@
             <TextBlock Text="{Binding Aviso.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
           </StackPanel>
         </DockPanel>
+      </Border>
+
+      <!-- PDF guardado -->
+      <Border Style="{StaticResource InfoBar}" Background="{DynamicResource Brush.SuccessSoft}" BorderBrush="{DynamicResource Brush.Success}" Margin="0,16,0,0"
+              Visibility="{Binding Confirmacion, Converter={StaticResource NuloVisible}}">
+        <StackPanel>
+          <TextBlock Text="{Binding Confirmacion.Titulo}" FontWeight="SemiBold" Foreground="{DynamicResource Brush.SuccessText}" />
+          <TextBlock Text="{Binding Confirmacion.Mensaje}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" Margin="0,3,0,0" />
+        </StackPanel>
       </Border>
 
       <!-- Costos incompletos -->
@@ -191,6 +215,7 @@
                 <RadioButton Style="{StaticResource Pestana}" GroupName="VistaReportes" Content="Tabla de datos" IsChecked="{Binding VistaTabla}" />
               </StackPanel>
               <controls:Grafico views:Animacion.Crecer="True" Height="240" Margin="0,14,0,0" Tipo="Linea" Etiquetas="{Binding EtiquetasSerie}" Series="{Binding SeriesMantenimientos}"
+                                Titulo="Mantenimientos por mes"
                                 AutomationProperties.Name="Mantenimientos preventivos y correctivos por mes"
                                 Visibility="{Binding VistaGrafico, Converter={StaticResource Visible}}" />
               <StackPanel Margin="0,14,0,0" Visibility="{Binding VistaTabla, Converter={StaticResource Visible}}">
@@ -237,7 +262,7 @@
                 <TextBlock Text="Estado del parque" Style="{StaticResource SectionTitle}" />
                 <DockPanel Margin="0,14,0,0">
                   <Grid DockPanel.Dock="Left" Width="118" Height="118" Margin="0,0,18,0">
-                    <controls:Grafico views:Animacion.Crecer="True" Tipo="Arco" Series="{Binding SeriesParque}" AutomationProperties.Name="Equipos activos por estado" />
+                    <controls:Grafico views:Animacion.Crecer="True" Tipo="Arco" Series="{Binding SeriesParque}" Titulo="Estado del parque" AutomationProperties.Name="Equipos activos por estado" />
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False">
                       <TextBlock Text="{Binding TextoOperativos}" FontSize="20" FontWeight="SemiBold" Foreground="{DynamicResource Brush.Text}" HorizontalAlignment="Center" />
                       <TextBlock Text="operativos" Style="{StaticResource Muted}" FontSize="11" HorizontalAlignment="Center" />

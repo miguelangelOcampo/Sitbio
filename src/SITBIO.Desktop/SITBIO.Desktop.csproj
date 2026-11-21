@@ -6,6 +6,8 @@
     <RootNamespace>Sitbio.Desktop</RootNamespace>
     <AssemblyName>SITBIO</AssemblyName>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Icono del .exe: lo usan el acceso directo del escritorio, el menú Inicio y el Explorador. -->
+    <ApplicationIcon>Assets\Logo\sitbio.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />

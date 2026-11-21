@@ -24,6 +24,7 @@ using Sitbio.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddProxyLocal();
 builder.Services.AddManejoErrores();
 builder.Services.AddOpenApi();
 builder.Services.AddAutenticacionJwt(builder.Configuration);
@@ -53,6 +54,8 @@ builder.Services.AddModuloBusqueda();
 
 var app = builder.Build();
 
+// Detrás del túnel local (scripts/tunel.ps1): la IP real del usuario para el límite de intentos y la bitácora.
+app.UseForwardedHeaders();
 app.UseManejoErrores();
 app.UseAuthentication();
 app.UseCambioClaveObligatorio();

@@ -84,6 +84,12 @@ powershell -ExecutionPolicy Bypass -File scripts/instalador.ps1 -ApiUrl https://
 # Instalación silenciosa en un equipo: SITBIO-Setup-<versión>.exe /VERYSILENT /API=https://<servidor>/api/v1/
 ```
 
+Usar la aplicación desde otros equipos sin servidor en la nube (demostración o prueba en Windows 10): `scripts/tunel.ps1` levanta las bases, inicia la API en modo Production (toma la configuración de los user-secrets o de las variables de entorno, sin mostrarla) y la publica con un túnel rápido de Cloudflare. Requiere `cloudflared` (`winget install --id Cloudflare.cloudflared -e`) y que la API de desarrollo esté cerrada. Muestra una dirección `https://….trycloudflare.com/api/v1/` que se escribe en el asistente del instalador; cambia cada vez que se abre el túnel. Solo queda expuesta la API, no las bases ni el equipo; comparte la dirección solo con quien la necesite y cierra con Ctrl + C al terminar.
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/tunel.ps1
+```
+
 Analítica:
 
 ```powershell

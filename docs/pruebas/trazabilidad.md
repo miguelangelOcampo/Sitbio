@@ -2,6 +2,8 @@
 
 Relaciona cada caso de prueba (CP) con su criterio de aceptación (DOC-04), los requisitos (DOC-03) y las pruebas automáticas que lo verifican. Se actualiza en el commit de documentación de cada historia.
 
+**Estado en la v1.3.0 (21/11/2026):** las 28 historias siguen aprobadas; la regresión de la v1.3.0 pasó 2 176 de 2 176 y agrega las pruebas de la foto de perfil (HU-011, V011), de las notificaciones de los tiquetes propios con su aislamiento (HU-017), del PDF de indicadores y de analítica con gráficos (HU-026, HU-009) y del aviso por correo de las solicitudes (HU-028, RF-029).
+
 **Estado en la v1.2.0 (20/11/2026):** las 28 historias siguen aprobadas; la regresión de la v1.2.0 pasó 2 042 de 2 042 y agrega las pruebas del historial de intervenciones (HU-005), de la analítica de 2 a 6 grupos con recálculo (HU-008, HU-009) y de los gráficos de indicadores (HU-026).
 
 **Estado en la v1.1.0 (18/11/2026):** las 28 historias del DOC-04 (HU-001 a HU-028) tienen su sección y sus pruebas automáticas aprobadas; la regresión completa pasó 1 784 de 1 784 ([regresion.md](regresion.md)). El resumen por historia y la evaluación Go/No-Go están en [go-no-go.md](go-no-go.md).

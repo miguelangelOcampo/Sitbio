@@ -4,6 +4,32 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y 
 
 ## [Sin publicar]
 
+## [1.3.0] - 2026-11-21
+
+Exportación a PDF con gráficos, planes como el prototipo con aviso por correo, notificaciones de los tiquetes propios, panel lateral del tiquete, tema de Windows y foto de perfil. Incluye todo lo de la versión 1.2.0.
+
+### Agregado
+- «Exportar PDF» en Reportes e indicadores (HU-026) y en Analítica (HU-009): `POST /api/v1/reportes/indicadores.pdf` y `POST /api/v1/reportes/analitica.pdf` arman el PDF con QuestPDF con el encabezado de la institución, el periodo, los gráficos capturados por el cliente, las tablas y «Cómo leerlo», y registran EXPORTAR en la bitácora.
+- Selector «Gráfico / Tabla de datos» en Analítica, con la tabla por equipo (placa, tipo, grupo y ejes elegidos).
+- Vista de planes como el prototipo (HU-028): cuatro tarjetas con precio y capacidad; «Elegir este plan» o «Pedir cotización» abre el formulario con el plan marcado.
+- Aviso por correo de cada solicitud de servicio al proveedor (RF-029, ADR-012): SMTP con MailKit en segundo plano con un reintento; configuración `Smtp:*` y `Proveedor:CorreoSolicitudes` solo en user-secrets o variables de entorno. Servicio `smtp4dev` en `docker-compose.yml` para probarlo en local.
+- Notificaciones de los tiquetes propios (HU-017): `GET /api/v1/tiquetes/mis-cambios?desde=` y campana para quien reporta, con el punto de no leídos.
+- Foto de perfil del usuario (HU-011): migración V011 (`usuario.foto_ruta`), `PUT`, `GET` y `DELETE /api/v1/usuarios/me/foto`; «Cambiar foto» y «Quitar foto» en Mi perfil y la foto en el avatar de la barra superior, el menú de la cuenta y el pie del menú.
+- Tema «Sistema» (valor por defecto) que sigue el modo claro u oscuro de Windows y cambia en vivo.
+
+### Cambiado
+- Versión del producto 1.3.0 (`Directory.Build.props`).
+- «Mis tiquetes» y «Seguimiento» muestran la lista a la izquierda y el panel del tiquete a la derecha: pasos Recibido, Asignado, En ejecución y Cerrado, equipo, falla, reportante, técnico, orden e historial.
+- La ventana principal abre maximizada.
+- La etiqueta de los gráficos se muestra en la capa superior de la ventana y ya no se corta en los bordes.
+- La revisión y el guardado de las dos versiones de una foto son comunes a la foto del equipo y a la de perfil.
+
+### Corregido
+- El «Estado del parque» del PDF de indicadores salía sin el número central ni la leyenda.
+
+### Pendiente
+- CP-037 Prueba de rendimiento con 5 000 equipos y 20 usuarios concurrentes (k6).
+
 ## [1.2.0] - 2026-11-20
 
 Gráficos en Reportes y en el Panel, analítica de 2 a 6 grupos que el Ingeniero biomédico recalcula desde la aplicación, y mejoras de usabilidad y de paridad visual con el prototipo. Incluye todo lo de la versión 1.1.1.

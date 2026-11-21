@@ -245,4 +245,52 @@ public class TiquetesEndpointTests(WebApplicationFactory<Program> fabrica) : ICl
         await _repositorio.Received().ObtenerAsync("TQT-000001", _usuario.Id, Arg.Any<CancellationToken>());
         Assert.Equal(HttpStatusCode.NotFound, (await cliente.GetAsync($"{Ruta}/TQT-000777")).StatusCode);
     }
+
+    // ---------- J-09: notificaciones propias (GET /tiquetes/mis-cambios) ----------
+
+    [Theory]
+    [InlineData(CodigosRol.PersonalClinico, HttpStatusCode.OK)]
+    [InlineData(CodigosRol.IngenieroBiomedico, HttpStatusCode.OK)]
+    [InlineData(CodigosRol.TecnicoMantenimiento, HttpStatusCode.Forbidden)]
+    [InlineData(CodigosRol.AdministradorSistema, HttpStatusCode.Forbidden)]
+    [InlineData(CodigosRol.GerenteBiomedico, HttpStatusCode.Forbidden)]
+    [InlineData(CodigosRol.EnteRegulador, HttpStatusCode.Forbidden)]
+    public async Task J09_MisCambios_SoloParaQuienReporta(string rol, HttpStatusCode esperado)
+    {
+        var cliente = Cliente(rol);
+        _repositorio.CambiosDeReportanteAsync(Arg.Any<Guid>(), Arg.Any<DateTimeOffset>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns([new CambioMiTiqueteDto("TQT-000003", "PL-001", "Monitor", EstadosTiquete.Recibido, EstadosTiquete.Asignado, null, Ahora, "Carlos Ruiz")]);
+
+        var respuesta = await cliente.GetAsync($"{Ruta}/mis-cambios");
+
+        Assert.Equal(esperado, respuesta.StatusCode);
+        if (esperado == HttpStatusCode.OK)
+        {
+            var cambios = (await respuesta.Content.ReadFromJsonAsync<CambioMiTiqueteDto[]>(Json))!;
+            Assert.Equal([("TQT-000003", EstadosTiquete.Asignado, "Carlos Ruiz")], cambios.Select(c => (c.Codigo, c.NuevoEstado, c.Usuario)));
+        }
+        else
+        {
+            await _repositorio.DidNotReceiveWithAnyArgs().CambiosDeReportanteAsync(default, default, default, default);
+        }
+    }
+
+    [Fact]
+    public async Task J09_MisCambios_SonLosDelUsuarioDelToken_YNoMasDe30Dias()
+    {
+        var cliente = Cliente(CodigosRol.PersonalClinico);
+        var otro = Guid.NewGuid();
+
+        // Un parámetro con otro usuario no cambia a quién se consulta; una fecha muy antigua se recorta.
+        var respuesta = await cliente.GetAsync($"{Ruta}/mis-cambios?desde=2020-01-01T00:00:00Z&reportante={otro}");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        await _repositorio.Received(1).CambiosDeReportanteAsync(
+            _usuario.Id,
+            Arg.Is<DateTimeOffset>(d => d >= DateTimeOffset.UtcNow.AddDays(-GestionTiquetes.DiasMisCambios).AddMinutes(-5)),
+            GestionTiquetes.MaximoMisCambios,
+            Arg.Any<CancellationToken>());
+        await _repositorio.DidNotReceive().CambiosDeReportanteAsync(otro, Arg.Any<DateTimeOffset>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await Cliente(null).GetAsync($"{Ruta}/mis-cambios")).StatusCode);
+    }
 }

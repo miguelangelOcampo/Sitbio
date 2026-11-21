@@ -4,6 +4,7 @@ using NSubstitute;
 using Sitbio.Application.Comun;
 using Sitbio.Application.Comun.Errores;
 using Sitbio.Application.Ordenes;
+using Sitbio.Application.Tiquetes;
 using Sitbio.Domain.Inventario;
 using Sitbio.Domain.Mantenimiento;
 using Sitbio.Domain.Peticiones;
@@ -31,6 +32,7 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
     private readonly Guid _otroTecnicoA = Guid.NewGuid();
     private readonly Guid _tecnicoInactivoA = Guid.NewGuid();
     private readonly Guid _tecnicoB = Guid.NewGuid();
+    private readonly Guid _clinicoA = Guid.NewGuid();
     private Guid _equipoA;
 
     private (SitbioDbContext Contexto, RepositorioOrdenes Ordenes, RepositorioTiquetes Tiquetes) Crear(Guid tenantId)
@@ -54,6 +56,7 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
             (_tecnicoA, CodigosRol.TecnicoMantenimiento, true),
             (_otroTecnicoA, CodigosRol.TecnicoMantenimiento, true),
             (_tecnicoInactivoA, CodigosRol.TecnicoMantenimiento, false),
+            (_clinicoA, CodigosRol.PersonalClinico, true),
         ]);
         await Preparar(_tenantB, [(_tecnicoB, CodigosRol.TecnicoMantenimiento, true)]);
     }
@@ -105,12 +108,12 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
         }
     }
 
-    private async Task<Guid> Reportar(string criticidad = Criticidades.Alta)
+    private async Task<Guid> Reportar(string criticidad = Criticidades.Alta, Guid? reportante = null)
     {
         var (contexto, _, tiquetes) = Crear(_tenantA);
         await using (contexto)
         {
-            var tiquete = new Tiquete(_tenantA, _equipoA, _ingenieroA, "No enciende", "Pantalla en negro", criticidad, DateTimeOffset.UtcNow);
+            var tiquete = new Tiquete(_tenantA, _equipoA, reportante ?? _ingenieroA, "No enciende", "Pantalla en negro", criticidad, DateTimeOffset.UtcNow);
             await tiquetes.RegistrarAsync(tiquete, tiquete.Recepcion(), null, CancellationToken.None);
             return tiquete.Id;
         }
@@ -373,6 +376,54 @@ public class RepositorioOrdenesPostgresTests : IAsyncLifetime
         await using (contexto)
         {
             Assert.Equal(1, await contexto.Ordenes.CountAsync(o => o.TiqueteId == tiqueteId));
+        }
+    }
+
+    // ---------- J-09: notificaciones propias y aislamiento (HU-017) ----------
+
+    [FactIntegracion(Variable)]
+    public async Task J09_MisCambios_SoloLosDeTiquetesPropiosHechosPorOtros_YDentroDeLaInstitucion()
+    {
+        var antes = DateTimeOffset.UtcNow.AddMinutes(-1);
+        await Asignar(await Reportar(reportante: _clinicoA), _tecnicoA);
+        await Asignar(await Reportar(), _otroTecnicoA); // del ingeniero, asignado por él mismo
+
+        var (contexto, _, tiquetes) = Crear(_tenantA);
+        await using (contexto)
+        {
+            var mios = await tiquetes.CambiosDeReportanteAsync(_clinicoA, antes, 50, CancellationToken.None);
+            var cambio = Assert.Single(mios);
+            Assert.Equal(
+                ("PL-OT1", "Monitor", EstadosTiquete.Recibido, EstadosTiquete.Asignado, "Carlos Ruiz"),
+                (cambio.PlacaInventario, cambio.TipoEquipo, cambio.EstadoAnterior, cambio.NuevoEstado, cambio.Usuario));
+
+            // La recepción y la asignación las hizo el mismo ingeniero: no son avisos para él.
+            Assert.Empty(await tiquetes.CambiosDeReportanteAsync(_ingenieroA, antes, 50, CancellationToken.None));
+            Assert.Empty(await tiquetes.CambiosDeReportanteAsync(_clinicoA, DateTimeOffset.UtcNow.AddMinutes(1), 50, CancellationToken.None));
+
+            // J-08: el tiquete trae el técnico y el estado de la orden que lo atiende.
+            var leido = (await tiquetes.ObtenerAsync(cambio.Codigo, _clinicoA, CancellationToken.None))!;
+            Assert.Equal(("Carlos Ruiz", EstadosOrden.Asignada), (leido.Tecnico, leido.EstadoOrden));
+        }
+
+        var (otroContexto, _, otraInstitucion) = Crear(_tenantB);
+        await using (otroContexto)
+        {
+            Assert.Empty(await otraInstitucion.CambiosDeReportanteAsync(_clinicoA, antes, 50, CancellationToken.None));
+        }
+    }
+
+    [FactIntegracion(Variable)]
+    public async Task J09_TiqueteSinOrden_NoTieneTecnicoNiOrden()
+    {
+        await Reportar(reportante: _clinicoA);
+
+        var (contexto, _, tiquetes) = Crear(_tenantA);
+        await using (contexto)
+        {
+            var (lista, _) = await tiquetes.ListarAsync(new FiltroTiquetes(null, null), _clinicoA, CancellationToken.None);
+            var leido = Assert.Single(lista);
+            Assert.Equal((null, null), (leido.Tecnico, leido.EstadoOrden));
         }
     }
 }
